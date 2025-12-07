@@ -1,0 +1,13 @@
+# .coderabbit.yaml
+version: "0.1"
+language: "ko-KR" # 한국어로 리뷰 받기
+reviews:
+  profile: "chill" # 너무 깐깐하지 않고 적당한 수준
+  high_level_summary: true # 전체 요약 제공
+  auto_review:
+    enabled: true
+    ignore_title_keywords:
+      - "WIP"
+      - "Draft"
+chat:
+  auto_reply: true # 대댓글 기능 활성화
