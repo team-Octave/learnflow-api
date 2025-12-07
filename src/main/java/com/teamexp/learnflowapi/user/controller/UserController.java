@@ -4,6 +4,7 @@ import com.teamexp.learnflowapi.global.response.BaseResponse;
 import com.teamexp.learnflowapi.user.controller.dto.UserCreateRequest;
 import com.teamexp.learnflowapi.user.service.UserService;
 import jakarta.validation.Valid;
+import jakarta.validation.constraints.NotBlank;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
@@ -35,7 +36,7 @@ public class UserController {
     }
 
     @GetMapping("/check")
-    public ResponseEntity<BaseResponse<?>> checkNickname(@RequestParam(name = "nickname") String nickname) {
+    public ResponseEntity<BaseResponse<?>> checkNickname(@RequestParam(name = "nickname") @NotBlank String nickname) {
         boolean existsNickname = userService.checkNickname(nickname);
         return ResponseEntity.ok(BaseResponse.ok(existsNickname));
     }
