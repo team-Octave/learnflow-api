@@ -50,6 +50,7 @@ public class Review {
     // 생성자 인자 수정
     private Review(Enrollment enrollment, String content, Integer rating) {
         validateRating(rating);
+        this.enrollment = enrollment;
         this.content = content;
         this.rating = rating;
         this.status = ReviewStatus.POSTED;

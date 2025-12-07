@@ -11,6 +11,7 @@ import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.domain.Sort;
 import org.springframework.data.web.PageableDefault;
+import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.*;
@@ -35,7 +36,10 @@ public class ReviewController {
         String userId = principal.getId();
 
         ReviewResponse response = reviewService.createReview(userId, request);
-        return ResponseEntity.ok(BaseResponse.ok(response));
+        return ResponseEntity
+            .status(HttpStatus.CREATED)
+            .body(BaseResponse.ok(response));
+
     }
 
     // 2. 강의별 리뷰 조회 (공개 API)
@@ -79,6 +83,9 @@ public class ReviewController {
     ) {
         String userId = principal.getId();
         reviewService.addReply(userId, reviewId, request.replyContent());
-        return ResponseEntity.ok(BaseResponse.ok(null));
+        return ResponseEntity
+            .status(HttpStatus.CREATED)
+            .body(BaseResponse.ok(null));
+
     }
 }
