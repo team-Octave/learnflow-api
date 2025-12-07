@@ -1,4 +1,4 @@
-package com.teamexp.learnflowapi.user.config.jwt;
+package com.teamexp.learnflowapi.global.security.jwt;
 
 import io.jsonwebtoken.Claims;
 import jakarta.servlet.FilterChain;

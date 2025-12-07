@@ -1,4 +1,4 @@
-package com.teamexp.learnflowapi.user.config;
+package com.teamexp.learnflowapi.global.config;
 
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;

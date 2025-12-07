@@ -1,7 +1,8 @@
 package com.teamexp.learnflowapi.user.service;
 
-import com.teamexp.learnflowapi.user.config.PasswordConfig;
+import com.teamexp.learnflowapi.global.config.PasswordConfig;
 import com.teamexp.learnflowapi.user.controller.dto.UserCreateRequest;
+import com.teamexp.learnflowapi.user.exception.EmailDuplicatedException;
 import com.teamexp.learnflowapi.user.model.User;
 import com.teamexp.learnflowapi.user.model.vo.UserRole;
 import com.teamexp.learnflowapi.user.repository.UserRepository;
@@ -23,18 +24,18 @@ public class UserService {
 
     @Transactional
     public void register(UserCreateRequest request) {
-        boolean existsEmail = userRepository.existsByEmail(request.email());
-        if (existsEmail) {
-            // TODO : Global Exception으로 변경
-            throw new IllegalArgumentException("이미 사용 중인 이메일입니다.");
+        if (userRepository.existsByEmail(request.email())) {
+            throw new EmailDuplicatedException();
         }
 
         // password 암호화
         String encodedPassword = passwordConfig.passwordEncoder().encode(request.password());
 
 
-        // TODO : user의 Role은 Member밖에 없는 상황
-        User user = User.createUser(request.nickname(), request.email(), encodedPassword, UserRole.MEMBER);
+        // TODO : 현재 user의 Role은 Member밖에 없는 상황
+        User user = User.createUser(request.email(), encodedPassword,request.nickname(), UserRole.MEMBER);
+
+        userRepository.save(user);
 
     }
 }

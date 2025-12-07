@@ -1,6 +1,6 @@
 package com.teamexp.learnflowapi.user.service;
 
-import com.teamexp.learnflowapi.user.config.CustomUserPrincipal;
+import com.teamexp.learnflowapi.global.security.principal.CustomUserPrincipal;
 import com.teamexp.learnflowapi.user.model.User;
 import com.teamexp.learnflowapi.user.repository.UserRepository;
 import org.springframework.security.core.userdetails.UserDetails;

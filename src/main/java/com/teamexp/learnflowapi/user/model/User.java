@@ -3,34 +3,33 @@ package com.teamexp.learnflowapi.user.model;
 import com.teamexp.learnflowapi.user.model.vo.UserRole;
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
+import jakarta.persistence.EntityListeners;
 import jakarta.persistence.EnumType;
 import jakarta.persistence.Enumerated;
 import jakarta.persistence.GeneratedValue;
 import jakarta.persistence.GenerationType;
 import jakarta.persistence.Id;
 import jakarta.persistence.Table;
+import java.time.Instant;
 import java.util.Collection;
-import java.util.UUID;
-import lombok.Getter;
-import org.hibernate.annotations.SQLDelete;
 import java.util.List;
 
-import java.time.OffsetDateTime;
-import org.hibernate.annotations.SQLRestriction;
+import org.springframework.data.annotation.CreatedDate;
+import org.springframework.data.annotation.LastModifiedDate;
+import org.springframework.data.jpa.domain.support.AuditingEntityListener;
 import org.springframework.security.core.GrantedAuthority;
 import org.springframework.security.core.authority.SimpleGrantedAuthority;
 import org.springframework.security.core.userdetails.UserDetails;
 
-@Getter
 @Entity
+@EntityListeners(AuditingEntityListener.class)
 @Table(name = "users")
-@SQLDelete(sql = "UPDATE users SET del_flag = true WHERE user_id = ?")
 public class User implements UserDetails {
 
     @Id
     @GeneratedValue(strategy = GenerationType.UUID)
     @Column(name = "user_id")
-    private String userId;
+    private String userId; // 성능 측면에서는 UUID 객체로 관리하는 것이 효율적이긴 하지만, DB에 저장하거나 Json으로 응답하기에는 String이 편하다고 함.
 
     @Column(name = "nickname", nullable = false)
     private String nickname;
@@ -45,11 +44,13 @@ public class User implements UserDetails {
     @Column(name = "role", nullable = false)
     private UserRole role;
 
-    @Column(name = "created_at", nullable = false)
-    private OffsetDateTime createdAt;
+    @CreatedDate
+    @Column(name = "created_at", columnDefinition = "TIMESTAMP", nullable = false, updatable = false)
+    private Instant createdAt;
 
-    @Column(name = "updated_at", nullable = false)
-    private OffsetDateTime updatedAt;
+    @LastModifiedDate
+    @Column(name = "updated_at", columnDefinition = "TIMESTAMP", nullable = false)
+    private Instant updatedAt;
 
     @Column(name = "del_flag", nullable = false)
     private Boolean delFlag = false;
@@ -62,8 +63,6 @@ public class User implements UserDetails {
         this.email = email;
         this.password = password;
         this.role = role;
-        this.createdAt = OffsetDateTime.now();
-        this.updatedAt = OffsetDateTime.now();
         this.delFlag = false;
     }
 
@@ -98,4 +97,32 @@ public class User implements UserDetails {
 
     @Override
     public boolean isEnabled() { return true; }
+
+    public String getUserId() {
+        return userId;
+    }
+
+    public String getNickname() {
+        return nickname;
+    }
+
+    public String getEmail() {
+        return email;
+    }
+
+    public UserRole getRole() {
+        return role;
+    }
+
+    public Instant getCreatedAt() {
+        return createdAt;
+    }
+
+    public Instant getUpdatedAt() {
+        return updatedAt;
+    }
+
+    public Boolean getDelFlag() {
+        return delFlag;
+    }
 }
