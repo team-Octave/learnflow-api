@@ -43,5 +43,9 @@ out/
 
 ### Spring Boot local properties ###
 application.yml
+application.yaml
 application-local.yml
 application-local.properties
+
+### Shell Script Files ###
+*.sh
