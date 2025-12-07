@@ -11,6 +11,8 @@ import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.domain.Sort;
 import org.springframework.data.web.PageableDefault;
+import org.springframework.http.HttpStatus;
+import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.*;
 
@@ -26,7 +28,7 @@ public class ReviewController {
 
     // 1. 수강평 작성
     @PostMapping
-    public BaseResponse<ReviewResponse> createReview(
+    public ResponseEntity<BaseResponse<ReviewResponse>> createReview(
         @AuthenticationPrincipal CustomUserPrincipal principal,
         @Valid @RequestBody ReviewRequest request
     ) {
@@ -34,50 +36,56 @@ public class ReviewController {
         String userId = principal.getId();
 
         ReviewResponse response = reviewService.createReview(userId, request);
-        return BaseResponse.ok(response);
+        return ResponseEntity
+            .status(HttpStatus.CREATED)
+            .body(BaseResponse.ok(response));
+
     }
 
     // 2. 강의별 리뷰 조회 (공개 API)
     @GetMapping("/lectures/{lectureId}")
-    public BaseResponse<Page<ReviewResponse>> getReviewsByLecture(
+    public ResponseEntity<BaseResponse<Page<ReviewResponse>>> getReviewsByLecture(
         @PathVariable Long lectureId,
         @PageableDefault(size = 10, sort = "createdAt", direction = Sort.Direction.DESC) Pageable pageable
     ) {
         Page<ReviewResponse> response = reviewService.getReviewsByLecture(lectureId, pageable);
-        return BaseResponse.ok(response);
+        return ResponseEntity.ok(BaseResponse.ok(response));
     }
 
     // 3. 내 리뷰 조회 (마이페이지)
     @GetMapping("/my")
-    public BaseResponse<Page<ReviewResponse>> getMyReviews(
+    public ResponseEntity<BaseResponse<Page<ReviewResponse>>> getMyReviews(
         @AuthenticationPrincipal CustomUserPrincipal principal,
         @PageableDefault(size = 10, sort = "createdAt", direction = Sort.Direction.DESC) Pageable pageable
     ) {
         String userId = principal.getId();
         Page<ReviewResponse> response = reviewService.getMyReviews(userId, pageable);
-        return BaseResponse.ok(response);
+        return ResponseEntity.ok(BaseResponse.ok(response));
     }
 
-    // [New] 수강평 삭제
+    // 4. 수강평 삭제
     @DeleteMapping("/{reviewId}")
-    public BaseResponse<Void> deleteReview(
+    public ResponseEntity<BaseResponse<Void>> deleteReview(
         @AuthenticationPrincipal CustomUserPrincipal principal,
         @PathVariable Long reviewId
     ) {
         String userId = principal.getId();
         reviewService.deleteReview(userId, reviewId);
-        return BaseResponse.ok(null);
+        return ResponseEntity.ok(BaseResponse.ok(null));
     }
 
-    // [New] 강사 답글 등록
+    // 5. 강사 답글 등록
     @PostMapping("/{reviewId}/reply")
-    public BaseResponse<Void> addReply(
+    public ResponseEntity<BaseResponse<Void>> addReply(
         @AuthenticationPrincipal CustomUserPrincipal principal,
         @PathVariable Long reviewId,
         @Valid @RequestBody ReviewReplyRequest request
     ) {
         String userId = principal.getId();
         reviewService.addReply(userId, reviewId, request.replyContent());
-        return BaseResponse.ok(null);
+        return ResponseEntity
+            .status(HttpStatus.CREATED)
+            .body(BaseResponse.ok(null));
+
     }
 }
