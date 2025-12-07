@@ -1,6 +1,6 @@
-package com.teamexp.learnflowapi.user.config;
+package com.teamexp.learnflowapi.global.config;
 
-import com.teamexp.learnflowapi.user.config.jwt.JwtAuthenticationFilter;
+import com.teamexp.learnflowapi.global.security.jwt.JwtAuthenticationFilter;
 import com.teamexp.learnflowapi.user.service.CustomUserDetailsService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.context.annotation.Bean;
@@ -11,7 +11,6 @@ import org.springframework.security.config.annotation.web.builders.HttpSecurity;
 import org.springframework.security.config.annotation.web.configuration.EnableWebSecurity;
 import org.springframework.security.config.annotation.web.configurers.AbstractHttpConfigurer;
 import org.springframework.security.config.http.SessionCreationPolicy;
-import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.security.web.SecurityFilterChain;
 import org.springframework.security.web.authentication.UsernamePasswordAuthenticationFilter;
 

@@ -1,5 +1,6 @@
 package com.teamexp.learnflowapi.user.controller;
 
+import com.teamexp.learnflowapi.global.response.BaseResponse;
 import com.teamexp.learnflowapi.user.controller.dto.UserCreateRequest;
 import com.teamexp.learnflowapi.user.service.UserService;
 import jakarta.validation.Valid;
@@ -23,16 +24,11 @@ public class UserController {
     }
 
     @PostMapping
-    public ResponseEntity<Void> createUser(@Valid @RequestBody UserCreateRequest request) {
+    public ResponseEntity<BaseResponse<Void>> createUser(@Valid @RequestBody UserCreateRequest request) {
         userService.register(request);
-        return ResponseEntity.ok().build();
-    }
 
-//    @PostMapping
-//    public ResponseEntity<BaseResponse<Void>> createUser(@Valid @RequestBody UserCreateRequest request) {
-//        userService.register(request);
-//        return ResponseEntity
-//                .status(HttpStatus.CREATED)
-//                .body(BaseResponse.success());
-//    }
+        return ResponseEntity
+                .status(HttpStatus.CREATED)
+                .body(BaseResponse.ok(null));
+    }
 }

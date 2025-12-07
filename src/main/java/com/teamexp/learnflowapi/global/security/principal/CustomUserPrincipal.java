@@ -1,16 +1,13 @@
-package com.teamexp.learnflowapi.user.config;
+package com.teamexp.learnflowapi.global.security.principal;
 
 import com.teamexp.learnflowapi.user.model.User;
 import com.teamexp.learnflowapi.user.model.vo.UserRole;
 import java.util.Collection;
-import java.util.UUID;
-import lombok.Getter;
 import org.springframework.security.core.GrantedAuthority;
 import org.springframework.security.core.authority.SimpleGrantedAuthority;
 import org.springframework.security.core.userdetails.UserDetails;
 import java.util.List;
 
-@Getter
 public class CustomUserPrincipal implements UserDetails {
 
     private final String id;
@@ -33,5 +30,22 @@ public class CustomUserPrincipal implements UserDetails {
     @Override
     public String getUsername() {
         return email;
+    }
+
+    public String getId() {
+        return id;
+    }
+
+    public String getEmail() {
+        return email;
+    }
+
+    @Override
+    public String getPassword() {
+        return password;
+    }
+
+    public UserRole getRole() {
+        return role;
     }
 }
