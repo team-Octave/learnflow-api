@@ -47,14 +47,15 @@ public class ReviewService {
         //     throw new IllegalStateException("본인의 강의에는 리뷰를 작성할 수 없습니다.");
         // }
 
-        // 3. 중복 작성 방지
-        if (reviewRepository.existsByUserIdAndLectureId(userId, request.lectureId())) {
+        // 3. 수강생 검증 (Enrollment 존재 여부)
+        Enrollment enrollment = enrollmentRepository.findByUserIdAndLectureId(userId, request.lectureId())
+            .orElseThrow(() -> new IllegalStateException("수강 신청하지 않은 강의입니다."));
+
+        // 4. 중복 작성 방지
+        if (reviewRepository.existsByEnrollment(enrollment)) {
             throw new IllegalStateException("이미 해당 강의에 대한 리뷰를 작성하셨습니다.");
         }
 
-        // 4. 수강생 검증 (Enrollment 존재 여부)
-        Enrollment enrollment = enrollmentRepository.findByUserIdAndLectureId(userId, request.lectureId())
-            .orElseThrow(() -> new IllegalStateException("수강 신청하지 않은 강의입니다."));
 
         // 5. 진도율 검증 (완료된 Lesson 3개 이상)
         int completedCount = completedLessonRepository.countByEnrollmentId(enrollment.getId());
@@ -63,7 +64,8 @@ public class ReviewService {
         }
 
         // 6. 리뷰 저장
-        Review review = Review.create(userId, request.lectureId(), request.content(), request.rating());
+        // 변경 Enrollment 객체 주입
+        Review review = Review.create(enrollment, request.content(), request.rating());
         Review savedReview = reviewRepository.save(review);
 
         // 7. DTO 변환 (닉네임 임시 처리)
@@ -74,7 +76,7 @@ public class ReviewService {
     // 2. 강의별 리뷰 조회
     public Page<ReviewResponse> getReviewsByLecture(Long lectureId, Pageable pageable) {
         // 1. POSTED 상태인 리뷰만 페이징 조회
-        Page<Review> reviewPage = reviewRepository.findByLectureIdAndStatus(
+        Page<Review> reviewPage = reviewRepository.findByEnrollment_LectureIdAndStatus(
             lectureId,
             ReviewStatus.POSTED,
             pageable
@@ -90,7 +92,7 @@ public class ReviewService {
     // 3. 내 리뷰 조회
     public Page<ReviewResponse> getMyReviews(String userId, Pageable pageable) {
         // 1. 내 리뷰 조회 (필터링 없이 모두 조회)
-        Page<Review> reviewPage = reviewRepository.findByUserId(userId, pageable);
+        Page<Review> reviewPage = reviewRepository.findByEnrollment_UserId(userId, pageable);
 
         // 2. DTO 변환 (내 닉네임은 "Me"로 표시)
         return reviewPage.map(review -> {
