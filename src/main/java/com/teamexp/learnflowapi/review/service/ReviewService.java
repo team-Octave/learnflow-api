@@ -34,6 +34,7 @@ public class ReviewService {
         this.completedLessonRepository = completedLessonRepository;
     }
 
+    // 1. 수강평 작성
     @Transactional
     public ReviewResponse createReview(String userId, ReviewRequest request) {
         // 1. 강의 존재 확인
@@ -70,7 +71,7 @@ public class ReviewService {
         return ReviewResponse.of(savedReview, tempNickname);
     }
 
-    // [New] 강의별 리뷰 조회
+    // 2. 강의별 리뷰 조회
     public Page<ReviewResponse> getReviewsByLecture(Long lectureId, Pageable pageable) {
         // 1. POSTED 상태인 리뷰만 페이징 조회
         Page<Review> reviewPage = reviewRepository.findByLectureIdAndStatus(
@@ -86,9 +87,9 @@ public class ReviewService {
         });
     }
 
-    // [New] 내 리뷰 조회
+    // 3. 내 리뷰 조회
     public Page<ReviewResponse> getMyReviews(String userId, Pageable pageable) {
-        // 1. 내 리뷰 조회 (상태 필터링 없이 모두 조회)
+        // 1. 내 리뷰 조회 (필터링 없이 모두 조회)
         Page<Review> reviewPage = reviewRepository.findByUserId(userId, pageable);
 
         // 2. DTO 변환 (내 닉네임은 "Me"로 표시)
@@ -96,5 +97,38 @@ public class ReviewService {
             String tempNickname = "Me";
             return ReviewResponse.of(review, tempNickname);
         });
+    }
+
+    // 4. 수강평 삭제
+    @Transactional
+    public void deleteReview(String userId, Long reviewId) {
+        Review review = reviewRepository.findById(reviewId)
+            .orElseThrow(() -> new IllegalArgumentException("존재하지 않는 리뷰입니다."));
+
+        // 작성자 본인 확인
+        if (!review.getUserId().equals(userId)) {
+            throw new IllegalStateException("본인의 리뷰만 삭제할 수 있습니다.");
+        }
+
+        // Hard Delete
+        reviewRepository.delete(review);
+    }
+
+    // 5. 강사 답글 등록
+    @Transactional
+    public void addReply(String userId, Long reviewId, String replyContent) {
+        Review review = reviewRepository.findById(reviewId)
+            .orElseThrow(() -> new IllegalArgumentException("존재하지 않는 리뷰입니다."));
+
+        Lecture lecture = lectureRepository.findById(review.getLectureId())
+            .orElseThrow(() -> new IllegalArgumentException("존재하지 않는 강의입니다."));
+
+        // 강의 생성자 검증 (Ownership)
+        // TODO: Lecture 엔티티의 getInstructorId()가 String을 반환하도록 구현되어야 함
+        // if (!lecture.getInstructorId().equals(userId)) {
+        //     throw new IllegalStateException("해당 강의의 생성자만 답글을 달 수 있습니다.");
+        // }
+
+        review.reply(replyContent);
     }
 }
