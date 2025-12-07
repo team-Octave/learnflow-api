@@ -1,5 +1,4 @@
 # .coderabbit.yaml
-version: "0.1"
 language: "ko-KR" # 한국어로 리뷰 받기
 reviews:
   profile: "chill" # 너무 깐깐하지 않고 적당한 수준
