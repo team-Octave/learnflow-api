@@ -29,9 +29,11 @@ public class EnrollmentController {
         return ResponseEntity.status(HttpStatus.CREATED).body(BaseResponse.ok(enrollmentService.createEnrollment(request)));
     }
 
+//  TODO @Authorization userID 추출
     @GetMapping
     public ResponseEntity<BaseResponse<List<EnrollmentResponse>>> getEnrollments(@Valid @RequestBody GetEnrollmentRequest request) {
 
+//      TODO return ResponseEntity.ok(BaseResponse.ok(enrollmentService.getEnrollments(request)))
         return ResponseEntity.ok().body(BaseResponse.ok(enrollmentService.getEnrollments(request)));
     }
 
