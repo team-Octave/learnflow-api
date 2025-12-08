@@ -33,7 +33,7 @@ public class EnrollmentService {
     // 1. 수강 생성
     public EnrollmentResponse createEnrollment(String userId , EnrollmentRequest request) {
 
-        if (!enrollmentRepository.existsByUserIdAndLectureId(userId, request.lectureId())) {
+        if (enrollmentRepository.existsByUserIdAndLectureId(userId, request.lectureId())) {
             throw new EnrollmentAlreadyExistsException();
         }
 
