@@ -1,5 +1,6 @@
 package com.teamexp.learnflowapi.enrollment.controller;
 
+import com.teamexp.learnflowapi.enrollment.dto.CreateCompletedLessonRequest;
 import com.teamexp.learnflowapi.enrollment.dto.DecidedEnrollmentRequest;
 import com.teamexp.learnflowapi.enrollment.dto.EnrollmentRequest;
 import com.teamexp.learnflowapi.enrollment.dto.EnrollmentResponse;
@@ -43,6 +44,13 @@ public class EnrollmentController {
     @PostMapping("/select-enrollment")
     public ResponseEntity<Void> selectEnrollment(@Valid @RequestBody DecidedEnrollmentRequest request) {
         enrollmentService.updateEnrollment(request);
+        return ResponseEntity.ok().build();
+    }
+
+    // TODO 컨트롤러 분할(?)
+    @PostMapping("/complete-lesson")
+    public ResponseEntity<Void> completeLesson(@Valid @RequestBody CreateCompletedLessonRequest request) {
+        enrollmentService.createCompletedLesson(request);
         return ResponseEntity.ok().build();
     }
 }
