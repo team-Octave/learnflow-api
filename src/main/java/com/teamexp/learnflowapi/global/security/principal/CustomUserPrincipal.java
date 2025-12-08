@@ -11,12 +11,14 @@ import java.util.List;
 public class CustomUserPrincipal implements UserDetails {
 
     private final String id;
+    private final String nickname;
     private final String email;
     private final String password;
     private final UserRole role;
 
     public CustomUserPrincipal(User user) {
         this.id = user.getUserId();
+        this.nickname = user.getNickname();
         this.email = user.getEmail();
         this.password = user.getPassword();
         this.role = user.getRole();
@@ -47,5 +49,9 @@ public class CustomUserPrincipal implements UserDetails {
 
     public UserRole getRole() {
         return role;
+    }
+
+    public String getNickname() {
+        return nickname;
     }
 }
