@@ -6,7 +6,7 @@ import com.teamexp.learnflowapi.enrollment.model.EnrollmentStatus;
 import java.time.Instant;
 
 public record EnrollmentResponse(
-        Long userId,
+        String userId,
         Long lectureId,
         EnrollmentStatus enrollmentStatus,
         Integer progress,
