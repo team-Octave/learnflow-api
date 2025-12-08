@@ -13,7 +13,7 @@ import java.time.Instant;
         @UniqueConstraint(columnNames = {"user_id", "lecture_id"})  //복합키
 })
 public class Enrollment {
-
+// TODO 썸네일도 필요함 refactor로 수정 예정, userId Long -> String 수정 예정
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     @Column(name = "enrollment_id")
@@ -54,9 +54,13 @@ public class Enrollment {
         this.progress = 0;
     }
 
-    // 팩토리 메서드
+    // 인스턴스 객체 생성
     public static Enrollment create(Long userId, Long lectureId) {
         return new Enrollment(userId, lectureId);
+    }
+
+    public void update() {
+        this.updatedAt = Instant.now();
     }
 
     public Long getId() {

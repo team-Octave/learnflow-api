@@ -7,6 +7,9 @@ import com.teamexp.learnflowapi.lecture.model.Lecture;
 import com.teamexp.learnflowapi.lecture.repository.LectureRepository;
 import com.teamexp.learnflowapi.review.dto.ReviewRequest;
 import com.teamexp.learnflowapi.review.dto.ReviewResponse;
+import com.teamexp.learnflowapi.review.exception.NotMyReviewException;
+import com.teamexp.learnflowapi.review.exception.ReviewAlreadyExistsException;
+import com.teamexp.learnflowapi.review.exception.ReviewNotFoundException;
 import com.teamexp.learnflowapi.review.model.Review;
 import com.teamexp.learnflowapi.review.model.ReviewStatus;
 import com.teamexp.learnflowapi.review.repository.ReviewRepository;
@@ -53,7 +56,7 @@ public class ReviewService {
 
         // 4. 중복 작성 방지
         if (reviewRepository.existsByEnrollment(enrollment)) {
-            throw new IllegalStateException("이미 해당 강의에 대한 리뷰를 작성하셨습니다.");
+            throw new ReviewAlreadyExistsException();
         }
 
 
@@ -105,11 +108,11 @@ public class ReviewService {
     @Transactional
     public void deleteReview(String userId, Long reviewId) {
         Review review = reviewRepository.findById(reviewId)
-            .orElseThrow(() -> new IllegalArgumentException("존재하지 않는 리뷰입니다."));
+            .orElseThrow(ReviewNotFoundException::new);
 
         // 작성자 본인 확인
         if (!review.getUserId().equals(userId)) {
-            throw new IllegalStateException("본인의 리뷰만 삭제할 수 있습니다.");
+            throw new NotMyReviewException();
         }
 
         // Hard Delete
@@ -120,7 +123,7 @@ public class ReviewService {
     @Transactional
     public void addReply(String userId, Long reviewId, String replyContent) {
         Review review = reviewRepository.findById(reviewId)
-            .orElseThrow(() -> new IllegalArgumentException("존재하지 않는 리뷰입니다."));
+            .orElseThrow(ReviewNotFoundException::new);
 
         Lecture lecture = lectureRepository.findById(review.getLectureId())
             .orElseThrow(() -> new IllegalArgumentException("존재하지 않는 강의입니다."));
