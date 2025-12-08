@@ -1,11 +1,11 @@
 package com.teamexp.learnflowapi.review.controller;
 
 import com.teamexp.learnflowapi.global.response.BaseResponse;
+import com.teamexp.learnflowapi.global.security.principal.CustomUserPrincipal;
 import com.teamexp.learnflowapi.review.dto.ReviewReplyRequest;
 import com.teamexp.learnflowapi.review.dto.ReviewRequest;
 import com.teamexp.learnflowapi.review.dto.ReviewResponse;
 import com.teamexp.learnflowapi.review.service.ReviewService;
-import com.teamexp.learnflowapi.user.config.CustomUserPrincipal;
 import jakarta.validation.Valid;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
