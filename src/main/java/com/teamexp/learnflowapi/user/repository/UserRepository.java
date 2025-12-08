@@ -1,4 +1,16 @@
 package com.teamexp.learnflowapi.user.repository;
 
-public interface UserRepository {
+import com.teamexp.learnflowapi.user.model.User;
+import java.util.Optional;
+import org.springframework.data.jpa.repository.JpaRepository;
+import org.springframework.stereotype.Repository;
+
+@Repository
+public interface UserRepository extends JpaRepository<User, String> {
+
+    boolean existsByEmail(String email);
+
+    boolean existsByNickname(String nickname);
+
+    Optional<User> findByEmail(String email);
 }
