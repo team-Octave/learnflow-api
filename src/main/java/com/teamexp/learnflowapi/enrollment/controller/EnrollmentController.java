@@ -3,12 +3,13 @@ package com.teamexp.learnflowapi.enrollment.controller;
 import com.teamexp.learnflowapi.enrollment.dto.DecidedEnrollmentRequest;
 import com.teamexp.learnflowapi.enrollment.dto.EnrollmentRequest;
 import com.teamexp.learnflowapi.enrollment.dto.EnrollmentResponse;
-import com.teamexp.learnflowapi.enrollment.dto.GetEnrollmentRequest;
 import com.teamexp.learnflowapi.enrollment.service.EnrollmentService;
 import com.teamexp.learnflowapi.global.response.BaseResponse;
+import com.teamexp.learnflowapi.global.security.principal.CustomUserPrincipal;
 import jakarta.validation.Valid;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
@@ -24,21 +25,23 @@ public class EnrollmentController {
     }
 
     @PostMapping
-    public ResponseEntity<BaseResponse<EnrollmentResponse>> create(@Valid @RequestBody EnrollmentRequest request) {
+    public ResponseEntity<BaseResponse<EnrollmentResponse>> createEnrollment(@AuthenticationPrincipal CustomUserPrincipal principal,
+                                                                             @Valid @RequestBody EnrollmentRequest request) {
 
-        return ResponseEntity.status(HttpStatus.CREATED).body(BaseResponse.ok(enrollmentService.createEnrollment(request)));
+        return ResponseEntity.status(HttpStatus.CREATED)
+                .body(BaseResponse
+                        .ok(enrollmentService.createEnrollment(principal.getId(), request)));
     }
 
-//  TODO @Authorization userID 추출
     @GetMapping
-    public ResponseEntity<BaseResponse<List<EnrollmentResponse>>> getEnrollments(@Valid @RequestBody GetEnrollmentRequest request) {
+    public ResponseEntity<BaseResponse<List<EnrollmentResponse>>> getEnrollment(@AuthenticationPrincipal CustomUserPrincipal principal) {
 
-//      TODO return ResponseEntity.ok(BaseResponse.ok(enrollmentService.getEnrollments(request)))
-        return ResponseEntity.ok().body(BaseResponse.ok(enrollmentService.getEnrollments(request)));
+        return ResponseEntity.ok(BaseResponse.ok(enrollmentService.getEnrollments(principal.getId())));
     }
 
-    @PostMapping("/click")
-    public ResponseEntity<Void> click(@Valid @RequestBody DecidedEnrollmentRequest request) {
+    // TODO 테스트용
+    @PostMapping("/select-enrollment")
+    public ResponseEntity<Void> selectEnrollment(@Valid @RequestBody DecidedEnrollmentRequest request) {
         enrollmentService.updateEnrollment(request);
         return ResponseEntity.ok().build();
     }

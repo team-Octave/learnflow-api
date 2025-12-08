@@ -3,7 +3,8 @@ package com.teamexp.learnflowapi.enrollment.service;
 import com.teamexp.learnflowapi.enrollment.dto.DecidedEnrollmentRequest;
 import com.teamexp.learnflowapi.enrollment.dto.EnrollmentRequest;
 import com.teamexp.learnflowapi.enrollment.dto.EnrollmentResponse;
-import com.teamexp.learnflowapi.enrollment.dto.GetEnrollmentRequest;
+import com.teamexp.learnflowapi.enrollment.exception.EnrollmentAlreadyExistsException;
+import com.teamexp.learnflowapi.enrollment.exception.EnrollmentNotFoundException;
 import com.teamexp.learnflowapi.enrollment.model.Enrollment;
 import com.teamexp.learnflowapi.enrollment.repository.EnrollmentRepository;
 import org.springframework.stereotype.Service;
@@ -29,25 +30,23 @@ public class EnrollmentService {
         this.enrollmentRepository = enrollmentRepository;
     }
 
-    // 수강 생성
-    public EnrollmentResponse createEnrollment(EnrollmentRequest request) {
+    // 1. 수강 생성
+    public EnrollmentResponse createEnrollment(String userId , EnrollmentRequest request) {
 
-        // 수강이 되있는지 확인, exist로 리팩토링 예정
-        if (enrollmentRepository.findByUserIdAndLectureId(request.userId(), request.lectureId()).isPresent()) {
-//          TODO 예외 처리 수정 예정
-            throw new IllegalStateException("Enrollment already exists");
+        if (enrollmentRepository.existsByUserIdAndLectureId(userId, request.lectureId())) {
+            throw new EnrollmentAlreadyExistsException();
         }
 
-        Enrollment newEnrollment = enrollmentRepository.save(Enrollment.create(request.userId(), request.lectureId()));
+        Enrollment newEnrollment = enrollmentRepository.save(Enrollment.create(userId, request.lectureId()));
 
 //      TODO 생성된 Enrollment 확인(테스트), 반환 값 수정 예정
         return EnrollmentResponse.from(newEnrollment);
     }
 
     // 2. 현재 수강중인 강좌 목록 조회
-    public List<EnrollmentResponse> getEnrollments(GetEnrollmentRequest request) {
+    public List<EnrollmentResponse> getEnrollments(String userId) {
 
-        List<Enrollment> enrollments = enrollmentRepository.findByUserId(request.userId());
+        List<Enrollment> enrollments = enrollmentRepository.findByUserId(userId);
 
         return enrollments.stream().map(EnrollmentResponse::from).toList();
     }
@@ -55,7 +54,7 @@ public class EnrollmentService {
     public void updateEnrollment(DecidedEnrollmentRequest request) {
 
         Enrollment enrollment = enrollmentRepository.findById(request.enrollmentId())
-                .orElseThrow(() -> new IllegalStateException("Enrollment not found"));
+                .orElseThrow(EnrollmentNotFoundException::new);
 
         enrollment.update();
     }
