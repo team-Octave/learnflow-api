@@ -1,11 +1,13 @@
 package com.teamexp.learnflowapi.enrollment.model;
 
 import jakarta.persistence.*;
+import lombok.Getter;
 import org.springframework.data.annotation.CreatedDate;
 import org.springframework.data.jpa.domain.support.AuditingEntityListener;
 
 import java.time.Instant;
 
+@Getter
 @Entity
 @EntityListeners(AuditingEntityListener.class)
 @Table(name = "completed_lesson", uniqueConstraints = {
@@ -31,23 +33,12 @@ public class CompletedLesson {
     protected CompletedLesson() {}
 
     private CompletedLesson(Long enrollmentId, Long lessonId) {
-//      TODO 예외 처리 협의 후 수정 예정
-        if (enrollmentId == null || enrollmentId <= 0) throw new IllegalArgumentException("enrollmentId cannot be null or zero or negative");
-        if (lessonId == null || lessonId <= 0) throw new IllegalArgumentException("lessonId cannot be null or zero or negative");
-
         this.enrollmentId = enrollmentId;
         this.lessonId = lessonId;
     }
 
-    public Long getId() {
-        return id;
+    public static CompletedLesson createCompletedLesson(Long enrollmentId, Long lessonId) {
+        return new CompletedLesson(enrollmentId, lessonId);
     }
 
-    public Long getEnrollmentId() {
-        return enrollmentId;
-    }
-
-    public Long getLessonId() {
-        return lessonId;
-    }
 }
