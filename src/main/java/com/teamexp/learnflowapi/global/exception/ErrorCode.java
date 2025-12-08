@@ -11,13 +11,15 @@ public enum ErrorCode {
     FORBIDDEN(HttpStatus.FORBIDDEN, "권한이 없습니다."),
 
     // User 도메인 관련
-    EMAIL_DUPLICATED(HttpStatus.CONFLICT, "이미 사용 중인 이메일입니다.");
+    EMAIL_DUPLICATED(HttpStatus.CONFLICT, "이미 사용 중인 이메일입니다."),
 
     // Lecture 도메인 관련
 
     // Content 도메인 관련
 
     // Enrollment 도메인 관련
+    ENROLLMENT_ALREADY_EXISTS(HttpStatus.CONFLICT, "이미 수강신청이 완료된 강좌입니다."),
+    ENROLLMENT_NOT_FOUND(HttpStatus.NOT_FOUND, "수강 정보를 찾을 수 없습니다."),
 
     // Review 도메인 관련
 
