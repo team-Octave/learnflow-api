@@ -1,12 +1,15 @@
 package com.teamexp.learnflowapi.content.service;
 
 import com.teamexp.learnflowapi.content.dto.PresignedUrlResponse;
+import com.teamexp.learnflowapi.content.model.ContentMedia;
 import com.teamexp.learnflowapi.content.repository.ContentMediaRepository;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
 import java.net.URL;
 import java.time.Duration;
+import java.util.Optional;
 
 @Service
 @RequiredArgsConstructor
@@ -25,5 +28,19 @@ public class ContentMediaService {
         );
 
         return new PresignedUrlResponse(url.toString(), key);
+    }
+
+    @Transactional
+    public void saveOrUpdateVideo(Long lessonId, String fileKey, Integer durationSec) {
+        ContentMedia media = contentMediaRepository.findByLessonId(lessonId)
+                .orElseGet(() -> new ContentMedia(lessonId, fileKey, durationSec));
+
+        media.changeFile(fileKey, durationSec);
+        contentMediaRepository.save(media);
+    }
+
+    @Transactional(readOnly = true)
+    public Optional<ContentMedia> getVideo(Long lessonId) {
+        return contentMediaRepository.findByLessonId(lessonId);
     }
 }
