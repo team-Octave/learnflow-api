@@ -1,15 +1,21 @@
 package com.teamexp.learnflowapi.lecture.model;
 
 import jakarta.persistence.*;
+import lombok.Getter;
+import org.springframework.core.annotation.Order;
 import org.springframework.data.annotation.CreatedDate;
 import org.springframework.data.jpa.domain.support.AuditingEntityListener;
 
+import java.time.Instant;
+import java.time.LocalDateTime;
 import java.time.OffsetDateTime;
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.List;
 
 @Entity
 @Table(name = "lectures")
+@Getter
 @EntityListeners(AuditingEntityListener.class)
 public class Lecture {
 
@@ -17,23 +23,23 @@ public class Lecture {
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
-    @Column
+    @Column(nullable = false)
     private String title;
 
     // description have to allow setter? or make it immediately at creation? now make it at creation
-    @Column
+    @Column(columnDefinition = "TEXT")
     private String description;
 
-    @Enumerated
-    @Column
+    @Enumerated(EnumType.STRING)
+    @Column(nullable = false)
     private LectureLevel level;
 
     @CreatedDate
-    @Column
-    private OffsetDateTime createdAt;
+    @Column(nullable = false)
+    private Instant createdAt;
 
-    @Enumerated
-    @Column
+    @Enumerated(EnumType.STRING)
+    @Column(nullable = false)
     private LectureStatus status;
 
     @Column(name="category_id")
@@ -51,6 +57,7 @@ public class Lecture {
 
     // Aggregate root of Chapter & Lesson
     @OneToMany(mappedBy = "lecture", cascade = CascadeType.ALL, orphanRemoval = true)
+    @OrderBy("chapterOrder ASC")
     private List<Chapter> chapters = new ArrayList<>();
 
     protected Lecture() {}
@@ -68,41 +75,6 @@ public class Lecture {
         return new Lecture(title, description, level, LectureStatus.UNAVAILABLE, categoryId, instructorId);
     }
 
-    public Long getId() {
-        return id;
-    }
-
-    public String getTitle() {
-        return title;
-    }
-
-    public String getDescription() {
-        return description;
-    }
-
-    public LectureLevel getLevel() {
-        return level;
-    }
-
-    public OffsetDateTime getCreatedAt() {
-        return createdAt;
-    }
-
-    public LectureStatus getStatus() {
-        return status;
-    }
-
-    public Integer getCategoryId() {
-        return categoryId;
-    }
-
-    public String getInstructorId() {
-        return instructorId;
-    }
-
-    public Long getThumbnailId() {
-        return thumbnailId;
-    }
 
     // thumbnailId created after lecture creation, so need setter
     private void setThumbnailId(Long thumbnailId) {
@@ -125,8 +97,37 @@ public class Lecture {
         return this.status == LectureStatus.UNAVAILABLE;
     }
 
+    private void validateForAvailable() {
+        if (!canAvailable()) {
+            throw new IllegalStateException("Lecture is already available.");
+        }
+        if (chapters.isEmpty()) {
+            throw new IllegalStateException("Lecture must have at least one chapter to be made available.");
+        }
+        boolean hasLesson = chapters.stream()
+                .anyMatch(chapter -> !chapter.getLessons().isEmpty());
+        if (!hasLesson) {
+            throw new IllegalStateException("Lecture must have at least one lesson to be made available.");
+        }
+    }
+
+
+
     public void makeAvailable() {
+        validateForAvailable();
         this.status = LectureStatus.AVAILABLE;
     }
+
+    public List<Chapter> getChapters() {
+        return Collections.unmodifiableList(chapters);
+    }
+
+    public int getTotalLessonCount() {
+        return chapters.stream()
+                .mapToInt(chapter -> chapter.getLessons().size())
+                .sum();
+    }
+
+
 
 }

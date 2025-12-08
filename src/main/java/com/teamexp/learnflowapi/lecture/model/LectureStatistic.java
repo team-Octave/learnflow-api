@@ -10,6 +10,7 @@ import jakarta.persistence.Transient;
 import org.springframework.data.annotation.LastModifiedBy;
 
 
+import java.time.Instant;
 import java.time.OffsetDateTime;
 
 @Entity
@@ -43,7 +44,7 @@ public class LectureStatistic {
 
     @LastModifiedBy
     @Column(name = "updated_at")
-    private OffsetDateTime updatedAt;
+    private Instant updatedAt;
 
     protected LectureStatistic() {}
 
@@ -78,7 +79,7 @@ public class LectureStatistic {
         return enrollmentCount;
     }
 
-    public OffsetDateTime getUpdatedAt() {
+    public Instant getUpdatedAt() {
         return updatedAt;
     }
 

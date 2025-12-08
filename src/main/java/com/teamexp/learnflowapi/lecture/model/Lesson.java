@@ -1,8 +1,10 @@
 package com.teamexp.learnflowapi.lecture.model;
 
 import jakarta.persistence.*;
+import lombok.Getter;
 
 @Entity
+@Getter
 @Table(name = "lessons")
 public class Lesson {
 
@@ -12,7 +14,7 @@ public class Lesson {
 
     @Enumerated(EnumType.STRING)
     @Column(name="lesson_type")
-    private LessonType type;
+    private LessonType lessonType;
 
     @Column(name="lesson_title")
     private String lessonTitle;
@@ -29,15 +31,15 @@ public class Lesson {
 
     protected Lesson() {}
 
-    private Lesson(LessonType type, String lessonTitle, Integer lessonOrder, Boolean isFreePreview) {
-        this.type = type;
+    private Lesson(LessonType lessonType, String lessonTitle, Integer lessonOrder, Boolean isFreePreview) {
+        this.lessonType = lessonType;
         this.lessonTitle = lessonTitle;
         this.lessonOrder = lessonOrder;
         this.isFreePreview = isFreePreview;
     }
 
-    public static Lesson createLesson(LessonType type, String lessonTitle, Integer lessonOrder, Boolean isFreePreview) {
-        return new Lesson(type, lessonTitle, lessonOrder, isFreePreview);
+    public static Lesson createLesson(LessonType lessonType, String lessonTitle, Integer lessonOrder, Boolean isFreePreview) {
+        return new Lesson(lessonType, lessonTitle, lessonOrder, isFreePreview);
     }
 
     void setChapter(Chapter chapter) {
