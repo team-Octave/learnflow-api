@@ -39,6 +39,7 @@ public class EnrollmentController {
         return ResponseEntity.ok(BaseResponse.ok(enrollmentService.getEnrollments(principal.getId())));
     }
 
+    // TODO 테스트용
     @PostMapping("/select-enrollment")
     public ResponseEntity<Void> selectEnrollment(@Valid @RequestBody DecidedEnrollmentRequest request) {
         enrollmentService.updateEnrollment(request);
