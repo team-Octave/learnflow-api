@@ -27,10 +27,10 @@ public class AuthService {
     public LoginResponse login(LoginRequest request) {
         // 1. 스프링 시큐리티 인증 시도 (이메일/비번)
         Authentication authentication = authenticationManager.authenticate(
-                new UsernamePasswordAuthenticationToken(
-                        request.email(),
-                        request.password()
-                )
+            new UsernamePasswordAuthenticationToken(
+                request.email(),
+                request.password()
+            )
         );
 
         // 2. 인증 성공 → UserDetails 꺼내기
@@ -38,12 +38,12 @@ public class AuthService {
 
         // 3. 토큰 발급
         String accessToken = jwtTokenProvider.createAccessToken(
-                user.getId(), user.getEmail(), user.getRole().name()
+            user.getId(), user.getEmail(), user.getRole().name(), user.getNickname()
         );
         String refreshToken = jwtTokenProvider.createRefreshToken(user.getId());
 
-
         // 4. DTO로 맵핑
-        return new LoginResponse(accessToken, refreshToken);
+        return new LoginResponse(user.getNickname(), user.getUsername(), user.getRole().name(), accessToken,
+            refreshToken);
     }
 }

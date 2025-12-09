@@ -12,13 +12,13 @@ import org.springframework.stereotype.Component;
 
 @Component
 public class JwtTokenProvider {
-    @Value("${jwt.secret}")
+    @Value("${spring.jwt.secret}")
     private String secretKey;
 
-    @Value("${jwt.access-token-expiration}")
+    @Value("${spring.jwt.access-expiration}")
     private long accessTokenValidityInMs;
 
-    @Value("${jwt.refresh-token-expiration}")
+    @Value("${spring.jwt.refresh-expiration}")
     private long refreshTokenValidityInMs;
 
     private Key getSigningKey() {
@@ -26,18 +26,19 @@ public class JwtTokenProvider {
         return Keys.hmacShaKeyFor(keyBytes);
     }
 
-    public String createAccessToken(String userId, String email, String role) {
+    public String createAccessToken(String userId, String email, String role, String nickname) {
         Date now = new Date();
         Date expiry = new Date(now.getTime() + accessTokenValidityInMs);
 
         return Jwts.builder()
-                .setSubject(String.valueOf(userId))  // userId를 subject로
-                .claim("email", email)
-                .claim("role", role)
-                .setIssuedAt(now)
-                .setExpiration(expiry)
-                .signWith(getSigningKey(), SignatureAlgorithm.HS256)
-                .compact();
+            .setSubject(String.valueOf(userId))  // userId를 subject로
+            .claim("email", email)
+            .claim("role", role)
+            .claim("nickname", nickname)
+            .setIssuedAt(now)
+            .setExpiration(expiry)
+            .signWith(getSigningKey(), SignatureAlgorithm.HS256)
+            .compact();
     }
 
     public String createRefreshToken(String userId) {
@@ -45,18 +46,18 @@ public class JwtTokenProvider {
         Date expiry = new Date(now.getTime() + refreshTokenValidityInMs);
 
         return Jwts.builder()
-                .setSubject(String.valueOf(userId))
-                .setIssuedAt(now)
-                .setExpiration(expiry)
-                .signWith(getSigningKey(), SignatureAlgorithm.HS256)
-                .compact();
+            .setSubject(String.valueOf(userId))
+            .setIssuedAt(now)
+            .setExpiration(expiry)
+            .signWith(getSigningKey(), SignatureAlgorithm.HS256)
+            .compact();
     }
 
     public Claims parseToken(String token) {
         return Jwts.parserBuilder()
-                .setSigningKey(getSigningKey())
-                .build()
-                .parseClaimsJws(token)
-                .getBody();
+            .setSigningKey(getSigningKey())
+            .build()
+            .parseClaimsJws(token)
+            .getBody();
     }
 }
