@@ -11,25 +11,28 @@ import java.util.List;
 import java.util.Optional;
 
 @Repository
-public interface LectureRepository  {
+public interface JpaLectureRepository extends JpaRepository<Lecture, Long>, LectureRepository {
 
-    Lecture save(Lecture lecture);
+    @Override
+    @Query("SELECT l FROM Lecture l LEFT JOIN FETCH l.chapters WHERE l.id = :id")
+    Optional<Lecture> findByIdWithChapters(@Param("id") Long id);
 
-    Optional<Lecture> findById(Long id);
+    @Override
+    @Query("SELECT DISTINCT l FROM Lecture l " +
+        "LEFT JOIN FETCH l.chapters c " +
+        "LEFT JOIN FETCH c.lessons " +
+        "WHERE l.id = :id")
+    Optional<Lecture> findByIdWithChaptersAndLessons(@Param("id") Long id);
 
-    Optional<Lecture> findByIdWithChapters(Long id);
-
-    Optional<Lecture> findByIdWithChaptersAndLessons(Long id);
-
+    @Override
     List<Lecture> findByInstructorId(String instructorId);
 
+    @Override
     List<Lecture> findByStatus(LectureStatus status);
 
+    @Override
     List<Lecture> findByCategoryId(Integer categoryId);
 
+    @Override
     List<Lecture> findByCategoryIdAndStatus(Integer categoryId, LectureStatus status);
-
-    void delete(Lecture lecture);
-
-    boolean existsById(Long id);
 }
