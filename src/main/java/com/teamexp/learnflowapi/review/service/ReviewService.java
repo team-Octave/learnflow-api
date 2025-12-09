@@ -3,6 +3,7 @@ package com.teamexp.learnflowapi.review.service;
 import com.teamexp.learnflowapi.enrollment.model.Enrollment;
 import com.teamexp.learnflowapi.enrollment.repository.CompletedLessonRepository;
 import com.teamexp.learnflowapi.enrollment.repository.EnrollmentRepository;
+import com.teamexp.learnflowapi.global.security.principal.CustomUserPrincipal;
 import com.teamexp.learnflowapi.lecture.model.Lecture;
 import com.teamexp.learnflowapi.lecture.repository.LectureRepository;
 import com.teamexp.learnflowapi.review.dto.ReviewRequest;
@@ -44,7 +45,8 @@ public class ReviewService {
 
     // 1. 수강평 작성
     @Transactional
-    public ReviewResponse createReview(String userId, ReviewRequest request) {
+    public ReviewResponse createReview(CustomUserPrincipal user, ReviewRequest request) {
+        String userId = user.getId();
         // 1. 강의 존재 확인
         Lecture lecture = lectureRepository.findById(request.lectureId())
             .orElseThrow(() -> new IllegalArgumentException("존재하지 않는 강의입니다."));
@@ -77,8 +79,7 @@ public class ReviewService {
         Review savedReview = reviewRepository.save(review);
 
         // 7. [변경] 실제 닉네임 조회
-        String nickname = getNickname(userId);
-        return ReviewResponse.of(savedReview, nickname);
+        return ReviewResponse.of(savedReview, user.getNickname());
     }
 
     // 2. 강의별 리뷰 조회
@@ -98,13 +99,12 @@ public class ReviewService {
     }
 
     // 3. 내 리뷰 조회
-    public Page<ReviewResponse> getMyReviews(String userId, Pageable pageable) {
-        // 1. 내 리뷰 조회 (필터링 없이 모두 조회)
-        Page<Review> reviewPage = reviewRepository.findByEnrollment_UserId(userId, pageable);
+    public Page<ReviewResponse> getMyReviews(CustomUserPrincipal user, Pageable pageable) {
+        // user.getId()로 조회
+        Page<Review> reviewPage = reviewRepository.findByEnrollment_UserId(user.getId(), pageable);
 
-        // 2. [변경] 내 닉네임도 DB에서 조회하여 통일성 유지
-        String myNickname = getNickname(userId);
-        return reviewPage.map(review -> ReviewResponse.of(review, myNickname));
+        // user.getNickname()으로 닉네임 최적화 사용
+        return reviewPage.map(review -> ReviewResponse.of(review, user.getNickname()));
 
     }
 
