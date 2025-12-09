@@ -102,11 +102,11 @@ public class EnrollmentService {
     private void updateProgress(CreateCompletedLessonRequest request) {
         Enrollment requestEnrollment = enrollmentRepository.findById(request.enrollmentId()).orElseThrow(EnrollmentNotFoundException::new);
 
+        // TODO Lecture 부분 Merge 후에 리팩토링 예정
         int totalLessons; // LessonRepository.countByLectureId(requestEnrollment.getLectureId());
 
         int completedLessons = completedLessonRepository.countByEnrollmentId(request.enrollmentId());
 
-        // 추가 예정
         double updateProgress = (double) completedLessons / totalLessons * 100;
 
         requestEnrollment.updateProgress((int) Math.round(updateProgress));
