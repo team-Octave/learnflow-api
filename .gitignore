@@ -45,3 +45,6 @@ out/
 application.yml
 application-local.yml
 application-local.properties
+
+### key stores ###
+*.json
