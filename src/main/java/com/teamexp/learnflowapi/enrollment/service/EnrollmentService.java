@@ -4,6 +4,7 @@ import com.teamexp.learnflowapi.enrollment.dto.CreateCompletedLessonRequest;
 import com.teamexp.learnflowapi.enrollment.dto.DecidedEnrollmentRequest;
 import com.teamexp.learnflowapi.enrollment.dto.EnrollmentRequest;
 import com.teamexp.learnflowapi.enrollment.dto.EnrollmentResponse;
+import com.teamexp.learnflowapi.enrollment.exception.EnrollmentAccessDeniedException;
 import com.teamexp.learnflowapi.enrollment.exception.EnrollmentAlreadyExistsException;
 import com.teamexp.learnflowapi.enrollment.exception.EnrollmentNotFoundException;
 import com.teamexp.learnflowapi.enrollment.model.CompletedLesson;
@@ -47,16 +48,18 @@ public class EnrollmentService {
 
         Enrollment newEnrollment = enrollmentRepository.save(Enrollment.create(userId, request.lectureId()));
 
-//      TODO 생성된 Enrollment 확인(테스트), 반환 값 수정 예정
+//      TODO 생성된 Enrollment 확인(테스트), 반환 값 협의 후 수정 예정
         return EnrollmentResponse.from(newEnrollment);
     }
 
     // 5. lesson 완료
-    public void createCompletedLesson(CreateCompletedLessonRequest request) {
+    public void createCompletedLesson(String userId , CreateCompletedLessonRequest request) {
 
         if (!enrollmentRepository.existsById(request.enrollmentId())) {
             throw new EnrollmentNotFoundException();
         }
+
+        validUser(userId, request.enrollmentId());
 
         CompletedLesson completedLesson = CompletedLesson
                 .createCompletedLesson(request.enrollmentId(), request.lessonId());
@@ -78,6 +81,14 @@ public class EnrollmentService {
                 .orElseThrow(EnrollmentNotFoundException::new);
 
         enrollment.update();
+    }
+
+    private void validUser(String userId, Long enrollmentId) {
+
+        Enrollment requestEnrollment = enrollmentRepository.findById(enrollmentId).orElseThrow(EnrollmentNotFoundException::new);
+        if (!requestEnrollment.getUserId().equals(userId)) {
+            throw new EnrollmentAccessDeniedException();
+        }
     }
 
 }
