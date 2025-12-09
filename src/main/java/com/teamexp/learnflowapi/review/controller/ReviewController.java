@@ -32,10 +32,8 @@ public class ReviewController {
         @AuthenticationPrincipal CustomUserPrincipal principal,
         @Valid @RequestBody ReviewRequest request
     ) {
-        // User ID 타입(String) 그대로 사용 (파싱 제거)
-        String userId = principal.getId();
 
-        ReviewResponse response = reviewService.createReview(userId, request);
+        ReviewResponse response = reviewService.createReview(principal, request);
         return ResponseEntity
             .status(HttpStatus.CREATED)
             .body(BaseResponse.ok(response));
@@ -58,8 +56,7 @@ public class ReviewController {
         @AuthenticationPrincipal CustomUserPrincipal principal,
         @PageableDefault(size = 10, sort = "createdAt", direction = Sort.Direction.DESC) Pageable pageable
     ) {
-        String userId = principal.getId();
-        Page<ReviewResponse> response = reviewService.getMyReviews(userId, pageable);
+        Page<ReviewResponse> response = reviewService.getMyReviews(principal, pageable);
         return ResponseEntity.ok(BaseResponse.ok(response));
     }
 

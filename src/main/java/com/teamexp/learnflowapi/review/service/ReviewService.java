@@ -3,6 +3,7 @@ package com.teamexp.learnflowapi.review.service;
 import com.teamexp.learnflowapi.enrollment.model.Enrollment;
 import com.teamexp.learnflowapi.enrollment.repository.CompletedLessonRepository;
 import com.teamexp.learnflowapi.enrollment.repository.EnrollmentRepository;
+import com.teamexp.learnflowapi.global.security.principal.CustomUserPrincipal;
 import com.teamexp.learnflowapi.lecture.model.Lecture;
 import com.teamexp.learnflowapi.lecture.repository.LectureRepository;
 import com.teamexp.learnflowapi.review.dto.ReviewRequest;
@@ -13,6 +14,8 @@ import com.teamexp.learnflowapi.review.exception.ReviewNotFoundException;
 import com.teamexp.learnflowapi.review.model.Review;
 import com.teamexp.learnflowapi.review.model.ReviewStatus;
 import com.teamexp.learnflowapi.review.repository.ReviewRepository;
+import com.teamexp.learnflowapi.user.model.User;
+import com.teamexp.learnflowapi.user.repository.UserRepository;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
@@ -26,20 +29,24 @@ public class ReviewService {
     private final LectureRepository lectureRepository;
     private final EnrollmentRepository enrollmentRepository;
     private final CompletedLessonRepository completedLessonRepository;
+    private final UserRepository userRepository;
 
     public ReviewService(ReviewRepository reviewRepository,
                          LectureRepository lectureRepository,
                          EnrollmentRepository enrollmentRepository,
-                         CompletedLessonRepository completedLessonRepository) {
+                         CompletedLessonRepository completedLessonRepository,
+                         UserRepository userRepository) {
         this.reviewRepository = reviewRepository;
         this.lectureRepository = lectureRepository;
         this.enrollmentRepository = enrollmentRepository;
         this.completedLessonRepository = completedLessonRepository;
+        this.userRepository = userRepository;
     }
 
     // 1. 수강평 작성
     @Transactional
-    public ReviewResponse createReview(String userId, ReviewRequest request) {
+    public ReviewResponse createReview(CustomUserPrincipal user, ReviewRequest request) {
+        String userId = user.getId();
         // 1. 강의 존재 확인
         Lecture lecture = lectureRepository.findById(request.lectureId())
             .orElseThrow(() -> new IllegalArgumentException("존재하지 않는 강의입니다."));
@@ -71,9 +78,8 @@ public class ReviewService {
         Review review = Review.create(enrollment, request.content(), request.rating());
         Review savedReview = reviewRepository.save(review);
 
-        // 7. DTO 변환 (닉네임 임시 처리)
-        String tempNickname = "User_" + userId.substring(0, 8);
-        return ReviewResponse.of(savedReview, tempNickname);
+        // 7. [변경] 실제 닉네임 조회
+        return ReviewResponse.of(savedReview, user.getNickname());
     }
 
     // 2. 강의별 리뷰 조회
@@ -85,23 +91,21 @@ public class ReviewService {
             pageable
         );
 
-        // 2. DTO 변환 (닉네임 임시 처리)
+        // 2. [변경] 리스트 조회 시 각 작성자의 실제 닉네임 매핑
         return reviewPage.map(review -> {
-            String tempNickname = "User_" + review.getUserId().substring(0, 8);
-            return ReviewResponse.of(review, tempNickname);
+            String nickname = getNickname(review.getUserId());
+            return ReviewResponse.of(review, nickname);
         });
     }
 
     // 3. 내 리뷰 조회
-    public Page<ReviewResponse> getMyReviews(String userId, Pageable pageable) {
-        // 1. 내 리뷰 조회 (필터링 없이 모두 조회)
-        Page<Review> reviewPage = reviewRepository.findByEnrollment_UserId(userId, pageable);
+    public Page<ReviewResponse> getMyReviews(CustomUserPrincipal user, Pageable pageable) {
+        // user.getId()로 조회
+        Page<Review> reviewPage = reviewRepository.findByEnrollment_UserId(user.getId(), pageable);
 
-        // 2. DTO 변환 (내 닉네임은 "Me"로 표시)
-        return reviewPage.map(review -> {
-            String tempNickname = "Me";
-            return ReviewResponse.of(review, tempNickname);
-        });
+        // user.getNickname()으로 닉네임 최적화 사용
+        return reviewPage.map(review -> ReviewResponse.of(review, user.getNickname()));
+
     }
 
     // 4. 수강평 삭제
@@ -135,5 +139,12 @@ public class ReviewService {
         // }
 
         review.reply(replyContent);
+    }
+
+    // [추가] 닉네임 조회 헬퍼 메서드
+    private String getNickname(String userId){
+        return userRepository.findById(userId)
+            .map(User::getNickname)
+            .orElse("(알 수 없음)");
     }
 }
