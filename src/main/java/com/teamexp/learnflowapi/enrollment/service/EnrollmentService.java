@@ -13,10 +13,12 @@ import com.teamexp.learnflowapi.enrollment.model.Enrollment;
 import com.teamexp.learnflowapi.enrollment.repository.CompletedLessonRepository;
 import com.teamexp.learnflowapi.enrollment.repository.EnrollmentRepository;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.dao.EmptyResultDataAccessException;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.util.List;
+import java.util.Objects;
 
 /**
  * 1. 수강 생성
@@ -91,12 +93,26 @@ public class EnrollmentService {
         enrollment.update();
     }
 
+    // 수강 삭제 (물리 삭제)
+    public void deleteEnrollment(String userId, DecidedEnrollmentRequest request) {
+
+        validUser(userId, request.enrollmentId());
+
+        try {
+            enrollmentRepository.deleteById(request.enrollmentId());
+        } catch (EmptyResultDataAccessException e) {
+            throw new EnrollmentNotFoundException();
+        }
+    }
+
     private void validUser(String userId, Long enrollmentId) {
 
         Enrollment requestEnrollment = enrollmentRepository.findById(enrollmentId).orElseThrow(EnrollmentNotFoundException::new);
-        if (!requestEnrollment.getUserId().equals(userId)) {
+
+        if (!Objects.equals(requestEnrollment.getUserId(), userId)) {
             throw new EnrollmentAccessDeniedException();
         }
+
     }
 
     private void updateProgress(CreateCompletedLessonRequest request) {
