@@ -7,4 +7,8 @@ import org.springframework.stereotype.Repository;
 // TODO 구현 예정
 @Repository
 public interface CompletedLessonRepository extends JpaRepository<CompletedLesson, Long> {
+
+    int countByEnrollmentId(Long enrollmentId);
+
+    boolean existsByEnrollmentIdAndLessonId(Long enrollmentId, Long lessonId);
 }
