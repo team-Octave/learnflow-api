@@ -1,12 +1,17 @@
 package com.teamexp.learnflowapi.enrollment.service;
 
+import com.teamexp.learnflowapi.enrollment.dto.CreateCompletedLessonRequest;
 import com.teamexp.learnflowapi.enrollment.dto.DecidedEnrollmentRequest;
 import com.teamexp.learnflowapi.enrollment.dto.EnrollmentRequest;
 import com.teamexp.learnflowapi.enrollment.dto.EnrollmentResponse;
+import com.teamexp.learnflowapi.enrollment.exception.EnrollmentAccessDeniedException;
 import com.teamexp.learnflowapi.enrollment.exception.EnrollmentAlreadyExistsException;
 import com.teamexp.learnflowapi.enrollment.exception.EnrollmentNotFoundException;
+import com.teamexp.learnflowapi.enrollment.model.CompletedLesson;
 import com.teamexp.learnflowapi.enrollment.model.Enrollment;
+import com.teamexp.learnflowapi.enrollment.repository.CompletedLessonRepository;
 import com.teamexp.learnflowapi.enrollment.repository.EnrollmentRepository;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -25,9 +30,13 @@ import java.util.List;
 public class EnrollmentService {
 
     private final EnrollmentRepository enrollmentRepository;
+    private final CompletedLessonRepository completedLessonRepository;
 
-    public EnrollmentService(EnrollmentRepository enrollmentRepository) {
+    @Autowired
+    public EnrollmentService(EnrollmentRepository enrollmentRepository,
+                             CompletedLessonRepository completedLessonRepository) {
         this.enrollmentRepository = enrollmentRepository;
+        this.completedLessonRepository = completedLessonRepository;
     }
 
     // 1. 수강 생성
@@ -39,8 +48,23 @@ public class EnrollmentService {
 
         Enrollment newEnrollment = enrollmentRepository.save(Enrollment.create(userId, request.lectureId()));
 
-//      TODO 생성된 Enrollment 확인(테스트), 반환 값 수정 예정
+//      TODO 생성된 Enrollment 확인(테스트), 반환 값 협의 후 수정 예정
         return EnrollmentResponse.from(newEnrollment);
+    }
+
+    // 5. lesson 완료
+    public void createCompletedLesson(String userId , CreateCompletedLessonRequest request) {
+
+        if (!enrollmentRepository.existsById(request.enrollmentId())) {
+            throw new EnrollmentNotFoundException();
+        }
+
+        validUser(userId, request.enrollmentId());
+
+        CompletedLesson completedLesson = CompletedLesson
+                .createCompletedLesson(request.enrollmentId(), request.lessonId());
+
+        completedLessonRepository.save(completedLesson);
     }
 
     // 2. 현재 수강중인 강좌 목록 조회
@@ -57,6 +81,14 @@ public class EnrollmentService {
                 .orElseThrow(EnrollmentNotFoundException::new);
 
         enrollment.update();
+    }
+
+    private void validUser(String userId, Long enrollmentId) {
+
+        Enrollment requestEnrollment = enrollmentRepository.findById(enrollmentId).orElseThrow(EnrollmentNotFoundException::new);
+        if (!requestEnrollment.getUserId().equals(userId)) {
+            throw new EnrollmentAccessDeniedException();
+        }
     }
 
 }
