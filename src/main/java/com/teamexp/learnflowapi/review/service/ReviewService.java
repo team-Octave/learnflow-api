@@ -30,6 +30,7 @@ import java.util.stream.Collectors;
 @Transactional(readOnly = true)
 public class ReviewService {
 
+    private static final int MIN_COMPLETED_LESSON_COUNT = 3;
     private final ReviewRepository reviewRepository;
     private final LectureRepository lectureRepository;
     private final EnrollmentRepository enrollmentRepository;
@@ -73,8 +74,8 @@ public class ReviewService {
 
         // 5. 진도율 검증 (완료된 Lesson 3개 이상)
         int completedCount = completedLessonRepository.countByEnrollmentId(enrollment.getId());
-        if (completedCount < 3) {
-            throw new IllegalStateException("최소 3개의 레슨을 수강 완료해야 리뷰를 작성할 수 있습니다.");
+        if (completedCount < MIN_COMPLETED_LESSON_COUNT) {
+            throw new IllegalStateException("최소" + MIN_COMPLETED_LESSON_COUNT + "개의 레슨을 수강 완료해야 리뷰를 작성할 수 있습니다.");
         }
 
         // 6. 리뷰 저장
