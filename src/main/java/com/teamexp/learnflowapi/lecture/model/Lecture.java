@@ -93,6 +93,7 @@ public class Lecture {
 
     // In domain level, only unavailable lecture can be made available
     //TODO : In service layer, check at least one chapter and one lesson exist before calling this method
+    //TODO : custom exception handling
     public boolean canAvailable() {
         return this.status == LectureStatus.UNAVAILABLE;
     }

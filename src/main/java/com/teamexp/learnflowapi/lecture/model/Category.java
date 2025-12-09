@@ -9,7 +9,7 @@ import jakarta.persistence.Table;
 
 @Entity
 @Table(name = "categories")
-public class Catetory {
+public class Category {
 
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
@@ -18,9 +18,9 @@ public class Catetory {
     @Column(name = "category_name" )
     private String categoryName;
 
-    protected Catetory() {}
+    protected Category() {}
 
-    private Catetory(String categoryName) {
+    private Category(String categoryName) {
         this.categoryName = categoryName;
     }
 

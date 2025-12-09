@@ -14,4 +14,14 @@ public enum LectureLevel {
     public String getDisplayName() {
         return displayName;
     }
+
+    // Need to add custom exception handling or custom exception class
+    public static LectureLevel forEntity(String displayName) {
+        for (LectureLevel level : LectureLevel.values()) {
+            if (level.getDisplayName().equals(displayName)) {
+                return level;
+            }
+        }
+        throw new IllegalArgumentException("No enum constant with displayName " + displayName);
+    }
 }

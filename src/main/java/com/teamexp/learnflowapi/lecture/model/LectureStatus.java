@@ -13,4 +13,13 @@ public enum LectureStatus {
     public String getDisplayName() {
         return displayName;
     }
+
+    public LectureStatus forEntity(String displayName) {
+        for (LectureStatus status : LectureStatus.values()) {
+            if (status.getDisplayName().equals(displayName)) {
+                return status;
+            }
+        }
+        throw new IllegalArgumentException("No enum constant with displayName " + displayName);
+    }
 }

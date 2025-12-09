@@ -17,7 +17,7 @@ import java.time.OffsetDateTime;
 @Table(name = "lecture_statistics",
     indexes = {
         // make index for frequently accessed columns like rating_average and enrollment_count
-        @Index(name = "idx_rating_average", columnList = "rating_average"),
+//        @Index(name = "idx_rating_average", columnList = "rating_average"), // rating_average is not stored in DB, so cannot make index
         @Index(name = "idx_enrollment_count", columnList = "enrollment_count")
     })
 public class LectureStatistic {

@@ -55,7 +55,7 @@ public class Chapter {
         return Collections.unmodifiableList(lessons);
     }
 
-    private Lesson findByLessonId(Long lessonId) {
+    public Lesson findByLessonId(Long lessonId) {
         return lessons.stream()
             .filter(l -> l.getId().equals(lessonId))
             .findFirst()

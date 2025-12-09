@@ -16,4 +16,13 @@ public enum LessonType {
     public String getDisplayName() {
         return displayName;
     }
+
+    public static LessonType forEntity(String displayName) {
+        for (LessonType type : LessonType.values()) {
+            if (type.getDisplayName().equals(displayName)) {
+                return type;
+            }
+        }
+        throw new IllegalArgumentException("No enum constant with displayName " + displayName);
+    }
 }

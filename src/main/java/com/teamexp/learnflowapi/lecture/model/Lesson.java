@@ -16,13 +16,13 @@ public class Lesson {
     @Column(name="lesson_type")
     private LessonType lessonType;
 
-    @Column(name="lesson_title")
+    @Column(name="lesson_title", nullable = false)
     private String lessonTitle;
 
-    @Column(name="lesson_order")
+    @Column(name="lesson_order",nullable = false)
     private Integer lessonOrder;
 
-    @Column(name="is_free_preview")
+    @Column(name="is_free_preview", nullable = false) // need to set default value to false
     private Boolean isFreePreview;
 
     @ManyToOne(fetch = FetchType.LAZY)
