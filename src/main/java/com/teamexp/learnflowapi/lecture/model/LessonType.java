@@ -4,8 +4,8 @@ import jakarta.persistence.EnumType;
 import jakarta.persistence.Enumerated;
 
 public enum LessonType {
-    VIDEO("영상"),
-    QUIZ("퀴즈");
+    VIDEO("VIDEO"),
+    QUIZ("QUIZ");
 
     private final String displayName;
 

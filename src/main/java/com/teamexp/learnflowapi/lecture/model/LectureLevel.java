@@ -1,9 +1,9 @@
 package com.teamexp.learnflowapi.lecture.model;
 
 public enum LectureLevel {
-    BEGINNER("초급"),
-    INTERMEDIATE("중급"),
-    ADVANCED("고급");
+    BEGINNER("BEGINNER"),
+    INTERMEDIATE("INTERMEDIATE"),
+    ADVANCED("ADVANCED");
 
     private final String displayName;
 

@@ -33,13 +33,13 @@ public class Chapter {
 
     protected Chapter() {}
 
-    private Chapter(Integer chapterOrder, String chapterTitle) {
+    private Chapter(String chapterTitle, Integer chapterOrder) {
         this.chapterOrder = chapterOrder;
         this.chapterTitle = chapterTitle;
     }
 
-    public static Chapter createChapter(Integer chapterOrder, String chapterTitle) {
-        return new Chapter(chapterOrder, chapterTitle);
+    public static Chapter createChapter(String chapterTitle,Integer chapterOrder) {
+        return new Chapter(chapterTitle,chapterOrder);
     }
 
     void setLecture(Lecture lecture) {

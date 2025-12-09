@@ -1,8 +1,8 @@
 package com.teamexp.learnflowapi.lecture.model;
 
 public enum LectureStatus {
-    AVAILABLE("수강 가능"),
-    UNAVAILABLE("수강 불가");
+    AVAILABLE("PUBLISHED"),
+    UNAVAILABLE("UNPUBLISHED");
 
     private final String displayName;
 

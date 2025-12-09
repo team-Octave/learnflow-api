@@ -18,5 +18,10 @@ public class Catetory {
     @Column(name = "category_name" )
     private String categoryName;
 
+    protected Catetory() {}
+
+    private Catetory(String categoryName) {
+        this.categoryName = categoryName;
+    }
 
 }

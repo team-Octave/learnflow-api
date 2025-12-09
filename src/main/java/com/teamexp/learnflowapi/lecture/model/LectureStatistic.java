@@ -19,19 +19,19 @@ import java.time.OffsetDateTime;
         // make index for frequently accessed columns like rating_average and enrollment_count
         @Index(name = "idx_rating_average", columnList = "rating_average"),
         @Index(name = "idx_enrollment_count", columnList = "enrollment_count")
-})
+    })
 public class LectureStatistic {
 
     // Lecture and Statistic have bijective relationship
     // Since make loosely coupled relationship, not use @MapsId
     @Id
-    @Column(name="lecture_id")
+    @Column(name = "lecture_id")
     private Long lectureId;
 
-    @Column(name="rating_sum")
+    @Column(name = "rating_sum")
     private Long ratingSum;
 
-    @Column(name="rating_count")
+    @Column(name = "rating_count")
     private Long ratingCount;
 
     // Not Actually stored in DB
@@ -39,14 +39,15 @@ public class LectureStatistic {
     @Transient
     private Double ratingAverage;
 
-    @Column(name="enrollment_count")
+    @Column(name = "enrollment_count")
     private Long enrollmentCount;
 
     @LastModifiedBy
     @Column(name = "updated_at")
     private Instant updatedAt;
 
-    protected LectureStatistic() {}
+    protected LectureStatistic() {
+    }
 
     private LectureStatistic(Long lectureId, Long ratingSum, Long ratingCount, Long enrollmentCount) {
         this.lectureId = lectureId;

@@ -29,6 +29,9 @@ public class Lesson {
     @JoinColumn(name = "chapter_id")
     private Chapter chapter;
 
+//    @Column(name="next_lesson_id")
+//    private Long nextLessonId;
+
     protected Lesson() {}
 
     private Lesson(LessonType lessonType, String lessonTitle, Integer lessonOrder, Boolean isFreePreview) {
@@ -37,7 +40,6 @@ public class Lesson {
         this.lessonOrder = lessonOrder;
         this.isFreePreview = isFreePreview;
     }
-
     public static Lesson createLesson(LessonType lessonType, String lessonTitle, Integer lessonOrder, Boolean isFreePreview) {
         return new Lesson(lessonType, lessonTitle, lessonOrder, isFreePreview);
     }
