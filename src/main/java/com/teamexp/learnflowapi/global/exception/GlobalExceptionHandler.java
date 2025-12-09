@@ -1,7 +1,9 @@
 package com.teamexp.learnflowapi.global.exception;
 
 import com.teamexp.learnflowapi.global.response.BaseResponse;
+import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.authentication.BadCredentialsException;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
 
@@ -29,5 +31,13 @@ public class GlobalExceptionHandler {
                 .status(error.getStatus())
                 .body(BaseResponse.error(error.name(), error.getMessage()));
     }
+
+    // 로그인 실패 시 발생하는 에러 처리
+    @ExceptionHandler(BadCredentialsException.class)
+    public ResponseEntity<?> handleBadCredentials(BadCredentialsException e) {
+        return ResponseEntity.status(HttpStatus.UNAUTHORIZED)
+                .body(BaseResponse.error("INVALID_CREDENTIALS", "이메일 또는 비밀번호가 틀렸습니다."));
+    }
+
 }
 

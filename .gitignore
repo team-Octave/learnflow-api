@@ -49,3 +49,5 @@ application-local.properties
 
 ### Shell Script Files ###
 *.sh
+### key stores ###
+*.json

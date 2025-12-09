@@ -1,34 +1,88 @@
 package com.teamexp.learnflowapi.review.controller;
 
 import com.teamexp.learnflowapi.global.response.BaseResponse;
+import com.teamexp.learnflowapi.global.security.principal.CustomUserPrincipal;
+import com.teamexp.learnflowapi.review.dto.ReviewReplyRequest;
 import com.teamexp.learnflowapi.review.dto.ReviewRequest;
 import com.teamexp.learnflowapi.review.dto.ReviewResponse;
 import com.teamexp.learnflowapi.review.service.ReviewService;
-import com.teamexp.learnflowapi.user.config.CustomUserPrincipal;
 import jakarta.validation.Valid;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
+import org.springframework.data.domain.Sort;
+import org.springframework.data.web.PageableDefault;
+import org.springframework.http.HttpStatus;
+import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
-import org.springframework.web.bind.annotation.PostMapping;
-import org.springframework.web.bind.annotation.RequestBody;
-import org.springframework.web.bind.annotation.RequestMapping;
-import org.springframework.web.bind.annotation.RestController;
+import org.springframework.web.bind.annotation.*;
 
 @RestController
 @RequestMapping("/api/v1/reviews")
 public class ReviewController {
+
     private final ReviewService reviewService;
 
     public ReviewController(ReviewService reviewService) {
         this.reviewService = reviewService;
     }
 
+    // 1. 수강평 작성
     @PostMapping
-    public BaseResponse<ReviewResponse> createReview(
+    public ResponseEntity<BaseResponse<ReviewResponse>> createReview(
         @AuthenticationPrincipal CustomUserPrincipal principal,
         @Valid @RequestBody ReviewRequest request
-        ) {
-        String userId = principal.getId();
+    ) {
 
-        ReviewResponse response = reviewService.createReview(userId, request);
-        return BaseResponse.ok(response);
+        ReviewResponse response = reviewService.createReview(principal, request);
+        return ResponseEntity
+            .status(HttpStatus.CREATED)
+            .body(BaseResponse.ok(response));
+
+    }
+
+    // 2. 강의별 리뷰 조회 (공개 API)
+    @GetMapping("/lectures/{lectureId}")
+    public ResponseEntity<BaseResponse<Page<ReviewResponse>>> getReviewsByLecture(
+        @PathVariable Long lectureId,
+        @PageableDefault(size = 10, sort = "createdAt", direction = Sort.Direction.DESC) Pageable pageable
+    ) {
+        Page<ReviewResponse> response = reviewService.getReviewsByLecture(lectureId, pageable);
+        return ResponseEntity.ok(BaseResponse.ok(response));
+    }
+
+    // 3. 내 리뷰 조회 (마이페이지)
+    @GetMapping("/my")
+    public ResponseEntity<BaseResponse<Page<ReviewResponse>>> getMyReviews(
+        @AuthenticationPrincipal CustomUserPrincipal principal,
+        @PageableDefault(size = 10, sort = "createdAt", direction = Sort.Direction.DESC) Pageable pageable
+    ) {
+        Page<ReviewResponse> response = reviewService.getMyReviews(principal, pageable);
+        return ResponseEntity.ok(BaseResponse.ok(response));
+    }
+
+    // 4. 수강평 삭제
+    @DeleteMapping("/{reviewId}")
+    public ResponseEntity<BaseResponse<Void>> deleteReview(
+        @AuthenticationPrincipal CustomUserPrincipal principal,
+        @PathVariable Long reviewId
+    ) {
+        String userId = principal.getId();
+        reviewService.deleteReview(userId, reviewId);
+        return ResponseEntity.ok(BaseResponse.ok(null));
+    }
+
+    // 5. 강사 답글 등록
+    @PostMapping("/{reviewId}/reply")
+    public ResponseEntity<BaseResponse<Void>> addReply(
+        @AuthenticationPrincipal CustomUserPrincipal principal,
+        @PathVariable Long reviewId,
+        @Valid @RequestBody ReviewReplyRequest request
+    ) {
+        String userId = principal.getId();
+        reviewService.addReply(userId, reviewId, request.replyContent());
+        return ResponseEntity
+            .status(HttpStatus.CREATED)
+            .body(BaseResponse.ok(null));
+
     }
 }
