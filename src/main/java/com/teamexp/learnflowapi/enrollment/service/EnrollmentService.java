@@ -4,6 +4,7 @@ import com.teamexp.learnflowapi.enrollment.dto.CreateCompletedLessonRequest;
 import com.teamexp.learnflowapi.enrollment.dto.DecidedEnrollmentRequest;
 import com.teamexp.learnflowapi.enrollment.dto.EnrollmentRequest;
 import com.teamexp.learnflowapi.enrollment.dto.EnrollmentResponse;
+import com.teamexp.learnflowapi.enrollment.exception.CompletedLessonAlreadyExistsException;
 import com.teamexp.learnflowapi.enrollment.exception.EnrollmentAccessDeniedException;
 import com.teamexp.learnflowapi.enrollment.exception.EnrollmentAlreadyExistsException;
 import com.teamexp.learnflowapi.enrollment.exception.EnrollmentNotFoundException;
@@ -55,19 +56,26 @@ public class EnrollmentService {
     // 5. lesson 완료
     public void createCompletedLesson(String userId , CreateCompletedLessonRequest request) {
 
+        // 요청하는 enrollmentId 검증
         if (!enrollmentRepository.existsById(request.enrollmentId())) {
             throw new EnrollmentNotFoundException();
         }
 
+        // enrollment에 있는 userId와 현재 로그인 userId 검증
         validUser(userId, request.enrollmentId());
+
+        if (completedLessonRepository.existsByEnrollmentIdAndLessonId(request.enrollmentId(), request.lessonId())) throw new CompletedLessonAlreadyExistsException();
 
         CompletedLesson completedLesson = CompletedLesson
                 .createCompletedLesson(request.enrollmentId(), request.lessonId());
 
+        // completedLesson 생성과 진행률 계산
         completedLessonRepository.save(completedLesson);
+        updateProgress(request);
     }
 
     // 2. 현재 수강중인 강좌 목록 조회
+    @Transactional(readOnly = true)
     public List<EnrollmentResponse> getEnrollments(String userId) {
 
         List<Enrollment> enrollments = enrollmentRepository.findByUserId(userId);
@@ -89,6 +97,19 @@ public class EnrollmentService {
         if (!requestEnrollment.getUserId().equals(userId)) {
             throw new EnrollmentAccessDeniedException();
         }
+    }
+
+    private void updateProgress(CreateCompletedLessonRequest request) {
+        Enrollment requestEnrollment = enrollmentRepository.findById(request.enrollmentId()).orElseThrow(EnrollmentNotFoundException::new);
+
+        // TODO Lecture 부분 Merge 후에 리팩토링 예정
+        int totalLessons; // LessonRepository.countByLectureId(requestEnrollment.getLectureId());
+
+        int completedLessons = completedLessonRepository.countByEnrollmentId(request.enrollmentId());
+
+        double updateProgress = (double) completedLessons / totalLessons * 100;
+
+        requestEnrollment.updateProgress((int) Math.round(updateProgress));
     }
 
 }

@@ -20,6 +20,7 @@ public enum ErrorCode {
     // Enrollment 도메인 관련
     ENROLLMENT_ALREADY_EXISTS(HttpStatus.CONFLICT, "이미 수강신청이 완료된 강좌입니다."),
     ENROLLMENT_NOT_FOUND(HttpStatus.NOT_FOUND, "수강 정보를 찾을 수 없습니다."),
+    COMPLETED_LESSON_ALREADY_EXISTS(HttpStatus.CONFLICT, "이미 완료 처리된 강의입니다."),
 
     // Review 도메인 관련
     REVIEW_ALREADY_EXISTS(HttpStatus.CONFLICT, "이미 해당 강의에 대한 리뷰를 작성했습니다."),

@@ -62,4 +62,7 @@ public class Enrollment {
         this.updatedAt = Instant.now();
     }
 
+    public void updateProgress(int updateProgress) {
+        this.progress = updateProgress;
+    }
 }
