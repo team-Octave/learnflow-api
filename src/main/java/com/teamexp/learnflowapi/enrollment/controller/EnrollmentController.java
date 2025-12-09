@@ -47,10 +47,10 @@ public class EnrollmentController {
         return ResponseEntity.ok().build();
     }
 
-    // TODO 컨트롤러 분할(?)
     @PostMapping("/complete-lesson")
-    public ResponseEntity<Void> completeLesson(@Valid @RequestBody CreateCompletedLessonRequest request) {
-        enrollmentService.createCompletedLesson(request);
+    public ResponseEntity<Void> completeLesson(@AuthenticationPrincipal CustomUserPrincipal principal,
+                                               @Valid @RequestBody CreateCompletedLessonRequest request) {
+        enrollmentService.createCompletedLesson(principal.getId() , request);
         return ResponseEntity.ok().build();
     }
 }
