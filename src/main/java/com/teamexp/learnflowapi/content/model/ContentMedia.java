@@ -35,10 +35,14 @@ public class ContentMedia {
 
     protected ContentMedia() {}
 
-    public ContentMedia(Long lessonId, String fileKey, Integer durationSec) {
+    private ContentMedia(Long lessonId, String fileKey, Integer durationSec) {
         this.lessonId = lessonId;
         this.fileKey = fileKey;
         this.durationSec = durationSec;
+    }
+
+    public static ContentMedia createContentMedia(Long lessonId, String fileKey, Integer durationSec) {
+        return new ContentMedia(lessonId, fileKey, durationSec);
     }
 
     public void changeFile(String fileKey, Integer durationSec) {
