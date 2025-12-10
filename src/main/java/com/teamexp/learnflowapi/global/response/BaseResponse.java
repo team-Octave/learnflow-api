@@ -21,6 +21,11 @@ public class BaseResponse<T> {
         return new BaseResponse<>(false, code, message, null);
     }
 
+    // Overloaded method to include data in error response
+    public static <T> BaseResponse<T> error(String code, String message, T data) {
+        return new BaseResponse<>(false, code, message, data);
+    }
+
     public boolean isSuccess() {
         return success;
     }
