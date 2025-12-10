@@ -13,6 +13,8 @@ public interface LectureRepository  {
 
     Optional<Lecture> findById(Long id);
 
+    List<Lecture> findAllById(Iterable<Long> ids);
+
     Optional<Lecture> findByIdWithChapters(Long id);
 
     Optional<Lecture> findByIdWithChaptersAndLessons(Long id);

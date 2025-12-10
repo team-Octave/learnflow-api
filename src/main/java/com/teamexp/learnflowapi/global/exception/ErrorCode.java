@@ -16,6 +16,9 @@ public enum ErrorCode {
     USER_NOT_FOUND(HttpStatus.NOT_FOUND, "사용자를 찾을 수 없습니다."),
 
     // Lecture 도메인 관련
+    LECTURE_NOT_FOUND(HttpStatus.NOT_FOUND, "존재하지 않는 강좌입니다."),
+    SELF_REVIEW_NOT_ALLOWED(HttpStatus.CONFLICT, "본인의 강의는 리뷰할 수 없습니다."),
+    NOT_INSTRUCTOR(HttpStatus.FORBIDDEN, "해당 강의의 생성자만 답글을 달 수 있습니다."),
 
     // Content 도메인 관련
 
