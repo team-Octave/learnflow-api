@@ -1,7 +1,10 @@
 package com.teamexp.learnflowapi.enrollment.repository;
 
+import com.teamexp.learnflowapi.enrollment.dto.MyEnrollmentResponse;
 import com.teamexp.learnflowapi.enrollment.model.Enrollment;
 import org.springframework.data.jpa.repository.JpaRepository;
+import org.springframework.data.jpa.repository.Query;
+import org.springframework.data.repository.query.Param;
 import org.springframework.stereotype.Repository;
 
 import java.util.List;
@@ -14,5 +17,45 @@ public interface EnrollmentRepository extends JpaRepository<Enrollment, Long> {
 
     Optional<Enrollment> findByUserIdAndLectureId(String userId, Long lectureId);
 
-    List<Enrollment> findByUserId(String userId);
+    @Query(value = """
+           SELECT 
+               l.id AS lectureId,
+               e.enrollment_id AS enrollmentId,
+               r.review_id AS reviewId,
+               t.file_key AS lectureThumbnail,
+               l.title AS lectureTitle,
+               e.status AS enrollmentStatus,
+               e.progress AS progress,
+               e.enrolled_at AS enrolledAt,
+               e.updated_at AS updatedAt,
+               r.rating AS reviewRating,
+               r.content AS reviewContent
+           FROM enrollment e
+           JOIN lectures l ON e.lecture_id = l.id
+           LEFT JOIN review r ON r.enrollment_id = e.enrollment_id
+           LEFT JOIN thumbnail t ON t.lecture_id = l.id
+           WHERE e.user_id = :userId
+           """, nativeQuery = true)
+    List<MyEnrollmentResponse> findMyEnrollmentsByUserIdNative(@Param("userId") String userId);
+
+    @Query(value = """
+    SELECT
+        COALESCE(cl.completed_count, 0) AS completedCount,
+        tl.total_count AS totalCount
+    FROM enrollment e
+    JOIN (
+        SELECT c.lecture_id, COUNT(*) AS total_count
+        FROM lessons l
+        JOIN chapter c ON l.chapter_id = c.id
+        GROUP BY c.lecture_id
+    ) tl ON tl.lecture_id = e.lecture_id
+    LEFT JOIN (
+        SELECT enrollment_id, COUNT(*) AS completed_count
+        FROM completed_lesson
+        GROUP BY enrollment_id
+    ) cl ON cl.enrollment_id = e.enrollment_id
+    WHERE e.enrollment_id = :enrollmentId
+    """, nativeQuery = true)
+    Object[] getProgressCounts(@Param("enrollmentId") Long enrollmentId);
+
 }
