@@ -30,7 +30,7 @@ public class ThumbnailController {
             @ModelAttribute UploadThumbnailRequest uploadThumbnailRequest)
             throws IOException {
 
-        thumbnailService.createThumbnailUploadUrl(uploadThumbnailRequest);
+        thumbnailService.uploadThumbnail(uploadThumbnailRequest);;
 
         return ResponseEntity
                 .status(HttpStatus.OK)
