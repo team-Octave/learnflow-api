@@ -12,12 +12,20 @@ public enum ErrorCode {
 
     // User 도메인 관련
     EMAIL_DUPLICATED(HttpStatus.CONFLICT, "이미 사용 중인 이메일입니다."),
+    REFRESH_TOKEN_INVALID(HttpStatus.UNAUTHORIZED, "리프레시 토큰이 유효하지 않습니다."),
+    USER_NOT_FOUND(HttpStatus.NOT_FOUND, "사용자를 찾을 수 없습니다."),
 
     // Lecture 도메인 관련
+    LECTURE_NOT_FOUND(HttpStatus.NOT_FOUND, "존재하지 않는 강좌입니다."),
+    SELF_REVIEW_NOT_ALLOWED(HttpStatus.CONFLICT, "본인의 강의는 리뷰할 수 없습니다."),
+    NOT_INSTRUCTOR(HttpStatus.FORBIDDEN, "해당 강의의 생성자만 답글을 달 수 있습니다."),
 
     // Content 도메인 관련
 
     // Enrollment 도메인 관련
+    ENROLLMENT_ALREADY_EXISTS(HttpStatus.CONFLICT, "이미 수강신청이 완료된 강좌입니다."),
+    ENROLLMENT_NOT_FOUND(HttpStatus.NOT_FOUND, "수강 정보를 찾을 수 없습니다."),
+    COMPLETED_LESSON_ALREADY_EXISTS(HttpStatus.CONFLICT, "이미 완료 처리된 강의입니다."),
 
     // Review 도메인 관련
     REVIEW_ALREADY_EXISTS(HttpStatus.CONFLICT, "이미 해당 강의에 대한 리뷰를 작성했습니다."),

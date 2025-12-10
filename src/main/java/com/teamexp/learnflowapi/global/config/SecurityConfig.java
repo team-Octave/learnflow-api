@@ -40,6 +40,7 @@ public class SecurityConfig {
                         .requestMatchers("/api/v1/users").permitAll()          // 회원가입
                         .requestMatchers("/api/v1/users/check").permitAll()    // 닉네임 체크
                         .requestMatchers("/api/v1/auth/login").permitAll()    // 로그인
+                        .requestMatchers("/api/v1/auth/reissue").permitAll()   // 토큰 재발급
                         .anyRequest().authenticated()
                 )
                 .userDetailsService(userDetailsService);
