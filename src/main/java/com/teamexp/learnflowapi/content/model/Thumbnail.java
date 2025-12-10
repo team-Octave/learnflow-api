@@ -26,18 +26,23 @@ public class Thumbnail {
     @Column(name = "file_key", nullable = false)
     private String fileKey;
 
+    @Column(name = "file_url", nullable = false)
+    private String fileUrl;
+
     protected Thumbnail() {}
 
-    private Thumbnail(Long lectureId, String fileKey) {
+    private Thumbnail(Long lectureId, String fileKey, String fileUrl) {
         this.lectureId = lectureId;
         this.fileKey = fileKey;
+        this.fileUrl = fileUrl;
     }
 
-    public static Thumbnail createThumbnail(Long lectureId, String fileKey) {
-        return new Thumbnail(lectureId, fileKey);
+    public static Thumbnail createThumbnail(Long lectureId, String fileKey, String fileUrl) {
+        return new Thumbnail(lectureId, fileKey, fileUrl);
     }
 
-    public void changeFileKey(String fileKey) {
+    public void changeFileKey(String fileKey, String fileUrl) {
         this.fileKey = fileKey;
+        this.fileUrl = fileUrl;
     }
 }

@@ -10,7 +10,7 @@ import java.time.Instant;
 @Getter
 @Entity
 @EntityListeners(AuditingEntityListener.class)
-@Table(name = "completed_lesson", uniqueConstraints = {
+@Table(name = "completed_lessons", uniqueConstraints = {
         @UniqueConstraint(columnNames = {"enrollment_id", "lesson_id"})
 })
 public class CompletedLesson {

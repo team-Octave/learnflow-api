@@ -1,9 +1,6 @@
 package com.teamexp.learnflowapi.enrollment.service;
 
-import com.teamexp.learnflowapi.enrollment.dto.CreateCompletedLessonRequest;
-import com.teamexp.learnflowapi.enrollment.dto.DecidedEnrollmentRequest;
-import com.teamexp.learnflowapi.enrollment.dto.EnrollmentRequest;
-import com.teamexp.learnflowapi.enrollment.dto.EnrollmentResponse;
+import com.teamexp.learnflowapi.enrollment.dto.*;
 import com.teamexp.learnflowapi.enrollment.exception.CompletedLessonAlreadyExistsException;
 import com.teamexp.learnflowapi.enrollment.exception.EnrollmentAccessDeniedException;
 import com.teamexp.learnflowapi.enrollment.exception.EnrollmentAlreadyExistsException;
@@ -17,8 +14,10 @@ import org.springframework.dao.EmptyResultDataAccessException;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.util.Arrays;
 import java.util.List;
 import java.util.Objects;
+import java.util.stream.Collectors;
 
 /**
  * 1. 수강 생성
@@ -43,16 +42,14 @@ public class EnrollmentService {
     }
 
     // 1. 수강 생성
-    public EnrollmentResponse createEnrollment(String userId , EnrollmentRequest request) {
+    public void createEnrollment(String userId , CreateEnrollmentRequest request) {
 
+        // 생성된 수강 확인
         if (enrollmentRepository.existsByUserIdAndLectureId(userId, request.lectureId())) {
             throw new EnrollmentAlreadyExistsException();
         }
 
-        Enrollment newEnrollment = enrollmentRepository.save(Enrollment.create(userId, request.lectureId()));
-
-//      TODO 생성된 Enrollment 확인(테스트), 반환 값 협의 후 수정 예정
-        return EnrollmentResponse.from(newEnrollment);
+        enrollmentRepository.save(Enrollment.create(userId, request.lectureId()));
     }
 
     // 5. lesson 완료
@@ -66,6 +63,7 @@ public class EnrollmentService {
         // enrollment에 있는 userId와 현재 로그인 userId 검증
         validUser(userId, request.enrollmentId());
 
+        // completed lesson 중복 확인
         if (completedLessonRepository.existsByEnrollmentIdAndLessonId(request.enrollmentId(), request.lessonId())) throw new CompletedLessonAlreadyExistsException();
 
         CompletedLesson completedLesson = CompletedLesson
@@ -78,23 +76,37 @@ public class EnrollmentService {
 
     // 2. 현재 수강중인 강좌 목록 조회
     @Transactional(readOnly = true)
-    public List<EnrollmentResponse> getEnrollments(String userId) {
+    public List<MyEnrollmentResponse> getEnrollments(String userId) {
 
-        List<Enrollment> enrollments = enrollmentRepository.findByUserId(userId);
-
-        return enrollments.stream().map(EnrollmentResponse::from).toList();
+        // Native 쿼리로 조회 후 바로 DTO로 매핑 후 반환
+        return enrollmentRepository.findMyEnrollmentsByUserIdNative(userId);
     }
 
-    public void updateEnrollment(DecidedEnrollmentRequest request) {
+    public SelectEnrollmentResponse selectEnrollment(String userId, SelectEnrollmentRequest request) {
 
-        Enrollment enrollment = enrollmentRepository.findById(request.enrollmentId())
-                .orElseThrow(EnrollmentNotFoundException::new);
+        validUser(userId, request.enrollmentId());
+
+        // Native 쿼리로 결과 반환
+        Object result = enrollmentRepository.selectEnrollment(request.enrollmentId());
+
+        Object[] resultArray = (Object[]) result;
+
+        Enrollment enrollment = enrollmentRepository.findById(request.enrollmentId()).orElseThrow(EnrollmentNotFoundException::new);
 
         enrollment.update();
+
+        // DTO에 맞게 매핑
+        return new SelectEnrollmentResponse(
+                (Long) resultArray[1],
+                (Long) resultArray[0],
+                (Integer) resultArray[2],
+                Arrays.stream(((String) resultArray[3]).split(",")).map(Long::parseLong).collect(Collectors.toList()),
+                (Long) resultArray[4]
+        );
     }
 
     // 수강 삭제 (물리 삭제)
-    public void deleteEnrollment(String userId, DecidedEnrollmentRequest request) {
+    public void deleteEnrollment(String userId, SelectEnrollmentRequest request) {
 
         validUser(userId, request.enrollmentId());
 
@@ -118,14 +130,18 @@ public class EnrollmentService {
     private void updateProgress(CreateCompletedLessonRequest request) {
         Enrollment requestEnrollment = enrollmentRepository.findById(request.enrollmentId()).orElseThrow(EnrollmentNotFoundException::new);
 
-        // TODO Lecture 부분 Merge 후에 리팩토링 예정
-        int totalLessons; // LessonRepository.countByLectureId(requestEnrollment.getLectureId());
+        Object[] result = enrollmentRepository.getProgressCounts(request.enrollmentId());
 
-        int completedLessons = completedLessonRepository.countByEnrollmentId(request.enrollmentId());
+        int completed = ((Number) result[0]).intValue();
+        int total = ((Number) result[1]).intValue();
 
-        double updateProgress = (double) completedLessons / totalLessons * 100;
+        int updateProgress = 0;
 
-        requestEnrollment.updateProgress((int) Math.round(updateProgress));
+        if (total > 0) {
+            updateProgress = (int) Math.round((double) completed / total * 100);
+        }
+
+        requestEnrollment.updateProgress(updateProgress);
     }
 
 }
