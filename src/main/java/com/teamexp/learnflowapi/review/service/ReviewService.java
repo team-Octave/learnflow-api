@@ -12,6 +12,7 @@ import com.teamexp.learnflowapi.lecture.model.Lecture;
 import com.teamexp.learnflowapi.lecture.repository.LectureRepository;
 import com.teamexp.learnflowapi.review.dto.ReviewRequest;
 import com.teamexp.learnflowapi.review.dto.ReviewResponse;
+import com.teamexp.learnflowapi.review.exception.NotEnoughProgressException;
 import com.teamexp.learnflowapi.review.exception.NotMyReviewException;
 import com.teamexp.learnflowapi.review.exception.ReviewAlreadyExistsException;
 import com.teamexp.learnflowapi.review.exception.ReviewNotFoundException;
@@ -78,7 +79,7 @@ public class ReviewService {
         // 5. 진도율 검증 (완료된 Lesson 3개 이상)
         int completedCount = completedLessonRepository.countByEnrollmentId(enrollment.getId());
         if (completedCount < MIN_COMPLETED_LESSON_COUNT) {
-            throw new IllegalStateException("최소" + MIN_COMPLETED_LESSON_COUNT + "개의 레슨을 수강 완료해야 리뷰를 작성할 수 있습니다.");
+            throw new NotEnoughProgressException();
         }
 
         // 6. 리뷰 저장
