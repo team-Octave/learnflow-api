@@ -55,6 +55,11 @@ public class AuthService {
     }
 
     public ReissuanceResponse reissueToken(String tokenHeader) {
+        // 검증 로직 추가(토큰이 비어있거나, Bearer로 시작하지 않는 경우)
+        if (tokenHeader == null || !tokenHeader.startsWith("Bearer ")) {
+            throw new RefreshTokenInvalidException();
+        }
+
         // "Bearer {token}" 형식에서 토큰 부분만 추출
         String refreshToken = tokenHeader.substring(7);
 
