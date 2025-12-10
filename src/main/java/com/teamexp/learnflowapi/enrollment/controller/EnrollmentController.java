@@ -44,10 +44,10 @@ public class EnrollmentController {
     }
 
     @PostMapping("/select-enrollment")
-    public ResponseEntity<BaseResponse<Void>> selectEnrollment(@Valid @RequestBody DecidedEnrollmentRequest request) {
-        enrollmentService.updateEnrollment(request);
+    public ResponseEntity<BaseResponse<SelectEnrollmentResponse>> selectEnrollment(@AuthenticationPrincipal CustomUserPrincipal principal,
+                                                                                   @Valid @RequestBody SelectEnrollmentRequest request) {
         // lecture정보 > 챕터 > 레슨(완료 true만), 가장 마지막에 완료된 레슨 ID, 진도율
-        return ResponseEntity.ok().build();
+        return ResponseEntity.ok(BaseResponse.ok(enrollmentService.selectEnrollment(principal.getId() , request)));
     }
 
     @GetMapping
@@ -59,7 +59,7 @@ public class EnrollmentController {
 
     @DeleteMapping
     public ResponseEntity<BaseResponse<Void>> deleteEnrollment(@AuthenticationPrincipal CustomUserPrincipal principal,
-                                                 @Valid @RequestBody DecidedEnrollmentRequest request) {
+                                                 @Valid @RequestBody SelectEnrollmentRequest request) {
         enrollmentService.deleteEnrollment(principal.getId() , request);
         return ResponseEntity.ok(BaseResponse.ok(null));
     }
