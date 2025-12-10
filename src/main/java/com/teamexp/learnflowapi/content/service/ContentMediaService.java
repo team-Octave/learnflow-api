@@ -1,14 +1,11 @@
 package com.teamexp.learnflowapi.content.service;
 
-import com.teamexp.learnflowapi.content.dto.ContentUploadResponse;;
 import com.teamexp.learnflowapi.content.dto.UploadVideoRequest;
 import com.teamexp.learnflowapi.content.external.GcpFileUploadService;
 import com.teamexp.learnflowapi.content.repository.ContentMediaRepository;
 import java.io.IOException;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
-
-import java.time.Duration;
 import org.springframework.web.multipart.MultipartFile;
 
 @Service
@@ -66,9 +63,9 @@ public class ContentMediaService {
         );
 
 
-        // Todo
-        // 1. 레슨에 path 필드 저장
-        // 2.
+        //todo: 1. contentMedia file_key에 파일 url 필드 저장
+        //      2. duration 추출 후 저장
+
 
 
 
