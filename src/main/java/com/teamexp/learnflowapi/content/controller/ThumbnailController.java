@@ -33,7 +33,7 @@ public class ThumbnailController {
         thumbnailService.createThumbnailUploadUrl(uploadThumbnailRequest);
 
         return ResponseEntity
-                .status(HttpStatus.CREATED)
+                .status(HttpStatus.OK)
                 .body(null);
     }
 }

@@ -28,9 +28,13 @@ public class Thumbnail {
 
     protected Thumbnail() {}
 
-    public Thumbnail(Long lectureId, String fileKey) {
+    private Thumbnail(Long lectureId, String fileKey) {
         this.lectureId = lectureId;
         this.fileKey = fileKey;
+    }
+
+    public static Thumbnail createThumbnail(Long lectureId, String fileKey) {
+        return new Thumbnail(lectureId, fileKey);
     }
 
     public void changeFileKey(String fileKey) {
