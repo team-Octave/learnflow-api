@@ -3,6 +3,7 @@ package com.teamexp.learnflowapi.lecture.dto.response;
 import com.teamexp.learnflowapi.lecture.model.Lecture;
 import com.teamexp.learnflowapi.lecture.model.LectureLevel;
 import com.teamexp.learnflowapi.lecture.model.LectureStatus;
+import com.teamexp.learnflowapi.lecture.model.LectureStatistic;
 
 import java.time.Instant;
 
@@ -21,7 +22,9 @@ public record LectureResponse(
     int totalChapterCount,
     int totalLessonCount,
     Instant createdAt,
-    List<ChapterResponse> chapters
+    List<ChapterResponse> chapters,
+    Double ratingAverage,
+    Long enrollmentCount
 ) {
     // Full detail including chapters and lessons info  with counts
     public static LectureResponse from(Lecture lecture) {
@@ -39,7 +42,9 @@ public record LectureResponse(
             lecture.getCreatedAt(),
             lecture.getChapters().stream()
                 .map(ChapterResponse::from)
-                .collect(Collectors.toList())
+                .collect(Collectors.toList()),
+            null,
+            null
         );
     }
 
@@ -57,7 +62,37 @@ public record LectureResponse(
             0,
             0,
             lecture.getCreatedAt(),
+            null,
+            null,
             null
+        );
+    }
+
+    // Simple response with statistics for list view
+    public static LectureResponse simpleFromWithStats(Lecture lecture, LectureStatistic statistic) {
+        Double ratingAvg = null;
+        Long enrollmentCnt = null;
+        
+        if (statistic != null) {
+            ratingAvg = statistic.getRatingAverage();
+            enrollmentCnt = statistic.getEnrollmentCount();
+        }
+        
+        return new LectureResponse(
+            lecture.getId(),
+            lecture.getTitle(),
+            lecture.getDescription(),
+            lecture.getCategoryId(),
+            lecture.getLevel(),
+            lecture.getLevel().getDisplayName(),
+            lecture.getStatus().getDisplayName(),
+            lecture.getInstructorId(),
+            0,
+            0,
+            lecture.getCreatedAt(),
+            null,
+            ratingAvg,
+            enrollmentCnt
         );
     }
 }

@@ -1,7 +1,10 @@
 package com.teamexp.learnflowapi.lecture.repository;
 
 import com.teamexp.learnflowapi.lecture.model.Lecture;
+import com.teamexp.learnflowapi.lecture.model.LectureLevel;
 import com.teamexp.learnflowapi.lecture.model.LectureStatus;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
@@ -35,4 +38,65 @@ public interface JpaLectureRepository extends JpaRepository<Lecture, Long>, Lect
 
     @Override
     List<Lecture> findByCategoryIdAndStatus(Integer categoryId, LectureStatus status);
+
+    @Override
+    default Page<Lecture> findByFiltersWithStats(
+        Integer categoryId,
+        LectureLevel level,
+        LectureStatus status,
+        String sortBy,
+        Pageable pageable
+    ) {
+        return switch (sortBy) {
+            case "POPULAR" -> findByFiltersWithStatsOrderByPopular(categoryId, level, status, pageable);
+            case "RATING" -> findByFiltersWithStatsOrderByRating(categoryId, level, status, pageable);
+            case "LATEST" -> findByFiltersWithStatsOrderByLatest(categoryId, level, status, pageable);
+            default -> findByFiltersWithStatsOrderByPopular(categoryId, level, status, pageable);
+        };
+    }
+
+    @Query("""
+        SELECT DISTINCT l FROM Lecture l
+        LEFT JOIN LectureStatistic ls ON ls.lectureId = l.id
+        WHERE l.status = :status
+        AND (:categoryId IS NULL OR l.categoryId = :categoryId)
+        AND (:level IS NULL OR l.level = :level)
+        ORDER BY ls.enrollmentCount DESC NULLS LAST
+        """)
+    Page<Lecture> findByFiltersWithStatsOrderByPopular(
+        @Param("categoryId") Integer categoryId,
+        @Param("level") LectureLevel level,
+        @Param("status") LectureStatus status,
+        Pageable pageable
+    );
+
+    @Query("""
+        SELECT DISTINCT l FROM Lecture l
+        LEFT JOIN LectureStatistic ls ON ls.lectureId = l.id
+        WHERE l.status = :status
+        AND (:categoryId IS NULL OR l.categoryId = :categoryId)
+        AND (:level IS NULL OR l.level = :level)
+        ORDER BY ls.ratingAverage DESC NULLS LAST
+        """)
+    Page<Lecture> findByFiltersWithStatsOrderByRating(
+        @Param("categoryId") Integer categoryId,
+        @Param("level") LectureLevel level,
+        @Param("status") LectureStatus status,
+        Pageable pageable
+    );
+
+    @Query("""
+        SELECT DISTINCT l FROM Lecture l
+        LEFT JOIN LectureStatistic ls ON ls.lectureId = l.id
+        WHERE l.status = :status
+        AND (:categoryId IS NULL OR l.categoryId = :categoryId)
+        AND (:level IS NULL OR l.level = :level)
+        ORDER BY l.createdAt DESC
+        """)
+    Page<Lecture> findByFiltersWithStatsOrderByLatest(
+        @Param("categoryId") Integer categoryId,
+        @Param("level") LectureLevel level,
+        @Param("status") LectureStatus status,
+        Pageable pageable
+    );
 }

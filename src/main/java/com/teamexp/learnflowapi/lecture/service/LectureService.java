@@ -9,11 +9,14 @@ import com.teamexp.learnflowapi.lecture.dto.response.LectureResponse;
 import com.teamexp.learnflowapi.lecture.dto.response.PublishedResponse;
 import com.teamexp.learnflowapi.lecture.model.*;
 import com.teamexp.learnflowapi.lecture.repository.LectureRepository;
-import lombok.RequiredArgsConstructor;
+import com.teamexp.learnflowapi.lecture.repository.LectureStatisticRepository;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.util.List;
+import java.util.Map;
 import java.util.stream.Collectors;
 import java.util.stream.IntStream;
 
@@ -22,9 +25,11 @@ import java.util.stream.IntStream;
 public class LectureService {
 
     private final LectureRepository lectureRepository;
+    private final LectureStatisticRepository lectureStatisticRepository;
 
-    public LectureService(LectureRepository lectureRepository) {
+    public LectureService(LectureRepository lectureRepository, LectureStatisticRepository lectureStatisticRepository) {
         this.lectureRepository = lectureRepository;
+        this.lectureStatisticRepository = lectureStatisticRepository;
     }
 
     @Transactional
@@ -172,6 +177,36 @@ public class LectureService {
         return lectureRepository.findByStatus(LectureStatus.AVAILABLE).stream()
             .map(LectureResponse::simpleFrom)
             .collect(Collectors.toList());
+    }
+
+    // 강의 목록 조회 (필터링 및 페이지네이션)
+    public Page<LectureResponse> getAllLecturesWithFilters(String category, String level, String sort, Pageable pageable) {
+        // "ALL" 값 처리
+        Integer categoryId = "ALL".equals(category) ? null : (category != null ? Integer.parseInt(category) : null);
+        LectureLevel lectureLevel = "ALL".equals(level) ? null : (level != null ? LectureLevel.forEntity(level) : null);
+        
+        // Repository에서 필터링된 강의 조회
+        Page<Lecture> lecturePage = lectureRepository.findByFiltersWithStats(
+            categoryId,
+            lectureLevel,
+            LectureStatus.AVAILABLE,
+            sort,
+            pageable
+        );
+
+        // N+1 문제 방지를 위해 모든 Lecture ID에 대한 통계 정보를 한 번에 조회
+        List<Long> lectureIds = lecturePage.getContent().stream()
+            .map(Lecture::getId)
+            .collect(Collectors.toList());
+        
+        Map<Long, LectureStatistic> statisticMap = lectureStatisticRepository.findAllById(lectureIds).stream()
+            .collect(Collectors.toMap(LectureStatistic::getLectureId, stat -> stat));
+
+        // Page<LectureResponse>로 변환
+        return lecturePage.map(lecture -> {
+            LectureStatistic statistic = statisticMap.get(lecture.getId());
+            return LectureResponse.simpleFromWithStats(lecture, statistic);
+        });
     }
 
     // 강의 단건 조회
