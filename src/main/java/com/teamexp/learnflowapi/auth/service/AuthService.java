@@ -3,7 +3,7 @@ package com.teamexp.learnflowapi.auth.service;
 import com.teamexp.learnflowapi.auth.controller.dto.LoginRequest;
 import com.teamexp.learnflowapi.auth.controller.dto.LoginResponse;
 import com.teamexp.learnflowapi.auth.controller.dto.ReissuanceResponse;
-import com.teamexp.learnflowapi.auth.exception.RefreshTokenInavlidException;
+import com.teamexp.learnflowapi.auth.exception.RefreshTokenInvalidException;
 import com.teamexp.learnflowapi.auth.exception.UserNotFoundException;
 import com.teamexp.learnflowapi.global.security.principal.CustomUserPrincipal;
 import com.teamexp.learnflowapi.global.security.jwt.JwtTokenProvider;
@@ -60,7 +60,7 @@ public class AuthService {
 
         // 리프레시 토큰 검증
         if (!jwtTokenProvider.validateToken(refreshToken)) {
-            throw new RefreshTokenInavlidException();
+            throw new RefreshTokenInvalidException();
         }
 
         // TODO : token table을 추가해서 refresh token 관리하는 방법도 고려해볼 것
