@@ -125,14 +125,7 @@ public class Lecture {
                 .mapToInt(chapter -> chapter.getLessons().size())
                 .sum();
     }
-
-
-    // Get total count of lessons in this lecture
-    public int getTotalLessonsCount() {
-        return chapters.stream()
-                .mapToInt(chapter -> chapter.getLessons().size())
-                .sum();
-    }
+    
 
     // Get total count of chapters in this lecture
     public int getTotalChapterCount() {
