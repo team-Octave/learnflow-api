@@ -1,10 +1,12 @@
 package com.teamexp.learnflowapi.global.config;
 
+import com.teamexp.learnflowapi.global.security.exception.JwtAuthenticationEntryPoint;
 import com.teamexp.learnflowapi.global.security.jwt.JwtAuthenticationFilter;
 import com.teamexp.learnflowapi.user.service.CustomUserDetailsService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
+import org.springframework.http.HttpMethod;
 import org.springframework.security.authentication.AuthenticationManager;
 import org.springframework.security.config.annotation.authentication.builders.AuthenticationManagerBuilder;
 import org.springframework.security.config.annotation.web.builders.HttpSecurity;
@@ -21,13 +23,15 @@ public class SecurityConfig {
     private final CustomUserDetailsService userDetailsService;
     private final PasswordConfig passwordConfig;
     private final JwtAuthenticationFilter jwtAuthenticationFilter;
+    private final JwtAuthenticationEntryPoint jwtAuthenticationEntryPoint;
 
     @Autowired
     public SecurityConfig(CustomUserDetailsService userDetailsService, PasswordConfig passwordConfig,
-                          JwtAuthenticationFilter jwtAuthenticationFilter) {
+                          JwtAuthenticationFilter jwtAuthenticationFilter, JwtAuthenticationEntryPoint jwtAuthenticationEntryPoint) {
         this.userDetailsService = userDetailsService;
         this.passwordConfig = passwordConfig;
         this.jwtAuthenticationFilter = jwtAuthenticationFilter;
+        this.jwtAuthenticationEntryPoint = jwtAuthenticationEntryPoint;
     }
 
     @Bean
@@ -36,8 +40,9 @@ public class SecurityConfig {
                 .csrf(AbstractHttpConfigurer::disable)
                 .sessionManagement(session ->
                         session.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
+                .exceptionHandling(exception -> exception.authenticationEntryPoint(jwtAuthenticationEntryPoint))
                 .authorizeHttpRequests(auth -> auth
-                        .requestMatchers("/api/v1/users").permitAll()          // 회원가입
+                        .requestMatchers(HttpMethod.POST, "/api/v1/users").permitAll()          // 회원가입
                         .requestMatchers("/api/v1/users/check").permitAll()    // 닉네임 체크
                         .requestMatchers("/api/v1/auth/login").permitAll()    // 로그인
                         .requestMatchers("/api/v1/auth/reissue").permitAll()   // 토큰 재발급

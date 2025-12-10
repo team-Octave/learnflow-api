@@ -1,6 +1,7 @@
 package com.teamexp.learnflowapi.global.security.jwt;
 
 import io.jsonwebtoken.Claims;
+import io.jsonwebtoken.ExpiredJwtException;
 import jakarta.servlet.FilterChain;
 import jakarta.servlet.ServletException;
 import jakarta.servlet.http.HttpServletRequest;
@@ -60,9 +61,10 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
 
                 SecurityContextHolder.getContext().setAuthentication(authentication);
 
+            } catch (ExpiredJwtException e) {
+                // 토큰이 만료된 경우: 그냥 인증 없이 흘려보내거나, 에러 응답 처리
             } catch (Exception e) {
                 // 토큰 검증 실패 시: 그냥 인증 없이 흘려보내거나, 에러 응답 처리
-                // TODO : CustomException 처리
             }
         }
 
