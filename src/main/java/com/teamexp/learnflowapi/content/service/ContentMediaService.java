@@ -28,50 +28,29 @@ public class ContentMediaService {
     private static final String ALLOWED_MIME = "video/mp4";
     private static final long MAX_FILE_SIZE = 1024L * 1024L * 1024L;
 
+    /**
+     * 영상 업로드 처리 전체 흐름
+     * 1) 파일 검증
+     * 2) 업로드용 key 생성
+     * 3) GCP 업로드 수행
+     * 4) 영상 길이(duration) 추출
+     * 5) DB 반영 (기존 있으면 update, 없으면 insert)
+     */
     public void createVideoUploadUrl(UploadVideoRequest request)
             throws IOException {
 
         MultipartFile file = request.file();
         Long lessonId = request.lessonId();
 
-        if (file == null || file.isEmpty()) {
-            throw new IllegalArgumentException("업로드할 파일이 없습니다.");
-        }
-
-        String originalFilename = file.getOriginalFilename();
-
-        if (originalFilename == null || !originalFilename.contains(".")) {
-            throw new IllegalArgumentException("유효하지 않은 파일명입니다. 확장자가 필요합니다.");
-        }
-
-        String extension = originalFilename.substring(originalFilename.lastIndexOf(".")).toLowerCase();
-
-        if (!extension.equals(ALLOWED_EXTENSION)) {
-            throw new IllegalArgumentException("지원하지 않는 파일 형식입니다. mp4만 업로드 가능합니다.");
-        }
-
-        if (!ALLOWED_MIME.equalsIgnoreCase(file.getContentType())) {
-            throw new IllegalArgumentException("지원하지 않는 MIME 타입입니다. video/mp4만 허용됩니다.");
-        }
-
-        if (file.getSize() > MAX_FILE_SIZE) {
-            throw new IllegalArgumentException("파일이 너무 큽니다. 최대 업로드 크기는 1GB입니다.");
-        }
-
-
-        String videoFileName = "videos/lesson-" + lessonId + "-" + java.util.UUID.randomUUID() + extension;
-
-        String url = gcpFileUploadService.createUploadUrl(
-                videoFileName,
-                file
-        );
+        // 업로드 파일 검증
+        vaildateFile(file);
 
         // 저장될 파일 key 생성
         String extension = ".mp4";
         String videoFileName = "videos/lesson-" + lessonId + "-" + java.util.UUID.randomUUID() + extension;
 
         // GCP 업로드 및 URL 생성
-        gcpFileUploadService.createUploadUrl(videoFileName, file);
+        gcpFileUploadService.createUploadUrl(videoFileName,file);
 
         // 업로드된 영상 길이 추출
         Integer durationSec = extractDuration(file);
@@ -92,6 +71,11 @@ public class ContentMediaService {
         }
     }
 
+    /**
+     * FFmpegFrameGrabber 사용하여 영상 duration(초 단위) 추출
+     * - MultipartFile → 임시 파일 변환 후 분석
+     * - 마이크로초 기반 duration 값을 초 단위로 환산
+     */
     private Integer extractDuration(MultipartFile file) {
         File tempFile = null;
 
@@ -121,4 +105,31 @@ public class ContentMediaService {
             }
 
         }
+    }
+
+    private void vaildateFile(MultipartFile file){
+        if (file == null || file.isEmpty()) {
+            throw new IllegalArgumentException("업로드할 파일이 없습니다.");
+        }
+
+        String originalFilename = file.getOriginalFilename();
+
+        if (originalFilename == null || !originalFilename.contains(".")) {
+            throw new IllegalArgumentException("유효하지 않은 파일명입니다. 확장자가 필요합니다.");
+        }
+
+        String extension = originalFilename.substring(originalFilename.lastIndexOf(".")).toLowerCase();
+
+        if (!extension.equals(ALLOWED_EXTENSION)) {
+            throw new IllegalArgumentException("지원하지 않는 파일 형식입니다. mp4만 업로드 가능합니다.");
+        }
+
+        if (!ALLOWED_MIME.equalsIgnoreCase(file.getContentType())) {
+            throw new IllegalArgumentException("지원하지 않는 MIME 타입입니다. video/mp4만 허용됩니다.");
+        }
+
+        if (file.getSize() > MAX_FILE_SIZE) {
+            throw new IllegalArgumentException("파일이 너무 큽니다. 최대 업로드 크기는 1GB입니다.");
+        }
+    }
 }
