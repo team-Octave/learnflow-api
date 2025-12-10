@@ -1,9 +1,6 @@
 package com.teamexp.learnflowapi.enrollment.service;
 
-import com.teamexp.learnflowapi.enrollment.dto.CreateCompletedLessonRequest;
-import com.teamexp.learnflowapi.enrollment.dto.DecidedEnrollmentRequest;
-import com.teamexp.learnflowapi.enrollment.dto.EnrollmentRequest;
-import com.teamexp.learnflowapi.enrollment.dto.EnrollmentResponse;
+import com.teamexp.learnflowapi.enrollment.dto.*;
 import com.teamexp.learnflowapi.enrollment.exception.CompletedLessonAlreadyExistsException;
 import com.teamexp.learnflowapi.enrollment.exception.EnrollmentAccessDeniedException;
 import com.teamexp.learnflowapi.enrollment.exception.EnrollmentAlreadyExistsException;
@@ -78,11 +75,9 @@ public class EnrollmentService {
 
     // 2. 현재 수강중인 강좌 목록 조회
     @Transactional(readOnly = true)
-    public List<EnrollmentResponse> getEnrollments(String userId) {
+    public List<MyEnrollmentResponse> getEnrollments(String userId) {
 
-        List<Enrollment> enrollments = enrollmentRepository.findByUserId(userId);
-
-        return enrollments.stream().map(EnrollmentResponse::from).toList();
+        return enrollmentRepository.findMyEnrollmentsByUserIdNative(userId);
     }
 
     public void updateEnrollment(DecidedEnrollmentRequest request) {
@@ -116,16 +111,16 @@ public class EnrollmentService {
     }
 
     private void updateProgress(CreateCompletedLessonRequest request) {
-        Enrollment requestEnrollment = enrollmentRepository.findById(request.enrollmentId()).orElseThrow(EnrollmentNotFoundException::new);
-
-        // TODO Lecture 부분 Merge 후에 리팩토링 예정
-        int totalLessons; // LessonRepository.countByLectureId(requestEnrollment.getLectureId());
-
-        int completedLessons = completedLessonRepository.countByEnrollmentId(request.enrollmentId());
-
-        double updateProgress = (double) completedLessons / totalLessons * 100;
-
-        requestEnrollment.updateProgress((int) Math.round(updateProgress));
+//        Enrollment requestEnrollment = enrollmentRepository.findById(request.enrollmentId()).orElseThrow(EnrollmentNotFoundException::new);
+//
+//        // TODO Lecture 부분 Merge 후에 리팩토링 예정
+//        int totalLessons; // LessonRepository.countByLectureId(requestEnrollment.getLectureId());
+//
+//        int completedLessons = completedLessonRepository.countByEnrollmentId(request.enrollmentId());
+//
+//        double updateProgress = (double) completedLessons / totalLessons * 100;
+//
+//        requestEnrollment.updateProgress((int) Math.round(updateProgress));
     }
 
 }

@@ -1,9 +1,6 @@
 package com.teamexp.learnflowapi.enrollment.controller;
 
-import com.teamexp.learnflowapi.enrollment.dto.CreateCompletedLessonRequest;
-import com.teamexp.learnflowapi.enrollment.dto.DecidedEnrollmentRequest;
-import com.teamexp.learnflowapi.enrollment.dto.EnrollmentRequest;
-import com.teamexp.learnflowapi.enrollment.dto.EnrollmentResponse;
+import com.teamexp.learnflowapi.enrollment.dto.*;
 import com.teamexp.learnflowapi.enrollment.service.EnrollmentService;
 import com.teamexp.learnflowapi.global.response.BaseResponse;
 import com.teamexp.learnflowapi.global.security.principal.CustomUserPrincipal;
@@ -54,7 +51,7 @@ public class EnrollmentController {
     }
 
     @GetMapping
-    public ResponseEntity<BaseResponse<List<EnrollmentResponse>>> getEnrollment(@AuthenticationPrincipal CustomUserPrincipal principal) {
+    public ResponseEntity<BaseResponse<List<MyEnrollmentResponse>>> getEnrollment(@AuthenticationPrincipal CustomUserPrincipal principal) {
 
         // lecture 썸네일, lecture 이름, 수강률, review 별점, review수강평, 생성일, 업데이트일, Status 반환
         return ResponseEntity.ok(BaseResponse.ok(enrollmentService.getEnrollments(principal.getId())));
