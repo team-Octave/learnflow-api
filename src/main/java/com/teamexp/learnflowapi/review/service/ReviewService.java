@@ -58,11 +58,11 @@ public class ReviewService {
         String userId = user.getId();
         // 1. 강의 조회
         Lecture lecture = lectureRepository.findById(request.lectureId())
-            .orElseThrow(LectureNotFound::new);
+            .orElseThrow(LectureNotFoundException::new);
 
         // 2. 강의 생성자 검증 (본인 강의 리뷰 작성 불가)
          if (lecture.getInstructorId().equals(userId)) {
-             throw new SelfReviewNowAllowedException();
+             throw new SelfReviewNotAllowedException();
          }
 
         // 3. 수강생 검증 (404 예외)
@@ -154,7 +154,7 @@ public class ReviewService {
             .orElseThrow(ReviewNotFoundException::new);
 
         Lecture lecture = lectureRepository.findById(review.getLectureId())
-            .orElseThrow(LectureNotFound::new);
+            .orElseThrow(LectureNotFoundException::new);
 
          if (!lecture.getInstructorId().equals(userId)) {
              throw new NotInstructorException();
