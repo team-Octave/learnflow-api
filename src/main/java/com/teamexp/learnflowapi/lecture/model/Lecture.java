@@ -48,9 +48,9 @@ public class Lecture {
     @Column(name = "thumbnail_id")
     private Long thumbnailId;
 
-    // TODO: add price related VO and embed here
-    @Embedded
-    private Money price;
+//    // TODO: add price related VO and embed here
+//    @Embedded
+//    private Money price;
 
     // Aggregate root of Chapter & Lesson
     @OneToMany(mappedBy = "lecture", cascade = CascadeType.ALL, orphanRemoval = true)
