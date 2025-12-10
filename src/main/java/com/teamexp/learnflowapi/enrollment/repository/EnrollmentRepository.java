@@ -2,6 +2,7 @@ package com.teamexp.learnflowapi.enrollment.repository;
 
 import com.teamexp.learnflowapi.enrollment.dto.MyEnrollmentResponse;
 import com.teamexp.learnflowapi.enrollment.model.Enrollment;
+import jakarta.persistence.Tuple;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
@@ -36,12 +37,12 @@ public interface EnrollmentRepository extends JpaRepository<Enrollment, Long> {
            LEFT JOIN thumbnail t ON t.lecture_id = l.id
            WHERE e.user_id = :userId
            """, nativeQuery = true)
-    List<MyEnrollmentResponse> findMyEnrollmentsByUserIdNative(@Param("userId") String userId);
+    List<Tuple> findMyEnrollmentsByUserIdNative(@Param("userId") String userId);
 
     @Query(value = """
     SELECT
         COALESCE(cl.completed_count, 0) AS completedCount,
-        tl.total_count AS totalCount
+        COALESCE(tl.total_count, 0) AS totalCount
     FROM enrollments e
     JOIN (
         SELECT c.lecture_id, COUNT(*) AS total_count
@@ -63,12 +64,12 @@ public interface EnrollmentRepository extends JpaRepository<Enrollment, Long> {
             e.lecture_id AS lectureId, 
             e.enrollment_id AS enrollmentId,
             e.progress AS progress,  -- 진행률을 그대로 사용
-            MAX(cl.lesson_id) AS lastCompletedLessonId, 
+            COALESCE(MAX(cl.lesson_id), 0) AS lastCompletedLessonId, 
             COALESCE(GROUP_CONCAT(DISTINCT cl.lesson_id), '') AS completedLessonIds,
-            MAX(l.chapter_id) AS lastCompletedLessonChapterId
+            COALESCE(MAX(l.chapter_id), 0) AS lastCompletedLessonChapterId
         FROM enrollments e
         JOIN completed_lessons cl ON cl.enrollment_id = e.enrollment_id
-        JOIN lesson l ON l.id = cl.lesson_id
+        JOIN lessons l ON l.id = cl.lesson_id
         WHERE e.enrollment_id = :enrollmentId
         GROUP BY e.enrollment_id, e.lecture_id
     """, nativeQuery = true)
