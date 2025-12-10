@@ -5,6 +5,9 @@ import com.teamexp.learnflowapi.enrollment.model.Enrollment;
 import com.teamexp.learnflowapi.enrollment.repository.CompletedLessonRepository;
 import com.teamexp.learnflowapi.enrollment.repository.EnrollmentRepository;
 import com.teamexp.learnflowapi.global.security.principal.CustomUserPrincipal;
+import com.teamexp.learnflowapi.lecture.exception.LectureNotFound;
+import com.teamexp.learnflowapi.lecture.exception.NotInstructorException;
+import com.teamexp.learnflowapi.lecture.exception.SelfReviewNowAllowedException;
 import com.teamexp.learnflowapi.lecture.model.Lecture;
 import com.teamexp.learnflowapi.lecture.repository.LectureRepository;
 import com.teamexp.learnflowapi.review.dto.ReviewRequest;
@@ -55,11 +58,11 @@ public class ReviewService {
         String userId = user.getId();
         // 1. 강의 조회
         Lecture lecture = lectureRepository.findById(request.lectureId())
-            .orElseThrow(() -> new IllegalArgumentException("존재하지 않는 강의입니다."));
+            .orElseThrow(LectureNotFound::new);
 
         // 2. 강의 생성자 검증 (본인 강의 리뷰 작성 불가)
          if (lecture.getInstructorId().equals(userId)) {
-             throw new IllegalStateException("본인의 강의에는 리뷰를 작성할 수 없습니다.");
+             throw new SelfReviewNowAllowedException();
          }
 
         // 3. 수강생 검증 (404 예외)
@@ -151,10 +154,10 @@ public class ReviewService {
             .orElseThrow(ReviewNotFoundException::new);
 
         Lecture lecture = lectureRepository.findById(review.getLectureId())
-            .orElseThrow(() -> new IllegalArgumentException("존재하지 않는 강의입니다."));
+            .orElseThrow(LectureNotFound::new);
 
          if (!lecture.getInstructorId().equals(userId)) {
-             throw new IllegalStateException("해당 강의의 생성자만 답글을 달 수 있습니다.");
+             throw new NotInstructorException();
          }
 
         review.reply(replyContent);
