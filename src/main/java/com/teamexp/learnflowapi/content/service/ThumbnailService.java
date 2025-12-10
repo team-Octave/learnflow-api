@@ -1,5 +1,6 @@
 package com.teamexp.learnflowapi.content.service;
 
+import com.teamexp.learnflowapi.content.dto.ThumbnailUploadResponse;
 import com.teamexp.learnflowapi.content.dto.UploadThumbnailRequest;
 import com.teamexp.learnflowapi.content.excption.InvalidFileNameException;
 import com.teamexp.learnflowapi.content.excption.ThumbnailFileSizeExceededException;
@@ -33,7 +34,7 @@ public class ThumbnailService {
     private static final long MAX_FILE_SIZE = 10L * 1024L * 1024L;
 
 
-    public void uploadThumbnail(UploadThumbnailRequest request) throws IOException {
+    public ThumbnailUploadResponse uploadThumbnail(UploadThumbnailRequest request) throws IOException {
 
         MultipartFile file = request.file();
         Long lectureId = request.lectureId();
@@ -87,5 +88,6 @@ public class ThumbnailService {
             );
             thumbnailRepository.save(created);
         }
+        return new ThumbnailUploadResponse(lectureId, publicUrl);
     }
 }

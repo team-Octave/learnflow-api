@@ -27,13 +27,10 @@ public class ThumbnailController {
     @PostMapping(value = "/upload-thumbnail",
             consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
     public ResponseEntity<BaseResponse<ThumbnailUploadResponse>> uploadThumbnail(
-            @ModelAttribute UploadThumbnailRequest uploadThumbnailRequest)
-            throws IOException {
+            @ModelAttribute UploadThumbnailRequest uploadThumbnailRequest) throws IOException {
 
-        thumbnailService.uploadThumbnail(uploadThumbnailRequest);
+        ThumbnailUploadResponse response = thumbnailService.uploadThumbnail(uploadThumbnailRequest);
 
-        return ResponseEntity
-                .status(HttpStatus.OK)
-                .body(null);
+        return ResponseEntity.ok(BaseResponse.ok(response));
     }
 }

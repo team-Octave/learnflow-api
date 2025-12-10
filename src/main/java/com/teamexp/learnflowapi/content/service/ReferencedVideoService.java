@@ -7,7 +7,6 @@ import com.teamexp.learnflowapi.content.repository.ReferencedVideoRepository;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
-import java.io.IOException;
 
 @Service
 public class ReferencedVideoService {
