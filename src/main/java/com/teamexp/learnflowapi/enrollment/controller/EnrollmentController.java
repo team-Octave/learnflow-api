@@ -44,9 +44,10 @@ public class EnrollmentController {
     }
 
     @PostMapping("/select-enrollment")
-    public ResponseEntity<BaseResponse<SelectEnrollmentResponse>> selectEnrollment(@Valid @RequestBody SelectEnrollmentRequest request) {
+    public ResponseEntity<BaseResponse<SelectEnrollmentResponse>> selectEnrollment(@AuthenticationPrincipal CustomUserPrincipal principal,
+                                                                                   @Valid @RequestBody SelectEnrollmentRequest request) {
         // lecture정보 > 챕터 > 레슨(완료 true만), 가장 마지막에 완료된 레슨 ID, 진도율
-        return ResponseEntity.ok(BaseResponse.ok(enrollmentService.selectEnrollment(request)));
+        return ResponseEntity.ok(BaseResponse.ok(enrollmentService.selectEnrollment(principal.getId() , request)));
     }
 
     @GetMapping

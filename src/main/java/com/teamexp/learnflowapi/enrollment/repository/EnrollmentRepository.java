@@ -64,7 +64,7 @@ public interface EnrollmentRepository extends JpaRepository<Enrollment, Long> {
             e.enrollment_id AS enrollmentId,
             e.progress AS progress,  -- 진행률을 그대로 사용
             MAX(cl.lesson_id) AS lastCompletedLessonId, 
-            GROUP_CONCAT(DISTINCT cl.lesson_id) AS completedLessonIds,
+            COALESCE(GROUP_CONCAT(DISTINCT cl.lesson_id), '') AS completedLessonIds,
             MAX(l.chapter_id) AS lastCompletedLessonChapterId
         FROM enrollments e
         JOIN completed_lessons cl ON cl.enrollment_id = e.enrollment_id

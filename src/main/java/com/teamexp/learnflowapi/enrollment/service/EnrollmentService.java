@@ -82,7 +82,9 @@ public class EnrollmentService {
         return enrollmentRepository.findMyEnrollmentsByUserIdNative(userId);
     }
 
-    public SelectEnrollmentResponse selectEnrollment(SelectEnrollmentRequest request) {
+    public SelectEnrollmentResponse selectEnrollment(String userId, SelectEnrollmentRequest request) {
+
+        validUser(userId, request.enrollmentId());
 
         // Native 쿼리로 결과 반환
         Object result = enrollmentRepository.selectEnrollment(request.enrollmentId());
