@@ -11,7 +11,7 @@ import java.time.Instant;
 @Getter
 @Entity
 @EntityListeners(AuditingEntityListener.class)
-@Table(name = "enrollment", uniqueConstraints = {
+@Table(name = "enrollments", uniqueConstraints = {
         @UniqueConstraint(columnNames = {"user_id", "lecture_id"})  //복합키
 })
 public class Enrollment {
