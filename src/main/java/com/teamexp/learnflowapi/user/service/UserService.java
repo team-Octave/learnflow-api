@@ -43,4 +43,9 @@ public class UserService {
     public boolean checkNickname(String nickname) {
         return userRepository.existsByNickname(nickname);
     }
+
+    @Transactional
+    public void withdrawUser(String userId) {
+        userRepository.deleteById(userId);
+    }
 }

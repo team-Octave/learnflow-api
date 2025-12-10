@@ -14,6 +14,7 @@ import java.time.Instant;
 import java.util.Collection;
 import java.util.List;
 
+import org.hibernate.annotations.SQLDelete;
 import org.springframework.data.annotation.CreatedDate;
 import org.springframework.data.annotation.LastModifiedDate;
 import org.springframework.data.jpa.domain.support.AuditingEntityListener;
@@ -24,6 +25,7 @@ import org.springframework.security.core.userdetails.UserDetails;
 @Entity
 @EntityListeners(AuditingEntityListener.class)
 @Table(name = "users")
+@SQLDelete(sql = "UPDATE users SET del_flag = true WHERE user_id = ?")
 public class User implements UserDetails {
 
     @Id
