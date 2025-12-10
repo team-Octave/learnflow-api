@@ -2,6 +2,7 @@ package com.teamexp.learnflowapi.content.model;
 
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
+import jakarta.persistence.EntityListeners;
 import jakarta.persistence.GeneratedValue;
 import jakarta.persistence.GenerationType;
 import jakarta.persistence.Id;
@@ -10,6 +11,7 @@ import jakarta.persistence.UniqueConstraint;
 import lombok.Getter;
 import org.springframework.data.annotation.CreatedDate;
 import org.springframework.data.annotation.LastModifiedDate;
+import org.springframework.data.jpa.domain.support.AuditingEntityListener;
 
 import java.time.Instant;
 
@@ -18,6 +20,7 @@ import java.time.Instant;
         @UniqueConstraint(name = "uk_thumbnail_lecture_id", columnNames = "lecture_id")
 })
 @Getter
+@EntityListeners(AuditingEntityListener.class)
 public class Thumbnail {
 
     @Id
