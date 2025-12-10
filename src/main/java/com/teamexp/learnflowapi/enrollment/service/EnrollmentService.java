@@ -40,16 +40,13 @@ public class EnrollmentService {
     }
 
     // 1. 수강 생성
-    public EnrollmentResponse createEnrollment(String userId , EnrollmentRequest request) {
+    public void createEnrollment(String userId , CreateEnrollmentRequest request) {
 
         if (enrollmentRepository.existsByUserIdAndLectureId(userId, request.lectureId())) {
             throw new EnrollmentAlreadyExistsException();
         }
 
-        Enrollment newEnrollment = enrollmentRepository.save(Enrollment.create(userId, request.lectureId()));
-
-//      TODO 생성된 Enrollment 확인(테스트), 반환 값 협의 후 수정 예정
-        return EnrollmentResponse.from(newEnrollment);
+        enrollmentRepository.save(Enrollment.create(userId, request.lectureId()));
     }
 
     // 5. lesson 완료
@@ -111,16 +108,20 @@ public class EnrollmentService {
     }
 
     private void updateProgress(CreateCompletedLessonRequest request) {
-//        Enrollment requestEnrollment = enrollmentRepository.findById(request.enrollmentId()).orElseThrow(EnrollmentNotFoundException::new);
-//
-//        // TODO Lecture 부분 Merge 후에 리팩토링 예정
-//        int totalLessons; // LessonRepository.countByLectureId(requestEnrollment.getLectureId());
-//
-//        int completedLessons = completedLessonRepository.countByEnrollmentId(request.enrollmentId());
-//
-//        double updateProgress = (double) completedLessons / totalLessons * 100;
-//
-//        requestEnrollment.updateProgress((int) Math.round(updateProgress));
+        Enrollment requestEnrollment = enrollmentRepository.findById(request.enrollmentId()).orElseThrow(EnrollmentNotFoundException::new);
+
+        Object[] result = enrollmentRepository.getProgressCounts(request.enrollmentId());
+
+        int completed = ((Number) result[0]).intValue();
+        int total = ((Number) result[1]).intValue();
+
+        int updateProgress = 0;
+
+        if (total > 0) {
+            updateProgress = (int) Math.round((double) completed / total * 100);
+        }
+
+        requestEnrollment.updateProgress(updateProgress);
     }
 
 }
