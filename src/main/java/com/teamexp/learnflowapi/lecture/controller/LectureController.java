@@ -18,8 +18,12 @@ import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.PutMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 import org.springframework.http.ResponseEntity;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
+import org.springframework.data.web.PageableDefault;
 
 import java.util.List;
 
@@ -107,10 +111,13 @@ public class LectureController {
 
     // 강의 목록 조회
     @GetMapping
-    public ResponseEntity<List<LectureResponse>> getAllLectures(
-
+    public ResponseEntity<Page<LectureResponse>> getAllLectures(
+        @RequestParam(required = false, defaultValue = "ALL") String category,
+        @RequestParam(required = false, defaultValue = "ALL") String level,
+        @RequestParam(required = false, defaultValue = "POPULAR") String sort,
+        @PageableDefault(size = 16) Pageable pageable
     ) {
-        List<LectureResponse> lectures = lectureService.getAllLectures();
+        Page<LectureResponse> lectures = lectureService.getAllLecturesWithFilters(category, level, sort, pageable);
         return ResponseEntity.status(HttpStatus.OK).body(lectures);
     }
 

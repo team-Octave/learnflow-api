@@ -14,9 +14,7 @@ public interface LectureStatisticRepository extends JpaRepository<LectureStatist
     // ORDER By rating average DESC offset n limit 16
     @Query("""
         SELECT ls FROM LectureStatistic ls
-        ORDER BY (CASE WHEN ls.ratingCount > 0
-                  THEN CAST(ls.ratingSum AS double) / ls.ratingCount
-                  ELSE 0 END) DESC
+        ORDER BY ls.ratingAverage DESC NULLS LAST
     """)
     List<LectureStatistic> findTopOrderByRatingAverage(Pageable pageable);
 
