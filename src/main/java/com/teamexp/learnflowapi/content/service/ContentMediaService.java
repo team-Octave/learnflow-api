@@ -55,7 +55,7 @@ public class ContentMediaService {
         Integer durationSec = extractDuration(file);
 
         // GCP 업로드 및 URL 생성
-        gcpFileUploadService.createUploadUrl(videoFileName,file);
+        gcpFileUploadService.uploadFile(videoFileName,file);
 
         // DB 저장 (기존 존재 시 업데이트 or 없으면 신규 생성)
         ContentMedia foundContentMedia = contentMediaRepository.findByLessonId(lessonId)

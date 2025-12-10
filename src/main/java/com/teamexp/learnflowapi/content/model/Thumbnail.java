@@ -8,6 +8,10 @@ import jakarta.persistence.Id;
 import jakarta.persistence.Table;
 import jakarta.persistence.UniqueConstraint;
 import lombok.Getter;
+import org.springframework.data.annotation.CreatedDate;
+import org.springframework.data.annotation.LastModifiedDate;
+
+import java.time.Instant;
 
 @Entity
 @Table(name = "thumbnail", uniqueConstraints = {
@@ -28,6 +32,14 @@ public class Thumbnail {
 
     @Column(name = "file_url", nullable = false)
     private String fileUrl;
+
+    @CreatedDate
+    @Column(name = "created_at", columnDefinition = "TIMESTAMP", updatable = false, nullable = false)
+    private Instant createdAt;
+
+    @LastModifiedDate
+    @Column(name = "updated_at", columnDefinition = "TIMESTAMP", nullable = false)
+    private Instant updatedAt;
 
     protected Thumbnail() {}
 
