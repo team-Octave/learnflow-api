@@ -32,7 +32,7 @@ public class AuthController {
     }
 
     @PostMapping("/reissue")
-    public ResponseEntity<BaseResponse<ReissuanceResponse>> reissueToken(@Valid @RequestHeader(name = "Authorization") String tokenHeader) {
+    public ResponseEntity<BaseResponse<ReissuanceResponse>> reissueToken(@RequestHeader(name = "Authorization") String tokenHeader) {
 
         ReissuanceResponse response = authService.reissueToken(tokenHeader);
 
