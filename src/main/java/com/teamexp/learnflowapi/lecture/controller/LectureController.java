@@ -29,7 +29,7 @@ public class LectureController {
 
     private final LectureService lectureService;
 
-    LectureController(LectureService lectureService) {
+    public LectureController(LectureService lectureService) {
         this.lectureService = lectureService;
     }
 

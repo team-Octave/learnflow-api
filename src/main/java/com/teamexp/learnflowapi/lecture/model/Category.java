@@ -15,7 +15,7 @@ public class Category {
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Integer id;
 
-    @Column(name = "category_name" )
+    @Column(name = "category_name")
     private String categoryName;
 
     protected Category() {}
@@ -24,4 +24,11 @@ public class Category {
         this.categoryName = categoryName;
     }
 
+    public Integer getId() {
+        return id;
+    }
+
+    public String getCategoryName() {
+        return categoryName;
+    }
 }

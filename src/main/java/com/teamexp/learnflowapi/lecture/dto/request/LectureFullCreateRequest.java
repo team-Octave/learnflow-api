@@ -32,7 +32,7 @@ public record LectureFullCreateRequest(
         String lessonTitle,
 
         @NotBlank
-        @NotNull(message = "레슨 타입은 필수 입력 값입니다.")
+
         String lessonType,
 
         Boolean isFreePreview

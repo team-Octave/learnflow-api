@@ -14,7 +14,7 @@ public enum LectureStatus {
         return displayName;
     }
 
-    public LectureStatus forEntity(String displayName) {
+    public static LectureStatus forEntity(String displayName) {
         for (LectureStatus status : LectureStatus.values()) {
             if (status.getDisplayName().equals(displayName)) {
                 return status;

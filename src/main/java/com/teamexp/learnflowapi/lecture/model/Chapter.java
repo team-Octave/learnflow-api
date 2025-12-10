@@ -17,10 +17,10 @@ public class Chapter {
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
-    @Column(name="chapter_order", nullable = false)
+    @Column(name = "chapter_order", nullable = false)
     private Integer chapterOrder;
 
-    @Column(name = "chapter_title",nullable = false)
+    @Column(name = "chapter_title", nullable = false)
     private String chapterTitle;
 
     @ManyToOne(fetch = FetchType.LAZY)
@@ -38,7 +38,7 @@ public class Chapter {
         this.chapterTitle = chapterTitle;
     }
 
-    public static Chapter createChapter(String chapterTitle,Integer chapterOrder) {
+    public static Chapter createChapter(String chapterTitle, Integer chapterOrder) {
         return new Chapter(chapterTitle,chapterOrder);
     }
 

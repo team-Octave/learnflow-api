@@ -2,13 +2,10 @@ package com.teamexp.learnflowapi.lecture.model;
 
 import jakarta.persistence.*;
 import lombok.Getter;
-import org.springframework.core.annotation.Order;
 import org.springframework.data.annotation.CreatedDate;
 import org.springframework.data.jpa.domain.support.AuditingEntityListener;
 
 import java.time.Instant;
-import java.time.LocalDateTime;
-import java.time.OffsetDateTime;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
@@ -42,13 +39,13 @@ public class Lecture {
     @Column(nullable = false)
     private LectureStatus status;
 
-    @Column(name="category_id")
+    @Column(name = "category_id")
     private Integer categoryId;
 
-    @Column(name="instructor_id") // user_id is UUID string
+    @Column(name = "instructor_id") // user_id is UUID string
     private String instructorId;
 
-    @Column(name="thumbnail_id")
+    @Column(name = "thumbnail_id")
     private Long thumbnailId;
 
     // TODO: add price related VO and embed here

@@ -13,13 +13,13 @@ public class Lesson {
     private Long id;
 
     @Enumerated(EnumType.STRING)
-    @Column(name="lesson_type")
+    @Column(name = "lesson_type")
     private LessonType lessonType;
 
     @Column(name="lesson_title", nullable = false)
     private String lessonTitle;
 
-    @Column(name="lesson_order",nullable = false)
+    @Column(name = "lesson_order", nullable = false)
     private Integer lessonOrder;
 
     @Column(name="is_free_preview", nullable = false) // need to set default value to false
@@ -38,10 +38,10 @@ public class Lesson {
         this.lessonType = lessonType;
         this.lessonTitle = lessonTitle;
         this.lessonOrder = lessonOrder;
-        this.isFreePreview = isFreePreview;
+        this.isFreePreview = (isFreePreview != null ? isFreePreview : false);
     }
     public static Lesson createLesson(LessonType lessonType, String lessonTitle, Integer lessonOrder, Boolean isFreePreview) {
-        return new Lesson(lessonType, lessonTitle, lessonOrder, isFreePreview);
+        return new Lesson(lessonType, lessonTitle, lessonOrder, (isFreePreview != null ? isFreePreview : false));
     }
 
     void setChapter(Chapter chapter) {
