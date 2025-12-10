@@ -2,7 +2,6 @@ package com.teamexp.learnflowapi.content.service;
 
 import com.teamexp.learnflowapi.content.dto.UploadThumbnailRequest;
 import com.teamexp.learnflowapi.content.external.GcpFileUploadService;
-import com.teamexp.learnflowapi.content.model.ContentMedia;
 import com.teamexp.learnflowapi.content.model.Thumbnail;
 import com.teamexp.learnflowapi.content.repository.ThumbnailRepository;
 import org.springframework.stereotype.Service;

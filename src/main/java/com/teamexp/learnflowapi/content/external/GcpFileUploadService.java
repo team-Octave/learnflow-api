@@ -47,7 +47,7 @@ public class GcpFileUploadService {
      * 공개 리소스용 Public URL 생성
      */
     public String createPublicUrl(String fileName) {
-        return "https://storage.googleapis.com/learnflow-file-storage" + bucketName + "/" + fileName;
+        return "https://storage.googleapis.com/" + bucketName + "/" + fileName;
     }
 
     /**
