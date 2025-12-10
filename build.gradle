@@ -41,6 +41,9 @@ dependencies {
     testRuntimeOnly 'org.junit.platform:junit-platform-launcher'
     compileOnly 'org.projectlombok:lombok'
     annotationProcessor 'org.projectlombok:lombok'
+
+    // FFmpegFrameGrabber 추가
+    implementation("org.bytedeco:javacv-platform:1.5.9")
 }
 dependencyManagement {
     imports {
