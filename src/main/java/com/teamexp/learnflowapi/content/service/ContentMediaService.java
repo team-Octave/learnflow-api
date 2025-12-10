@@ -54,7 +54,7 @@ public class ContentMediaService {
         // 업로드된 영상 길이 추출
         Integer durationSec = extractDuration(file);
 
-        // GCP 업로드 및 URL 생성
+        // 업로드만
         gcpFileUploadService.uploadFile(videoFileName,file);
 
         // DB 저장 (기존 존재 시 업데이트 or 없으면 신규 생성)

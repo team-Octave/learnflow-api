@@ -24,22 +24,19 @@ public class ReferencedVideoController {
 
     private final ReferencedVideoService referencedVideoService;
 
-    public  ReferencedVideoController(ReferencedVideoService referencedVideoService) {
+    public ReferencedVideoController(ReferencedVideoService referencedVideoService) {
         this.referencedVideoService = referencedVideoService;
     }
 
     /**
      * 강의 영상 url 등록 / 수정
-     * */
+     *
+     */
     @PostMapping("/upload-url")
     public ResponseEntity<BaseResponse<VideoUrlResponse>> saveVideoUrl(
             @RequestBody VideoUrlRequest request
-    ) throws IOException {
-        VideoUrlResponse response =
-                referencedVideoService.createReferencedVideoUrl(request);
-
-        return ResponseEntity
-                .status(HttpStatus.OK)
-                .body(null);
+    ) {
+        VideoUrlResponse response = referencedVideoService.createReferencedVideoUrl(request);
+        return ResponseEntity.ok(BaseResponse.ok(response));
     }
 }
