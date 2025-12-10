@@ -9,7 +9,9 @@ import com.teamexp.learnflowapi.lecture.exception.LectureNotFoundException;
 import com.teamexp.learnflowapi.lecture.exception.NotInstructorException;
 import com.teamexp.learnflowapi.lecture.exception.SelfReviewNotAllowedException;
 import com.teamexp.learnflowapi.lecture.model.Lecture;
+import com.teamexp.learnflowapi.lecture.model.LectureStatistic;
 import com.teamexp.learnflowapi.lecture.repository.LectureRepository;
+import com.teamexp.learnflowapi.lecture.repository.LectureStatisticRepository;
 import com.teamexp.learnflowapi.review.dto.ReviewRequest;
 import com.teamexp.learnflowapi.review.dto.ReviewResponse;
 import com.teamexp.learnflowapi.review.exception.NotEnoughProgressException;
@@ -40,17 +42,20 @@ public class ReviewService {
     private final EnrollmentRepository enrollmentRepository;
     private final CompletedLessonRepository completedLessonRepository;
     private final UserRepository userRepository;
+    private final LectureStatisticRepository lectureStatisticRepository;
 
     public ReviewService(ReviewRepository reviewRepository,
                          LectureRepository lectureRepository,
                          EnrollmentRepository enrollmentRepository,
                          CompletedLessonRepository completedLessonRepository,
-                         UserRepository userRepository) {
+                         UserRepository userRepository,
+                         LectureStatisticRepository lectureStatisticRepository) {
         this.reviewRepository = reviewRepository;
         this.lectureRepository = lectureRepository;
         this.enrollmentRepository = enrollmentRepository;
         this.completedLessonRepository = completedLessonRepository;
         this.userRepository = userRepository;
+        this.lectureStatisticRepository = lectureStatisticRepository;
     }
 
     // 1. 수강평 작성
@@ -86,7 +91,10 @@ public class ReviewService {
         Review review = Review.create(enrollment, request.content(), request.rating());
         Review savedReview = reviewRepository.save(review);
 
-        // 7. 실제 강의 제목 사용
+        // 7. 통계 업데이트 [추가] 팀원 요청
+        updateLectureStatistic(request.lectureId(),request.rating(),true);
+
+        // 8. 실제 강의 제목 사용
         return ReviewResponse.of(savedReview, user.getNickname(), lecture.getTitle());
     }
 
@@ -94,7 +102,7 @@ public class ReviewService {
     public Page<ReviewResponse> getReviewsByLecture(Long lectureId, Pageable pageable) {
 
         Lecture lecture = lectureRepository.findById(lectureId)
-            .orElseThrow(()-> new IllegalArgumentException("존재하지 않는 강의입니다."));
+            .orElseThrow(LectureNotFoundException::new);
 
         Page<Review> reviewPage = reviewRepository.findByEnrollment_LectureIdAndStatus(
             lectureId,
@@ -145,7 +153,13 @@ public class ReviewService {
             throw new NotMyReviewException();
         }
 
+        Long lectureId = review.getLectureId();
+        Integer rating = review.getRating();
+
         reviewRepository.delete(review);
+
+        //  통계 업데이트 [추가] 팀원 요청
+        updateLectureStatistic(lectureId, rating, false);
     }
 
     // 5. 강사 답글 등록
@@ -162,5 +176,30 @@ public class ReviewService {
          }
 
         review.reply(replyContent);
+    }
+
+    // [추가] 팀원 요청: 통계 업데이트 헬퍼 메서드
+    private void updateLectureStatistic(Long lectureId, Integer rating, boolean isAdd) {
+        LectureStatistic statistic = lectureStatisticRepository.findById(lectureId)
+            .orElse(null);
+        if (statistic == null) {
+            // 통계가 없으면 새로 생성(리뷰 추가인 경우만)
+            if (isAdd) {
+                // 팀원이 구현할 메서드
+                statistic = LectureStatistic.createForNewReview(lectureId, rating);
+                lectureStatisticRepository.save(statistic);
+            }
+            return;
+        }
+
+        // 기존 통계 업데이트
+        if (isAdd) {
+            statistic.addRating(rating);
+        }else{
+            // 팀원이 구현할 메서드
+            statistic.removeRating(rating);
+        }
+
+        lectureStatisticRepository.save(statistic);
     }
 }
