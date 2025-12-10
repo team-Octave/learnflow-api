@@ -10,6 +10,7 @@ import java.io.IOException;
 import lombok.RequiredArgsConstructor;
 import org.bytedeco.javacv.FFmpegFrameGrabber;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.multipart.MultipartFile;
 
 @Service
@@ -36,6 +37,7 @@ public class ContentMediaService {
      * 4) 영상 길이(duration) 추출
      * 5) DB 반영 (기존 있으면 update, 없으면 insert)
      */
+    @Transactional
     public void createVideoUploadUrl(UploadVideoRequest request)
             throws IOException {
 
@@ -43,17 +45,17 @@ public class ContentMediaService {
         Long lessonId = request.lessonId();
 
         // 업로드 파일 검증
-        vaildateFile(file);
+        validateFile(file);
 
         // 저장될 파일 key 생성
         String extension = ".mp4";
         String videoFileName = "videos/lesson-" + lessonId + "-" + java.util.UUID.randomUUID() + extension;
 
-        // GCP 업로드 및 URL 생성
-        gcpFileUploadService.createUploadUrl(videoFileName,file);
-
         // 업로드된 영상 길이 추출
         Integer durationSec = extractDuration(file);
+
+        // GCP 업로드 및 URL 생성
+        gcpFileUploadService.createUploadUrl(videoFileName,file);
 
         // DB 저장 (기존 존재 시 업데이트 or 없으면 신규 생성)
         ContentMedia foundContentMedia = contentMediaRepository.findByLessonId(lessonId)
@@ -107,7 +109,7 @@ public class ContentMediaService {
         }
     }
 
-    private void vaildateFile(MultipartFile file){
+    private void validateFile(MultipartFile file){
         if (file == null || file.isEmpty()) {
             throw new IllegalArgumentException("업로드할 파일이 없습니다.");
         }

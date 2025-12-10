@@ -43,7 +43,7 @@ dependencies {
     annotationProcessor 'org.projectlombok:lombok'
 
     // FFmpegFrameGrabber 추가
-    implementation("org.bytedeco:javacv-platform:1.5.12")
+    implementation("org.bytedeco:javacv-platform:1.5.9")
 }
 dependencyManagement {
     imports {
