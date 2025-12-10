@@ -4,8 +4,11 @@ import com.teamexp.learnflowapi.content.dto.UploadVideoRequest;
 import com.teamexp.learnflowapi.content.external.GcpFileUploadService;
 import com.teamexp.learnflowapi.content.model.ContentMedia;
 import com.teamexp.learnflowapi.content.repository.ContentMediaRepository;
+
+import java.io.File;
 import java.io.IOException;
 import lombok.RequiredArgsConstructor;
+import org.bytedeco.javacv.FFmpegFrameGrabber;
 import org.springframework.stereotype.Service;
 import org.springframework.web.multipart.MultipartFile;
 
@@ -88,4 +91,34 @@ public class ContentMediaService {
             contentMediaRepository.save(created);
         }
     }
+
+    private Integer extractDuration(MultipartFile file) {
+        File tempFile = null;
+
+        try {
+            // MultipartFile → 임시 파일 저장
+            tempFile = File.createTempFile("upload-", ".mp4");
+            file.transferTo(tempFile);
+
+            // FFmpegFrameGrabber로 영상 메타데이터 분석
+            try (FFmpegFrameGrabber grabber = new FFmpegFrameGrabber(tempFile)) {
+                grabber.start();
+
+                long durationMicro = grabber.getLengthInTime(); // 마이크로초
+                double secondsDouble = durationMicro / 1_000_000.0;
+
+                long seconds = (long) Math.ceil(secondsDouble); // 올림 처리해서 초 단위 계산
+
+                grabber.stop();
+                return (int) seconds;
+
+            }
+        } catch (Exception e) {
+            throw new RuntimeException("영상 길이 분석 실패", e);
+        } finally {
+            if (tempFile != null && tempFile.exists()) {
+                tempFile.delete();
+            }
+
+        }
 }
