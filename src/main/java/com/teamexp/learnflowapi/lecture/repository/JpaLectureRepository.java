@@ -24,6 +24,8 @@ public interface JpaLectureRepository extends JpaRepository<Lecture, Long>, Lect
         "WHERE l.id = :id")
     Optional<Lecture> findByIdWithChaptersAndLessons(@Param("id") Long id);
 
+    List<Lecture> findAllById(Iterable<Long> ids);
+
     @Override
     List<Lecture> findByInstructorId(String instructorId);
 
