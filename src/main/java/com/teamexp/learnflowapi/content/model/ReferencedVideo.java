@@ -47,4 +47,8 @@ public class ReferencedVideo {
     public static ReferencedVideo createReferencedVideo(Long lessonId, String videoUrl) {
         return new ReferencedVideo(lessonId, videoUrl);
     }
+
+    public void changeVideoUrl(String videoUrl) {
+        this.videoUrl = videoUrl;
+    }
 }
