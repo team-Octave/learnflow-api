@@ -2,6 +2,7 @@ package com.teamexp.learnflowapi.content.service;
 
 import com.teamexp.learnflowapi.content.dto.UploadVideoRequest;
 import com.teamexp.learnflowapi.content.external.GcpFileUploadService;
+import com.teamexp.learnflowapi.content.model.ContentMedia;
 import com.teamexp.learnflowapi.content.repository.ContentMediaRepository;
 import java.io.IOException;
 import lombok.RequiredArgsConstructor;
@@ -16,10 +17,10 @@ public class ContentMediaService {
     private final GcpFileUploadService gcpFileUploadService;
 
     /*
-    * 1. 영상 파일 형식 .mp4
-    * 2. 영상 파일 업로드 파일 양식 mp4
-    * 3. 업로드 최대 사이즈 1GB
-    * */
+     * 1. 영상 파일 형식 .mp4
+     * 2. 영상 파일 업로드 파일 양식 mp4
+     * 3. 업로드 최대 사이즈 1GB
+     * */
     private static final String ALLOWED_EXTENSION = ".mp4";
     private static final String ALLOWED_MIME = "video/mp4";
     private static final long MAX_FILE_SIZE = 1024L * 1024L * 1024L;
@@ -62,13 +63,29 @@ public class ContentMediaService {
                 file
         );
 
+        // 저장될 파일 key 생성
+        String extension = ".mp4";
+        String videoFileName = "videos/lesson-" + lessonId + "-" + java.util.UUID.randomUUID() + extension;
 
-        //todo: 1. contentMedia file_key에 파일 url 필드 저장
-        //      2. duration 추출 후 저장
+        // GCP 업로드 및 URL 생성
+        gcpFileUploadService.createUploadUrl(videoFileName, file);
 
+        // 업로드된 영상 길이 추출
+        Integer durationSec = extractDuration(file);
 
+        // DB 저장 (기존 존재 시 업데이트 or 없으면 신규 생성)
+        ContentMedia foundContentMedia = contentMediaRepository.findByLessonId(lessonId)
+                .orElse(null);
 
-
-
+        if (foundContentMedia != null) {
+            // 기존 영상 있으면 -> 파일, 길이 업데이트
+            foundContentMedia.changeFile(videoFileName, durationSec);
+        } else {
+            // 없으면 신규 영상 저장
+            ContentMedia created = ContentMedia.createContentMedia(
+                    lessonId, videoFileName, durationSec
+            );
+            contentMediaRepository.save(created);
+        }
     }
 }
