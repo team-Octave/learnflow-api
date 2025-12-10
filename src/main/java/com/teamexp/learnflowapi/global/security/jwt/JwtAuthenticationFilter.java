@@ -33,7 +33,7 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
             throws ServletException, IOException {
 
         // refresh 토큰 요청은 인증 필터를 거치지 않음
-        if (request.getRequestURI().equals("/api/v1/auth/refresh")) {
+        if (request.getRequestURI().equals("/api/v1/auth/reissue")) {
             filterChain.doFilter(request, response);
             return;
         }
