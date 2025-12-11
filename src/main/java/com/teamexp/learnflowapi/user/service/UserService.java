@@ -1,6 +1,7 @@
 package com.teamexp.learnflowapi.user.service;
 
 import com.teamexp.learnflowapi.global.config.PasswordConfig;
+import com.teamexp.learnflowapi.user.controller.dto.NicknameCheckResponse;
 import com.teamexp.learnflowapi.user.controller.dto.UserCreateRequest;
 import com.teamexp.learnflowapi.user.exception.EmailDuplicatedException;
 import com.teamexp.learnflowapi.user.exception.NicknameDuplicateException;
@@ -45,8 +46,11 @@ public class UserService {
 
     }
 
-    public boolean checkNickname(String nickname) {
-        return userRepository.existsByNickname(nickname);
+    public NicknameCheckResponse checkNickname(String nickname) {
+        if (userRepository.existsByNickname(nickname)) {
+            throw new NicknameDuplicateException();
+        }
+        return new NicknameCheckResponse(true);
     }
 
     @Transactional
