@@ -2,6 +2,7 @@ package com.teamexp.learnflowapi.user.controller;
 
 import com.teamexp.learnflowapi.global.response.BaseResponse;
 import com.teamexp.learnflowapi.global.security.principal.CustomUserPrincipal;
+import com.teamexp.learnflowapi.user.controller.dto.NicknameCheckResponse;
 import com.teamexp.learnflowapi.user.controller.dto.UserCreateRequest;
 import com.teamexp.learnflowapi.user.service.UserService;
 import jakarta.validation.Valid;
@@ -39,9 +40,9 @@ public class UserController {
     }
 
     @GetMapping("/check")
-    public ResponseEntity<BaseResponse<?>> checkNickname(@RequestParam(name = "nickname") @NotBlank String nickname) {
-        boolean existsNickname = userService.checkNickname(nickname);
-        return ResponseEntity.ok(BaseResponse.ok(existsNickname));
+    public ResponseEntity<BaseResponse<NicknameCheckResponse>> checkNickname(@RequestParam(name = "nickname") @NotBlank String nickname) {
+        NicknameCheckResponse response = userService.checkNickname(nickname);
+        return ResponseEntity.ok(BaseResponse.ok(response));
     }
 
     @DeleteMapping("/me")
