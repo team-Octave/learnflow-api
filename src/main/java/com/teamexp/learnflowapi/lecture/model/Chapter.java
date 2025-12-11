@@ -6,7 +6,9 @@ import lombok.Getter;
 
 import java.util.ArrayList;
 import java.util.Collections;
+import java.util.LinkedHashSet;
 import java.util.List;
+import java.util.Set;
 
 
 @Entity
@@ -30,7 +32,7 @@ public class Chapter {
 
     @OneToMany(mappedBy = "chapter", cascade = CascadeType.ALL, orphanRemoval = true)
     @OrderBy("lessonOrder ASC")
-    private List<Lesson> lessons = new ArrayList<>();
+    private Set<Lesson> lessons = new LinkedHashSet<>();
 
     protected Chapter() {}
 
@@ -52,8 +54,8 @@ public class Chapter {
         lesson.setChapter(this);
     }
 
-    public List<Lesson> getLessons() {
-        return Collections.unmodifiableList(lessons);
+    public Set<Lesson> getLessons() {
+        return Collections.unmodifiableSet(lessons);
     }
 
     public Lesson findByLessonId(Long lessonId) {

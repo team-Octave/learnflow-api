@@ -9,9 +9,10 @@ import org.springframework.data.annotation.CreatedDate;
 import org.springframework.data.jpa.domain.support.AuditingEntityListener;
 
 import java.time.Instant;
-import java.util.ArrayList;
 import java.util.Collections;
+import java.util.LinkedHashSet;
 import java.util.List;
+import java.util.Set;
 
 @Entity
 @Table(name = "lectures")
@@ -58,7 +59,7 @@ public class Lecture {
     // Aggregate root of Chapter & Lesson
     @OneToMany(mappedBy = "lecture", cascade = CascadeType.ALL, orphanRemoval = true)
     @OrderBy("chapterOrder ASC")
-    private List<Chapter> chapters = new ArrayList<>();
+    private Set<Chapter> chapters = new LinkedHashSet<>();
 
     protected Lecture() {}
 
@@ -119,8 +120,8 @@ public class Lecture {
         this.status = LectureStatus.AVAILABLE;
     }
 
-    public List<Chapter> getChapters() {
-        return Collections.unmodifiableList(chapters);
+    public Set<Chapter> getChapters() {
+        return Collections.unmodifiableSet(chapters);
     }
 
     public int getTotalLessonCount() {
