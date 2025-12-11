@@ -1,6 +1,7 @@
 package com.teamexp.learnflowapi.content.controller;
 
-import com.teamexp.learnflowapi.content.dto.QuizListResponse;
+import com.teamexp.learnflowapi.content.dto.QuizRequest;
+import com.teamexp.learnflowapi.content.dto.QuizResponse;
 import com.teamexp.learnflowapi.content.dto.QuizSaveRequest;
 
 import com.teamexp.learnflowapi.content.service.QuizService;
@@ -14,6 +15,8 @@ import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
+import java.util.List;
+
 @RestController
 @RequestMapping("api/v1/contents/")
 public class QuizController {
@@ -26,21 +29,20 @@ public class QuizController {
 
     // 레슨 퀴즈 조회
     @GetMapping("lessons/{lessonId}/quizzes")
-    public ResponseEntity<BaseResponse<QuizListResponse>> getQuizzesByLesson(
+    public ResponseEntity<BaseResponse<List<QuizResponse>>> getQuizzesByLesson(
             @PathVariable Long lessonId
     ) {
-        QuizListResponse response = quizService.getQuizzesByLesson(lessonId);
-
+        List<QuizResponse> response = quizService.getQuizzesByLesson(lessonId);
         return ResponseEntity.ok(BaseResponse.ok(response));
     }
 
     // 퀴즈 저장
     @PostMapping("lessons/{lessonId}/quizzes")
-    public ResponseEntity<BaseResponse<QuizListResponse>> saveQuizzes(
+    public ResponseEntity<BaseResponse<QuizResponse>> saveQuiz(
             @PathVariable Long lessonId,
-            @Valid @RequestBody QuizSaveRequest request
+            @Valid @RequestBody QuizRequest request
     ) {
-        QuizListResponse response = quizService.saveQuizzes(lessonId, request);
+        QuizResponse response = quizService.createQuiz(lessonId, request);
 
         return ResponseEntity.ok(BaseResponse.ok(response));
     }
