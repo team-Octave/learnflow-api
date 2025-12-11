@@ -8,7 +8,8 @@ public record LectureFullCreateResponse(
     String description,
     Integer categoryId,
     String level, // Display name of LectureLevel
-    List<ChapterResponse> chapters
+    List<ChapterResponse> chapters,
+    String instructorNickname
 ) {
     public record ChapterResponse(
         Long chapterId,

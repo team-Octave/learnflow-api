@@ -2,7 +2,6 @@ package com.teamexp.learnflowapi.lecture.dto.response;
 
 import com.teamexp.learnflowapi.lecture.model.Lecture;
 import com.teamexp.learnflowapi.lecture.model.LectureLevel;
-import com.teamexp.learnflowapi.lecture.model.LectureStatus;
 import com.teamexp.learnflowapi.lecture.model.LectureStatistic;
 
 import java.time.Instant;
@@ -19,6 +18,7 @@ public record LectureResponse(
     String levelDisplayName,
     String statusDisplayName,
     String instructorId,
+    String instructorDisplayName,
     int totalChapterCount,
     int totalLessonCount,
     Instant createdAt,
@@ -28,7 +28,7 @@ public record LectureResponse(
     String thumbnailUrl
 ) {
     // Full detail including chapters and lessons info  with counts
-    public static LectureResponse from(Lecture lecture, String thumbnailUrl) {
+    public static LectureResponse from(Lecture lecture, String thumbnailUrl, String instructorDisplayName) {
         return new LectureResponse(
             lecture.getId(),
             lecture.getTitle(),
@@ -38,6 +38,7 @@ public record LectureResponse(
             lecture.getLevel().getDisplayName(),
             lecture.getStatus().getDisplayName(),
             lecture.getInstructorId(),
+            instructorDisplayName,
             lecture.getChapters().size(),
             lecture.getTotalLessonCount(),
             lecture.getCreatedAt(),
@@ -51,7 +52,7 @@ public record LectureResponse(
     }
 
     // Full detail including chapters and lessons info  without counts
-    public static LectureResponse simpleFrom(Lecture lecture) {
+    public static LectureResponse simpleFrom(Lecture lecture, String instructorDisplayName) {
         return new LectureResponse(
             lecture.getId(),
             lecture.getTitle(),
@@ -61,6 +62,7 @@ public record LectureResponse(
             lecture.getLevel().getDisplayName(),
             lecture.getStatus().getDisplayName(),
             lecture.getInstructorId(),
+            instructorDisplayName,
             0,
             0,
             lecture.getCreatedAt(),
@@ -72,7 +74,7 @@ public record LectureResponse(
     }
 
     // Simple response with statistics for list view
-    public static LectureResponse simpleFromWithStats(Lecture lecture, LectureStatistic statistic, String thumbnailUrl) {
+    public static LectureResponse simpleFromWithStats(Lecture lecture, LectureStatistic statistic, String thumbnailUrl,String instructorDisplayName) {
         Double ratingAvg = null;
         Long enrollmentCnt = null;
         
@@ -90,6 +92,7 @@ public record LectureResponse(
             lecture.getLevel().getDisplayName(),
             lecture.getStatus().getDisplayName(),
             lecture.getInstructorId(),
+            instructorDisplayName,
             0,
             0,
             lecture.getCreatedAt(),

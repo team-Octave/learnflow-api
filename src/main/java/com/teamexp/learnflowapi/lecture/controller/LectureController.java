@@ -42,7 +42,7 @@ public class LectureController {
         @Valid @RequestBody LectureCreateRequest lectureCreateRequest,
         @AuthenticationPrincipal CustomUserPrincipal customUser
         ) {
-        LectureResponse lectureResponse = lectureService.createLecture(lectureCreateRequest, customUser.getId());
+        LectureResponse lectureResponse = lectureService.createLecture(lectureCreateRequest, customUser.getId(), customUser.getNickname());
 
         return  ResponseEntity.status(HttpStatus.CREATED).body(lectureResponse);
     }
@@ -56,7 +56,8 @@ public class LectureController {
         LectureFullCreateResponse response = lectureService.createLectureFullCurriculum(
             lectureId,
             request,
-            customUser.getId()
+            customUser.getId(),
+            customUser.getNickname()
         );
 
         return ResponseEntity.status(HttpStatus.CREATED).body(response);
