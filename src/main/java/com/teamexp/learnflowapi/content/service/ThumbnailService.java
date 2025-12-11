@@ -3,6 +3,7 @@ package com.teamexp.learnflowapi.content.service;
 import com.teamexp.learnflowapi.content.dto.ThumbnailUploadResponse;
 import com.teamexp.learnflowapi.content.dto.UploadThumbnailRequest;
 import com.teamexp.learnflowapi.content.exception.InvalidFileNameException;
+import com.teamexp.learnflowapi.content.exception.LectureThumbnailNotFoundException;
 import com.teamexp.learnflowapi.content.exception.ThumbnailFileSizeExceededException;
 import com.teamexp.learnflowapi.content.exception.ThumbnailUnsupportedExtensionException;
 import com.teamexp.learnflowapi.content.exception.ThumbnailUnsupportedMimeTypeException;
@@ -100,5 +101,13 @@ public class ThumbnailService {
         if (file.getSize() > MAX_FILE_SIZE) {
             throw new ThumbnailFileSizeExceededException();
         }
+    }
+
+    @Transactional(readOnly = true)
+    public ThumbnailUploadResponse getThumbnail(Long lectureId) {
+        Thumbnail thumbnail = thumbnailRepository.findByLectureId(lectureId)
+                .orElseThrow(LectureThumbnailNotFoundException::new);
+
+        return new ThumbnailUploadResponse(thumbnail.getLectureId(), thumbnail.getFileUrl());
     }
 }

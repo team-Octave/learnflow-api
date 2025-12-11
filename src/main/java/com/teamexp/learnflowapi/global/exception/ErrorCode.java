@@ -26,7 +26,8 @@ public enum ErrorCode {
     THUMBNAIL_UNSUPPORTED_EXTENSION(HttpStatus.BAD_REQUEST, "지원하지 않는 이미지 형식입니다. jpg, jpeg만 업로드 가능합니다."),
     THUMBNAIL_UNSUPPORTED_MIME_TYPE(HttpStatus.BAD_REQUEST, "지원하지 않는 MIME 타입입니다. image/jpeg만 허용됩니다."),
     THUMBNAIL_FILE_SIZE_EXCEEDED(HttpStatus.BAD_REQUEST, "파일 크기가 최대 허용 용량(10MB)을 초과했습니다."),
-
+    LESSON_VIDEO_NOT_FOUND(HttpStatus.NOT_FOUND, "해당 레슨에 등록된 영상이 없습니다"),
+    LECTURE_THUMBNAIL_NOT_FOUND(HttpStatus.NOT_FOUND, "해당 강의의 썸네일이 없습니다."),
 
 
     // Enrollment 도메인 관련
