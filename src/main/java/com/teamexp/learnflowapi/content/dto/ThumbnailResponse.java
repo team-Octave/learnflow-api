@@ -1,6 +1,6 @@
 package com.teamexp.learnflowapi.content.dto;
 
-public record ThumbnailUploadResponse(
+public record ThumbnailResponse(
         Long lectureId,
         String uploadUrl
 ) {

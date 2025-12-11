@@ -42,6 +42,9 @@ public class ReferencedVideoService {
 
     @Transactional(readOnly = true)
     public VideoUrlResponse getVideoUrl(Long lessonId) {
+        if (lessonId == null) {
+            throw new IllegalArgumentException("lessonId는 null일 수 없습니다.");
+        }
         ReferencedVideo video = referencedVideoRepository.findByLessonId(lessonId)
                 .orElseThrow(LessonVideoNotFoundException::new);
 
