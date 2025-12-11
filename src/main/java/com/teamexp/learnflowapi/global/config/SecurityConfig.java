@@ -46,6 +46,10 @@ public class SecurityConfig {
                         .requestMatchers("/api/v1/users/check").permitAll()    // 닉네임 체크
                         .requestMatchers("/api/v1/auth/login").permitAll()    // 로그인
                         .requestMatchers("/api/v1/auth/reissue").permitAll()   // 토큰 재발급
+                        .requestMatchers(HttpMethod.GET, "/api/v1/lectures/my").authenticated()
+                        .requestMatchers(HttpMethod.GET, "/api/v1/lectures").permitAll() // 강의 전체 조회
+                        .requestMatchers(HttpMethod.GET, "/api/v1/lectures/*").permitAll() // 강의 단건 조회
+                        .requestMatchers(HttpMethod.GET, "/api/v1/reviews/lectures/*").permitAll() // 강의별 리뷰 조회
                         .anyRequest().authenticated()
                 )
                 .userDetailsService(userDetailsService);
