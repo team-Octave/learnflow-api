@@ -37,28 +37,5 @@ public class QuizService {
         return QuizResponse.from(saved);
     }
 
-    // 코드 수정 변경 에정
-//    // 퀴즈 저장
-//    @Transactional
-//    public QuizListResponse saveQuizzes(Long lessonId, QuizSaveRequest request) {
-//
-//        // 기존 퀴즈 삭제
-//        quizRepository.deleteByLessonId(lessonId);
-//
-//        int orderIndex = 0;
-//        List<Quiz> saved = new ArrayList<>();
-//
-//        for (QuizItemRequest item : request.quizzes()) {
-//            Quiz quiz = Quiz.createQuiz(
-//                    lessonId,
-//                    orderIndex++,
-//                    item.question(),
-//                    item.correct()
-//            );
-//            saved.add(quizRepository.save(quiz));
-//        }
-//
-//        return QuizListResponse.of(saved);
-//    }
-
+    //Todo 코드 수정 변경 에정
 }
