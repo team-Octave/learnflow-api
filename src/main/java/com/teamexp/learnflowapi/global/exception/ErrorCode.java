@@ -26,8 +26,7 @@ public enum ErrorCode {
     THUMBNAIL_UNSUPPORTED_EXTENSION(HttpStatus.BAD_REQUEST, "지원하지 않는 이미지 형식입니다. jpg, jpeg만 업로드 가능합니다."),
     THUMBNAIL_UNSUPPORTED_MIME_TYPE(HttpStatus.BAD_REQUEST, "지원하지 않는 MIME 타입입니다. image/jpeg만 허용됩니다."),
     THUMBNAIL_FILE_SIZE_EXCEEDED(HttpStatus.BAD_REQUEST, "파일 크기가 최대 허용 용량(10MB)을 초과했습니다."),
-    REQUEST_EMPTY(HttpStatus.BAD_REQUEST, "요청이 비어 있습니다."),
-    VIDEO_URL_EMPTY(HttpStatus.BAD_REQUEST, "비디오 URL이 비어 있습니다."),
+
 
 
     // Enrollment 도메인 관련

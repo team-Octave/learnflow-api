@@ -2,8 +2,6 @@ package com.teamexp.learnflowapi.content.service;
 
 import com.teamexp.learnflowapi.content.dto.VideoUrlRequest;
 import com.teamexp.learnflowapi.content.dto.VideoUrlResponse;
-import com.teamexp.learnflowapi.content.exception.RequestEmptyException;
-import com.teamexp.learnflowapi.content.exception.VideoUrlEmptyException;
 import com.teamexp.learnflowapi.content.model.ReferencedVideo;
 import com.teamexp.learnflowapi.content.repository.ReferencedVideoRepository;
 import org.springframework.stereotype.Service;
@@ -23,19 +21,9 @@ public class ReferencedVideoService {
     @Transactional
     public VideoUrlResponse  createReferencedVideoUrl(VideoUrlRequest request) {
 
-        if (request == null) {
-            throw new RequestEmptyException();
-        }
-
         Long lessonId = request.lessonId();
         String videoUrl = request.videoUrl();
 
-        if (lessonId == null) {
-            throw new IllegalArgumentException("lessonId가 비어있습니다.");
-        }
-        if (videoUrl == null || videoUrl.isBlank()) {
-            throw new VideoUrlEmptyException();
-        }
         ReferencedVideo foundVideo = referencedVideoRepository.findByLessonId(lessonId)
                 .orElse(null);
 

@@ -11,10 +11,12 @@ import com.teamexp.learnflowapi.content.external.GcpFileUploadService;
 import com.teamexp.learnflowapi.content.model.Thumbnail;
 import com.teamexp.learnflowapi.content.repository.ThumbnailRepository;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.multipart.MultipartFile;
 
 import java.io.IOException;
 import java.util.Set;
+import java.util.UUID;
 
 
 @Service
@@ -29,11 +31,12 @@ public class ThumbnailService {
         this.gcpFileUploadService = gcpFileUploadService;
     }
 
-    private static final Set<String> ALLOWED_EXTENSIONS =  Set.of("jpg", "jpeg");;
+    private static final Set<String> ALLOWED_EXTENSIONS =  Set.of("jpg", "jpeg");
     private static final Set<String> ALLOWED_MIMES = Set.of("image/jpeg", "image/jpg");
     private static final long MAX_FILE_SIZE = 10L * 1024L * 1024L;
 
 
+    @Transactional
     public ThumbnailUploadResponse uploadThumbnail(UploadThumbnailRequest request) throws IOException {
 
         MultipartFile file = request.file();
@@ -43,8 +46,10 @@ public class ThumbnailService {
         validateThumbnailFile(file);
 
         // GCP 업로드용 파일명 생성
-        String extension = file.getOriginalFilename().substring(file.getOriginalFilename().lastIndexOf("."));
-        String thumbnailFileName = "thumbnails/lecture-" + lectureId + "-" + java.util.UUID.randomUUID() + "." + extension;
+        String originalFilename = file.getOriginalFilename();
+
+        String extension = originalFilename.substring(originalFilename.lastIndexOf(".") + 1).toLowerCase();
+        String thumbnailFileName = "thumbnails/lecture-" + lectureId + "-" + UUID.randomUUID() + "." + extension;
 
         // GCP 업로드 수행
         gcpFileUploadService.uploadFile(thumbnailFileName, file);
@@ -70,6 +75,7 @@ public class ThumbnailService {
     }
 
     private void validateThumbnailFile(MultipartFile file){
+
         if (file == null || file.isEmpty()) {
             throw new UploadNotExistException();
         }
