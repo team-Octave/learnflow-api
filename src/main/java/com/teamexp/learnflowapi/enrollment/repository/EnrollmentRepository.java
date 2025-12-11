@@ -1,6 +1,5 @@
 package com.teamexp.learnflowapi.enrollment.repository;
 
-import com.teamexp.learnflowapi.enrollment.dto.MyEnrollmentResponse;
 import com.teamexp.learnflowapi.enrollment.model.Enrollment;
 import jakarta.persistence.Tuple;
 import org.springframework.data.jpa.repository.JpaRepository;
@@ -23,7 +22,7 @@ public interface EnrollmentRepository extends JpaRepository<Enrollment, Long> {
                l.id AS lectureId,
                e.enrollment_id AS enrollmentId,
                r.review_id AS reviewId,
-               t.file_key AS lectureThumbnail,
+               t.file_url AS lectureThumbnail,
                l.title AS lectureTitle,
                e.status AS enrollmentStatus,
                e.progress AS progress,
@@ -57,19 +56,18 @@ public interface EnrollmentRepository extends JpaRepository<Enrollment, Long> {
     ) cl ON cl.enrollment_id = e.enrollment_id
     WHERE e.enrollment_id = :enrollmentId
     """, nativeQuery = true)
-    Object[] getProgressCounts(@Param("enrollmentId") Long enrollmentId);
+    Object getProgressCounts(@Param("enrollmentId") Long enrollmentId);
 
     @Query(value = """
         SELECT 
             e.lecture_id AS lectureId, 
             e.enrollment_id AS enrollmentId,
-            e.progress AS progress,  -- 진행률을 그대로 사용
-            COALESCE(MAX(cl.lesson_id), 0) AS lastCompletedLessonId, 
-            COALESCE(GROUP_CONCAT(DISTINCT cl.lesson_id), '') AS completedLessonIds,
-            COALESCE(MAX(l.chapter_id), 0) AS lastCompletedLessonChapterId
+            e.progress AS progress,
+            CASE WHEN COUNT(cl.lesson_id) = 0 THEN NULL ELSE GROUP_CONCAT(DISTINCT cl.lesson_id) END AS completedLessonIds,
+            CASE WHEN MAX(l.chapter_id) IS NULL THEN NULL ELSE MAX(l.chapter_id) END AS lastCompletedLessonChapterId
         FROM enrollments e
-        JOIN completed_lessons cl ON cl.enrollment_id = e.enrollment_id
-        JOIN lessons l ON l.id = cl.lesson_id
+        LEFT JOIN completed_lessons cl ON cl.enrollment_id = e.enrollment_id
+        LEFT JOIN lessons l ON l.id = cl.lesson_id
         WHERE e.enrollment_id = :enrollmentId
         GROUP BY e.enrollment_id, e.lecture_id
     """, nativeQuery = true)
