@@ -6,6 +6,7 @@ import com.teamexp.learnflowapi.content.dto.VideoUrlRequest;
 import com.teamexp.learnflowapi.content.dto.VideoUrlResponse;
 import com.teamexp.learnflowapi.content.service.ReferencedVideoService;
 import com.teamexp.learnflowapi.global.response.BaseResponse;
+import jakarta.validation.Valid;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.PathVariable;
@@ -34,7 +35,7 @@ public class ReferencedVideoController {
      */
     @PostMapping("/upload-url")
     public ResponseEntity<BaseResponse<VideoUrlResponse>> saveVideoUrl(
-            @RequestBody VideoUrlRequest request
+            @RequestBody @Valid VideoUrlRequest request
     ) {
         VideoUrlResponse response = referencedVideoService.createReferencedVideoUrl(request);
         return ResponseEntity.ok(BaseResponse.ok(response));

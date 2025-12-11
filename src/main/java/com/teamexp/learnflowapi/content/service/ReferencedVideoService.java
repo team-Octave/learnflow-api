@@ -7,7 +7,6 @@ import com.teamexp.learnflowapi.content.repository.ReferencedVideoRepository;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
-import java.io.IOException;
 
 @Service
 public class ReferencedVideoService {
@@ -25,12 +24,6 @@ public class ReferencedVideoService {
         Long lessonId = request.lessonId();
         String videoUrl = request.videoUrl();
 
-        if (lessonId == null) {
-            throw new IllegalArgumentException("lessonId가 비어있습니다.");
-        }
-        if (videoUrl == null || videoUrl.isBlank()) {
-            throw new IllegalArgumentException("영상 URL이 비어있습니다.");
-        }
         ReferencedVideo foundVideo = referencedVideoRepository.findByLessonId(lessonId)
                 .orElse(null);
 

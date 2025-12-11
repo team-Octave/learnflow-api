@@ -1,14 +1,22 @@
 package com.teamexp.learnflowapi.content.service;
 
+import com.teamexp.learnflowapi.content.dto.ThumbnailUploadResponse;
 import com.teamexp.learnflowapi.content.dto.UploadThumbnailRequest;
+import com.teamexp.learnflowapi.content.exception.InvalidFileNameException;
+import com.teamexp.learnflowapi.content.exception.ThumbnailFileSizeExceededException;
+import com.teamexp.learnflowapi.content.exception.ThumbnailUnsupportedExtensionException;
+import com.teamexp.learnflowapi.content.exception.ThumbnailUnsupportedMimeTypeException;
+import com.teamexp.learnflowapi.content.exception.UploadNotExistException;
 import com.teamexp.learnflowapi.content.external.GcpFileUploadService;
 import com.teamexp.learnflowapi.content.model.Thumbnail;
 import com.teamexp.learnflowapi.content.repository.ThumbnailRepository;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.multipart.MultipartFile;
 
 import java.io.IOException;
 import java.util.Set;
+import java.util.UUID;
 
 
 @Service
@@ -23,44 +31,25 @@ public class ThumbnailService {
         this.gcpFileUploadService = gcpFileUploadService;
     }
 
-    private static final Set<String> ALLOWED_EXTENSIONS =  Set.of("jpg", "jpeg");;
+    private static final Set<String> ALLOWED_EXTENSIONS =  Set.of("jpg", "jpeg");
     private static final Set<String> ALLOWED_MIMES = Set.of("image/jpeg", "image/jpg");
     private static final long MAX_FILE_SIZE = 10L * 1024L * 1024L;
 
 
-    public void uploadThumbnail(UploadThumbnailRequest request) throws IOException {
+    @Transactional
+    public ThumbnailUploadResponse uploadThumbnail(UploadThumbnailRequest request) throws IOException {
 
         MultipartFile file = request.file();
         Long lectureId = request.lectureId();
 
-        if (file == null || file.isEmpty()) {
-            throw new IllegalArgumentException("업로드할 파일이 없습니다.");
-        }
-
-        String originalFilename = file.getOriginalFilename();
-
-        if (originalFilename == null || !originalFilename.contains(".")) {
-            throw new IllegalArgumentException("유효하지 않은 파일명입니다. 확장자가 필요합니다.");
-        }
-
-        String extension = originalFilename
-                .substring(originalFilename.lastIndexOf(".") + 1).toLowerCase();
-
-        if (!ALLOWED_EXTENSIONS.contains(extension)) {
-            throw new IllegalArgumentException("지원하지 않는 이미지 형식입니다. jpg, jpeg만 업로드 가능합니다.");
-        }
-
-        String contentType = file.getContentType();
-        if (contentType == null || !ALLOWED_MIMES.contains(contentType)) {
-            throw new IllegalArgumentException("지원하지 않는 MIME 타입입니다. image/jpg, image/jpeg만 허용됩니다.");
-        }
-
-        if (file.getSize() > MAX_FILE_SIZE) {
-            throw new IllegalArgumentException("파일이 너무 큽니다. 최대 업로드 크기는 10MB입니다.");
-        }
+        // 업로드 파일 검증
+        validateThumbnailFile(file);
 
         // GCP 업로드용 파일명 생성
-        String thumbnailFileName = "thumbnails/lecture-" + lectureId + "-" + java.util.UUID.randomUUID() + "." + extension;
+        String originalFilename = file.getOriginalFilename();
+
+        String extension = originalFilename.substring(originalFilename.lastIndexOf(".") + 1).toLowerCase();
+        String thumbnailFileName = "thumbnails/lecture-" + lectureId + "-" + UUID.randomUUID() + "." + extension;
 
         // GCP 업로드 수행
         gcpFileUploadService.uploadFile(thumbnailFileName, file);
@@ -81,6 +70,35 @@ public class ThumbnailService {
                     lectureId, thumbnailFileName, publicUrl
             );
             thumbnailRepository.save(created);
+        }
+        return new ThumbnailUploadResponse(lectureId, publicUrl);
+    }
+
+    private void validateThumbnailFile(MultipartFile file){
+
+        if (file == null || file.isEmpty()) {
+            throw new UploadNotExistException();
+        }
+
+        String originalFilename = file.getOriginalFilename();
+
+        if (originalFilename == null || !originalFilename.contains(".")) {
+            throw new InvalidFileNameException();
+        }
+
+        String extension = file.getOriginalFilename().substring(file.getOriginalFilename().lastIndexOf(".") + 1).toLowerCase();
+
+        if (!ALLOWED_EXTENSIONS.contains(extension)) {
+            throw new ThumbnailUnsupportedExtensionException();
+        }
+
+        String contentType = file.getContentType();
+        if (contentType == null || !ALLOWED_MIMES.contains(contentType)) {
+            throw new ThumbnailUnsupportedMimeTypeException();
+        }
+
+        if (file.getSize() > MAX_FILE_SIZE) {
+            throw new ThumbnailFileSizeExceededException();
         }
     }
 }

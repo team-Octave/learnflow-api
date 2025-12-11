@@ -4,6 +4,7 @@ import com.teamexp.learnflowapi.content.dto.ThumbnailUploadResponse;
 import com.teamexp.learnflowapi.content.dto.UploadThumbnailRequest;
 import com.teamexp.learnflowapi.content.service.ThumbnailService;
 import com.teamexp.learnflowapi.global.response.BaseResponse;
+import jakarta.validation.Valid;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
@@ -27,13 +28,10 @@ public class ThumbnailController {
     @PostMapping(value = "/upload-thumbnail",
             consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
     public ResponseEntity<BaseResponse<ThumbnailUploadResponse>> uploadThumbnail(
-            @ModelAttribute UploadThumbnailRequest uploadThumbnailRequest)
-            throws IOException {
+            @ModelAttribute @Valid UploadThumbnailRequest uploadThumbnailRequest) throws IOException {
 
-        thumbnailService.uploadThumbnail(uploadThumbnailRequest);
+            ThumbnailUploadResponse response = thumbnailService.uploadThumbnail(uploadThumbnailRequest);
 
-        return ResponseEntity
-                .status(HttpStatus.OK)
-                .body(null);
+            return ResponseEntity.ok(BaseResponse.ok(response));
     }
 }
