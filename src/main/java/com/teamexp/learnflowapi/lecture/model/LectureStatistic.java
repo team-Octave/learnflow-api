@@ -10,7 +10,6 @@ import org.springframework.data.annotation.LastModifiedBy;
 
 
 import java.time.Instant;
-import java.time.OffsetDateTime;
 
 @Entity
 @Table(name = "lecture_statistics",

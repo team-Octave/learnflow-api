@@ -20,6 +20,17 @@ public enum ErrorCode {
     LECTURE_NOT_FOUND(HttpStatus.NOT_FOUND, "존재하지 않는 강좌입니다."),
     SELF_REVIEW_NOT_ALLOWED(HttpStatus.CONFLICT, "본인의 강의는 리뷰할 수 없습니다."),
     NOT_INSTRUCTOR(HttpStatus.FORBIDDEN, "해당 강의의 생성자만 답글을 달 수 있습니다."),
+    LECTURE_ALREADY_PUBLISHED(HttpStatus.CONFLICT, "이미 공개된 강의입니다."), // to class as LectureAlreadyPublished
+    LECTURE_CANNOT_PUBLISH_WITHOUT_CHAPTER(HttpStatus.BAD_REQUEST, "챕터가 없는 강의는 공개할 수 없습니다."), // to class as LectureCannotPublishedWithoutChapter
+    LECTURE_CANNOT_PUBLISH_WITHOUT_LESSON(HttpStatus.BAD_REQUEST, "레슨이 없는 강의는 공개할 수 없습니다."), // to class as LectureCannotPublishedWithoutLesson
+    LECTURE_LEVEL_INVALID(HttpStatus.BAD_REQUEST, "유효하지 않은 강의 레벨입니다."), // to class as LectureLevelInvalid
+    LECTURE_STATUS_INVALID(HttpStatus.BAD_REQUEST, "유효하지 않은 강의 상태입니다."), // to class as LectureStatusInvalid
+    LESSON_TYPE_INVALID(HttpStatus.BAD_REQUEST, "유효하지 않은 레슨 타입입니다."), // to class as LessonTypeInvalid
+    LECTURE_INSTRUCTOR_UNAUTHORIZED(HttpStatus.FORBIDDEN, "해당 강의의 생성자만 수정할 수 있습니다."), // to class as LectureInstructorUnauthorizedException
+    CHAPTER_NOT_FOUND_IN_LECTURE(HttpStatus.NOT_FOUND, "해당 강의에 존재하지 않는 챕터입니다."), // to class as ChapterNotFoundException
+    LESSON_NOT_FOUND_IN_CHAPTER(HttpStatus.NOT_FOUND, "해당 챕터에 존재하지 않는 레슨입니다."), // to class as LessonNotFoundException
+    LECTURE_SORT_TYPE_INVALID(HttpStatus.BAD_REQUEST, "유효하지 않은 강의 정렬 타입입니다."), // to class as LectureSortTypeInvalid
+    
 
     // Content 도메인 관련
     UPLOAD_NOT_EXIST(HttpStatus.BAD_REQUEST, "업로드할 파일이 없습니다."),

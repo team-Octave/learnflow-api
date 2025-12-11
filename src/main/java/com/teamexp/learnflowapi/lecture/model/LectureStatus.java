@@ -1,5 +1,7 @@
 package com.teamexp.learnflowapi.lecture.model;
 
+import com.teamexp.learnflowapi.lecture.exception.LectureStatusInvalidException;
+
 public enum LectureStatus {
     AVAILABLE("PUBLISHED"),
     UNAVAILABLE("UNPUBLISHED");
@@ -20,6 +22,6 @@ public enum LectureStatus {
                 return status;
             }
         }
-        throw new IllegalArgumentException("No enum constant with displayName " + displayName);
+        throw new LectureStatusInvalidException();
     }
 }
