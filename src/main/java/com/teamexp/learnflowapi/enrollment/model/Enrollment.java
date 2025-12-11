@@ -57,12 +57,16 @@ public class Enrollment {
     public static Enrollment create(String userId, Long lectureId) {
         return new Enrollment(userId, lectureId);
     }
-
-    public void update() {
-        this.updatedAt = Instant.now();
-    }
-
+//    내 강좌 선택 시 필요한 updatedAt -> 현재 사용 안함 논의 필요
+//    public void update() {
+//        this.updatedAt = Instant.now();
+//    }
+    // completedLesson 시 진행률 업데이트
     public void updateProgress(int updateProgress) {
         this.progress = updateProgress;
+    }
+    // 진행률 100일 때 status 업데이트 용
+    public void updateStatus(EnrollmentStatus enrollmentStatus) {
+        this.status = enrollmentStatus;
     }
 }
