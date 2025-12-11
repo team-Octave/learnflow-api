@@ -39,6 +39,37 @@ public class ThumbnailService {
         MultipartFile file = request.file();
         Long lectureId = request.lectureId();
 
+        // 업로드 파일 검증
+        validateThumbnailFile(file);
+
+        // GCP 업로드용 파일명 생성
+        String extension = file.getOriginalFilename().substring(file.getOriginalFilename().lastIndexOf("."));
+        String thumbnailFileName = "thumbnails/lecture-" + lectureId + "-" + java.util.UUID.randomUUID() + "." + extension;
+
+        // GCP 업로드 수행
+        gcpFileUploadService.uploadFile(thumbnailFileName, file);
+
+        // 공개 URL 생성
+        String publicUrl = gcpFileUploadService.createPublicUrl(thumbnailFileName);
+
+        // DB 저장
+        Thumbnail foundthumbnail = thumbnailRepository.findByLectureId(lectureId)
+                .orElse(null);
+
+        if (foundthumbnail != null) {
+            // 기존 썸네일 있으면 -> 파일키 업데이트
+            foundthumbnail.changeFileKey(thumbnailFileName, publicUrl);
+        } else {
+            // 없으면 신규 썸네일 저장
+            Thumbnail created = Thumbnail.createThumbnail(
+                    lectureId, thumbnailFileName, publicUrl
+            );
+            thumbnailRepository.save(created);
+        }
+        return new ThumbnailUploadResponse(lectureId, publicUrl);
+    }
+
+    private void validateThumbnailFile(MultipartFile file){
         if (file == null || file.isEmpty()) {
             throw new UploadNotExistException();
         }
@@ -64,30 +95,5 @@ public class ThumbnailService {
         if (file.getSize() > MAX_FILE_SIZE) {
             throw new ThumbnailFileSizeExceededException();
         }
-
-        // GCP 업로드용 파일명 생성
-        String thumbnailFileName = "thumbnails/lecture-" + lectureId + "-" + java.util.UUID.randomUUID() + "." + extension;
-
-        // GCP 업로드 수행
-        gcpFileUploadService.uploadFile(thumbnailFileName, file);
-
-        // 공개 URL 생성
-        String publicUrl = gcpFileUploadService.createPublicUrl(thumbnailFileName);
-
-        // DB 저장
-        Thumbnail foundthumbnail = thumbnailRepository.findByLectureId(lectureId)
-                .orElse(null);
-
-        if (foundthumbnail != null) {
-            // 기존 썸네일 있으면 -> 파일키 업데이트
-            foundthumbnail.changeFileKey(thumbnailFileName, publicUrl);
-        } else {
-            // 없으면 신규 썸네일 저장
-            Thumbnail created = Thumbnail.createThumbnail(
-                    lectureId, thumbnailFileName, publicUrl
-            );
-            thumbnailRepository.save(created);
-        }
-        return new ThumbnailUploadResponse(lectureId, publicUrl);
     }
 }
