@@ -105,11 +105,9 @@ public class EnrollmentService {
 
         validUser(userId, request.enrollmentId());
 
-        // Native 쿼리로 결과 반환
-        Object result = enrollmentRepository.selectEnrollment(request.enrollmentId());
-
         Enrollment enrollment = enrollmentRepository.findById(request.enrollmentId()).orElseThrow(EnrollmentNotFoundException::new);
 
+        Object result = enrollmentRepository.selectEnrollment(request.enrollmentId());
         enrollment.update();
 
         if (result instanceof Object[]) {
@@ -145,20 +143,20 @@ public class EnrollmentService {
 
             // 3. Index 4 (lastCompletedLessonChapterId): ClassCastException 처리 로직 적용
             Long lastCompletedLessonChapterId;
-            if (resultArray[3] instanceof String) {
+            if (resultArray[5] instanceof String) {
                 // 현재 오류 발생 지점: String을 Long으로 변환
-                String chapterIdString = ((String) resultArray[3]).trim();
+                String chapterIdString = ((String) resultArray[5]).trim();
                 try {
                     lastCompletedLessonChapterId = Long.valueOf(chapterIdString);
                 } catch (NumberFormatException e) {
                     lastCompletedLessonChapterId = 0L; // 변환 실패 시 기본값 처리
                 }
-            } else if (resultArray[3] instanceof Number) {
+            } else if (resultArray[5] instanceof Number) {
                 // Number인 경우의 원래 로직 유지
-                lastCompletedLessonChapterId = ((Number) resultArray[3]).longValue();
+                lastCompletedLessonChapterId = ((Number) resultArray[5]).longValue();
             } else {
                 // 예상치 못한 타입 처리
-                throw new IllegalArgumentException("lastCompletedLessonChapterId의 예상치 못한 타입: " + resultArray[4].getClass().getName());
+                throw new IllegalArgumentException("lastCompletedLessonChapterId의 예상치 못한 타입: " + resultArray[5].getClass().getName());
             }
 
             // 4. 응답 객체 생성
