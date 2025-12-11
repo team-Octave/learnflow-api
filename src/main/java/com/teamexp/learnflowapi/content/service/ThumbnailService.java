@@ -1,8 +1,9 @@
 package com.teamexp.learnflowapi.content.service;
 
-import com.teamexp.learnflowapi.content.dto.ThumbnailUploadResponse;
-import com.teamexp.learnflowapi.content.dto.UploadThumbnailRequest;
+import com.teamexp.learnflowapi.content.dto.ThumbnailResponse;
+import com.teamexp.learnflowapi.content.dto.ThumbnailRequest;
 import com.teamexp.learnflowapi.content.exception.InvalidFileNameException;
+import com.teamexp.learnflowapi.content.exception.LectureThumbnailNotFoundException;
 import com.teamexp.learnflowapi.content.exception.ThumbnailFileSizeExceededException;
 import com.teamexp.learnflowapi.content.exception.ThumbnailUnsupportedExtensionException;
 import com.teamexp.learnflowapi.content.exception.ThumbnailUnsupportedMimeTypeException;
@@ -37,7 +38,7 @@ public class ThumbnailService {
 
 
     @Transactional
-    public ThumbnailUploadResponse uploadThumbnail(UploadThumbnailRequest request) throws IOException {
+    public ThumbnailResponse uploadThumbnail(ThumbnailRequest request) throws IOException {
 
         MultipartFile file = request.file();
         Long lectureId = request.lectureId();
@@ -71,7 +72,7 @@ public class ThumbnailService {
             );
             thumbnailRepository.save(created);
         }
-        return new ThumbnailUploadResponse(lectureId, publicUrl);
+        return new ThumbnailResponse(lectureId, publicUrl);
     }
 
     private void validateThumbnailFile(MultipartFile file){
@@ -100,5 +101,16 @@ public class ThumbnailService {
         if (file.getSize() > MAX_FILE_SIZE) {
             throw new ThumbnailFileSizeExceededException();
         }
+    }
+
+    @Transactional(readOnly = true)
+    public ThumbnailResponse getThumbnail(Long lectureId) {
+        if (lectureId == null) {
+            throw new IllegalArgumentException("lectureId는 null일 수 없습니다.");
+        }
+        Thumbnail thumbnail = thumbnailRepository.findByLectureId(lectureId)
+                .orElseThrow(LectureThumbnailNotFoundException::new);
+
+        return new ThumbnailResponse(thumbnail.getLectureId(), thumbnail.getFileUrl());
     }
 }

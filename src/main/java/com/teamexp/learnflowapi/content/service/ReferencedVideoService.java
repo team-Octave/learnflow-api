@@ -2,6 +2,7 @@ package com.teamexp.learnflowapi.content.service;
 
 import com.teamexp.learnflowapi.content.dto.VideoUrlRequest;
 import com.teamexp.learnflowapi.content.dto.VideoUrlResponse;
+import com.teamexp.learnflowapi.content.exception.LessonVideoNotFoundException;
 import com.teamexp.learnflowapi.content.model.ReferencedVideo;
 import com.teamexp.learnflowapi.content.repository.ReferencedVideoRepository;
 import org.springframework.stereotype.Service;
@@ -36,5 +37,17 @@ public class ReferencedVideoService {
         ReferencedVideo saved = referencedVideoRepository.save(foundVideo);
 
         return new VideoUrlResponse(saved.getLessonId(),saved.getVideoUrl());
+    }
+
+
+    @Transactional(readOnly = true)
+    public VideoUrlResponse getVideoUrl(Long lessonId) {
+        if (lessonId == null) {
+            throw new IllegalArgumentException("lessonId는 null일 수 없습니다.");
+        }
+        ReferencedVideo video = referencedVideoRepository.findByLessonId(lessonId)
+                .orElseThrow(LessonVideoNotFoundException::new);
+
+        return new VideoUrlResponse(video.getLessonId(), video.getVideoUrl());
     }
 }
