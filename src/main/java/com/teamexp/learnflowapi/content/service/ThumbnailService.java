@@ -2,11 +2,11 @@ package com.teamexp.learnflowapi.content.service;
 
 import com.teamexp.learnflowapi.content.dto.ThumbnailUploadResponse;
 import com.teamexp.learnflowapi.content.dto.UploadThumbnailRequest;
-import com.teamexp.learnflowapi.content.excption.InvalidFileNameException;
-import com.teamexp.learnflowapi.content.excption.ThumbnailFileSizeExceededException;
-import com.teamexp.learnflowapi.content.excption.ThumbnailUnsupportedExtensionException;
-import com.teamexp.learnflowapi.content.excption.ThumbnailUnsupportedMineTypeException;
-import com.teamexp.learnflowapi.content.excption.UploadNotExistException;
+import com.teamexp.learnflowapi.content.exception.InvalidFileNameException;
+import com.teamexp.learnflowapi.content.exception.ThumbnailFileSizeExceededException;
+import com.teamexp.learnflowapi.content.exception.ThumbnailUnsupportedExtensionException;
+import com.teamexp.learnflowapi.content.exception.ThumbnailUnsupportedMineTypeException;
+import com.teamexp.learnflowapi.content.exception.UploadNotExistException;
 import com.teamexp.learnflowapi.content.external.GcpFileUploadService;
 import com.teamexp.learnflowapi.content.model.Thumbnail;
 import com.teamexp.learnflowapi.content.repository.ThumbnailRepository;
@@ -80,8 +80,7 @@ public class ThumbnailService {
             throw new InvalidFileNameException();
         }
 
-        String extension = originalFilename
-                .substring(originalFilename.lastIndexOf(".") + 1).toLowerCase();
+        String extension = file.getOriginalFilename().substring(file.getOriginalFilename().lastIndexOf(".") + 1).toLowerCase();
 
         if (!ALLOWED_EXTENSIONS.contains(extension)) {
             throw new ThumbnailUnsupportedExtensionException();

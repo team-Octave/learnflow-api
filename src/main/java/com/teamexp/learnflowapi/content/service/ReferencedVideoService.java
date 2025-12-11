@@ -2,8 +2,8 @@ package com.teamexp.learnflowapi.content.service;
 
 import com.teamexp.learnflowapi.content.dto.VideoUrlRequest;
 import com.teamexp.learnflowapi.content.dto.VideoUrlResponse;
-import com.teamexp.learnflowapi.content.excption.RequestEmptyException;
-import com.teamexp.learnflowapi.content.excption.VideoUrlEmptyException;
+import com.teamexp.learnflowapi.content.exception.RequestEmptyException;
+import com.teamexp.learnflowapi.content.exception.VideoUrlEmptyException;
 import com.teamexp.learnflowapi.content.model.ReferencedVideo;
 import com.teamexp.learnflowapi.content.repository.ReferencedVideoRepository;
 import org.springframework.stereotype.Service;
