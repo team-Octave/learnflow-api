@@ -5,7 +5,7 @@ import com.teamexp.learnflowapi.content.dto.UploadThumbnailRequest;
 import com.teamexp.learnflowapi.content.exception.InvalidFileNameException;
 import com.teamexp.learnflowapi.content.exception.ThumbnailFileSizeExceededException;
 import com.teamexp.learnflowapi.content.exception.ThumbnailUnsupportedExtensionException;
-import com.teamexp.learnflowapi.content.exception.ThumbnailUnsupportedMineTypeException;
+import com.teamexp.learnflowapi.content.exception.ThumbnailUnsupportedMimeTypeException;
 import com.teamexp.learnflowapi.content.exception.UploadNotExistException;
 import com.teamexp.learnflowapi.content.external.GcpFileUploadService;
 import com.teamexp.learnflowapi.content.model.Thumbnail;
@@ -88,7 +88,7 @@ public class ThumbnailService {
 
         String contentType = file.getContentType();
         if (contentType == null || !ALLOWED_MIMES.contains(contentType)) {
-            throw new ThumbnailUnsupportedMineTypeException();
+            throw new ThumbnailUnsupportedMimeTypeException();
         }
 
         if (file.getSize() > MAX_FILE_SIZE) {
