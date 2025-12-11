@@ -1,5 +1,8 @@
 package com.teamexp.learnflowapi.lecture.service;
 
+import com.teamexp.learnflowapi.content.exception.LectureThumbnailNotFoundException;
+import com.teamexp.learnflowapi.content.model.Thumbnail;
+import com.teamexp.learnflowapi.content.repository.ThumbnailRepository;
 import com.teamexp.learnflowapi.lecture.dto.request.ChapterCreateRequest;
 import com.teamexp.learnflowapi.lecture.dto.request.LectureCreateRequest;
 import com.teamexp.learnflowapi.lecture.dto.request.LectureFullCreateRequest;
@@ -29,10 +32,13 @@ public class LectureService {
 
     private final LectureRepository lectureRepository;
     private final LectureStatisticRepository lectureStatisticRepository;
+    private final ThumbnailRepository thumbnailRepository;
 
-    public LectureService(LectureRepository lectureRepository, LectureStatisticRepository lectureStatisticRepository) {
+    public LectureService(LectureRepository lectureRepository, LectureStatisticRepository lectureStatisticRepository, ThumbnailRepository thumbnailRepository) {
         this.lectureRepository = lectureRepository;
         this.lectureStatisticRepository = lectureStatisticRepository;
+        this.thumbnailRepository = thumbnailRepository;
+
     }
 
     @Transactional
@@ -128,6 +134,14 @@ public class LectureService {
     public LectureResponse addChapter(ChapterCreateRequest request, Long lectureId, String instructorId) {
         Lecture lecture = findLectureWithValidation(lectureId, instructorId);
 
+        // findByLectureId 가 Optional이라 null 처리 필요
+        Thumbnail thumbnail = thumbnailRepository.findByLectureId(lectureId).orElseThrow(
+            () -> new LectureThumbnailNotFoundException()
+        );
+
+        String thumbnailUrl = thumbnail.getFileUrl();
+
+
         Chapter chapter = Chapter.createChapter(
             request.chapterTitle(),
             lecture.getChapters().size()
@@ -135,7 +149,7 @@ public class LectureService {
 
         lecture.addChapter(chapter);
 
-        return LectureResponse.from(lecture);
+        return LectureResponse.from(lecture,thumbnailUrl);
     }
 
     // 레슨 추가
@@ -151,10 +165,17 @@ public class LectureService {
             .findFirst()
             .orElseThrow(() -> new ChapterNotFoundException() );
 
+        // findByLectureId 가 Optional이라 null 처리 필요
+        Thumbnail thumbnail = thumbnailRepository.findByLectureId(lectureId).orElseThrow(
+            () -> new LectureThumbnailNotFoundException()
+        );
+
+        String thumbnailUrl = thumbnail.getFileUrl();
+
         Lesson lesson = createLessonByType(request, chapter.getLessons().size());
         chapter.addLesson(lesson);
 
-        return LectureResponse.from(lecture);
+        return LectureResponse.from(lecture,thumbnailUrl);
     }
 
     // 강의 발행
@@ -172,7 +193,12 @@ public class LectureService {
     // 강의 목록 조회
     public List<LectureResponse> getAllLectures() {
         return lectureRepository.findByStatus(LectureStatus.AVAILABLE).stream()
-            .map(LectureResponse::simpleFrom)
+            .map(lecture -> {
+                String thumbnailUrl = thumbnailRepository.findByLectureId(lecture.getId())
+                    .map(Thumbnail::getFileUrl)
+                    .orElseThrow(() -> new LectureThumbnailNotFoundException());
+                return LectureResponse.from(lecture, thumbnailUrl);
+            })
             .collect(Collectors.toList());
     }
 
@@ -202,27 +228,48 @@ public class LectureService {
         // Page<LectureResponse>로 변환
         return lecturePage.map(lecture -> {
             LectureStatistic statistic = statisticMap.get(lecture.getId());
-            return LectureResponse.simpleFromWithStats(lecture, statistic);
+            String thumbnailUrl = thumbnailRepository.findByLectureId(lecture.getId())
+                .map(Thumbnail::getFileUrl)
+                .orElseThrow(() -> new LectureThumbnailNotFoundException());
+            return LectureResponse.simpleFromWithStats(lecture, statistic, thumbnailUrl);
         });
     }
 
     // 강의 단건 조회
     public LectureResponse getLecture(Long lectureId) {
         Lecture lecture = findLectureWithChaptersAndLessons(lectureId);
-        return LectureResponse.from(lecture);
+        String thumbnailUrl = thumbnailRepository.findByLectureId(lectureId)
+            .map(Thumbnail::getFileUrl)
+            .orElseThrow(() -> new LectureThumbnailNotFoundException());
+        return LectureResponse.from(lecture,thumbnailUrl);
     }
 
     // 강사의 강의 목록 조회
     public List<LectureResponse> getLecturesByInstructor(String instructorId) {
-        return lectureRepository.findByInstructorId(instructorId).stream()
-            .map(LectureResponse::simpleFrom)
-            .collect(Collectors.toList());
+
+        List<Lecture> lectures = lectureRepository.findByInstructorId(instructorId);
+
+        return lectures.stream().map(
+            lecture -> {
+                String thumbnail = thumbnailRepository.findByLectureId(lecture.getId())
+                    .map(Thumbnail::getFileUrl)
+                    .orElseThrow(() -> new LectureThumbnailNotFoundException());
+                return LectureResponse.from(lecture, thumbnail);
+            }
+        ).collect(Collectors.toList());
     }
 
     // 카테고리별 발행된 강의 목록 조회
     public List<LectureResponse> getPublishedLecturesByCategory(Integer categoryId) {
         return lectureRepository.findByCategoryIdAndStatus(categoryId, LectureStatus.AVAILABLE).stream()
-            .map(LectureResponse::simpleFrom)
+            .map(
+                lecture -> {
+                    String thumbnail = thumbnailRepository.findByLectureId(lecture.getId())
+                        .map(Thumbnail::getFileUrl)
+                        .orElseThrow(() -> new LectureThumbnailNotFoundException());
+                    return LectureResponse.from(lecture, thumbnail);
+                }
+            )
             .collect(Collectors.toList());
     }
 
@@ -240,7 +287,6 @@ public class LectureService {
         return lecture;
     }
 
-    // TODO : custom exception handling 고려
     private Lecture findLectureWithChaptersAndLessons(Long lectureId) {
         return lectureRepository.findByIdWithChaptersAndLessons(lectureId)
             .orElseThrow(() -> new LectureNotFoundException());

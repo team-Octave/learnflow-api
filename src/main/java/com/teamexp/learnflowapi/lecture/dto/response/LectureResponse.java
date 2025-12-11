@@ -24,10 +24,11 @@ public record LectureResponse(
     Instant createdAt,
     List<ChapterResponse> chapters,
     Double ratingAverage,
-    Long enrollmentCount
+    Long enrollmentCount,
+    String thumbnailUrl
 ) {
     // Full detail including chapters and lessons info  with counts
-    public static LectureResponse from(Lecture lecture) {
+    public static LectureResponse from(Lecture lecture, String thumbnailUrl) {
         return new LectureResponse(
             lecture.getId(),
             lecture.getTitle(),
@@ -44,7 +45,8 @@ public record LectureResponse(
                 .map(ChapterResponse::from)
                 .collect(Collectors.toList()),
             null,
-            null
+            null,
+            thumbnailUrl
         );
     }
 
@@ -64,12 +66,13 @@ public record LectureResponse(
             lecture.getCreatedAt(),
             null,
             null,
+            null,
             null
         );
     }
 
     // Simple response with statistics for list view
-    public static LectureResponse simpleFromWithStats(Lecture lecture, LectureStatistic statistic) {
+    public static LectureResponse simpleFromWithStats(Lecture lecture, LectureStatistic statistic, String thumbnailUrl) {
         Double ratingAvg = null;
         Long enrollmentCnt = null;
         
@@ -92,7 +95,8 @@ public record LectureResponse(
             lecture.getCreatedAt(),
             null,
             ratingAvg,
-            enrollmentCnt
+            enrollmentCnt,
+            thumbnailUrl
         );
     }
 }
