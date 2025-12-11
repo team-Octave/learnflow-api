@@ -178,25 +178,16 @@ public class ReviewService {
         review.reply(replyContent);
     }
 
-    // [추가] 팀원 요청: 통계 업데이트 헬퍼 메서드
+    // 통계 업데이트 헬퍼 메서드
+    // Lecture 생성 시 LectureStatistic이 함께 생성되므로 항상 존재해야 함
     private void updateLectureStatistic(Long lectureId, Integer rating, boolean isAdd) {
         LectureStatistic statistic = lectureStatisticRepository.findById(lectureId)
-            .orElse(null);
-        if (statistic == null) {
-            // 통계가 없으면 새로 생성(리뷰 추가인 경우만)
-            if (isAdd) {
-                // 팀원이 구현할 메서드
-                statistic = LectureStatistic.createForNewReview(lectureId, rating);
-                lectureStatisticRepository.save(statistic);
-            }
-            return;
-        }
+            .orElseThrow(LectureNotFoundException::new);
 
-        // 기존 통계 업데이트
+        // 통계 업데이트
         if (isAdd) {
             statistic.addRating(rating);
-        }else{
-            // 팀원이 구현할 메서드
+        } else {
             statistic.removeRating(rating);
         }
 

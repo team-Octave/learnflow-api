@@ -56,6 +56,11 @@ public class LectureService {
 
         // 2. 저장
         Lecture savedLecture = lectureRepository.save(lecture);
+
+        // 3. LectureStatistic 초기 생성 (모든 값이 0으로 초기화)
+        LectureStatistic initialStatistic = LectureStatistic.createInitial(savedLecture.getId());
+        lectureStatisticRepository.save(initialStatistic);
+
         return LectureResponse.simpleFrom(savedLecture, userNickname);
     }
 
