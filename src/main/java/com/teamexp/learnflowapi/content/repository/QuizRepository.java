@@ -6,9 +6,7 @@ import org.springframework.data.jpa.repository.JpaRepository;
 import java.util.List;
 
 public interface QuizRepository extends JpaRepository<Quiz, Long> {
-    List<Quiz> findByLessonId(Long lessonId);
-
-    long countByLessonId(Long lessonId);
+    List<Quiz> findByLessonIdOrderByOrderIndexAsc(Long lessonId);
 
     void deleteByLessonId(Long lessonId);
 }
