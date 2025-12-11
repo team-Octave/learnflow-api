@@ -50,14 +50,14 @@ public class EnrollmentController {
         return ResponseEntity.ok(BaseResponse.ok(enrollmentService.selectEnrollment(principal.getId() , request)));
     }
 
-    @GetMapping
+    @GetMapping("/my")
     public ResponseEntity<BaseResponse<List<MyEnrollmentResponse>>> getEnrollment(@AuthenticationPrincipal CustomUserPrincipal principal) {
 
         // lecture 썸네일, lecture 이름, 수강률, review 별점, review수강평, 생성일, 업데이트일, Status 반환
         return ResponseEntity.ok(BaseResponse.ok(enrollmentService.getEnrollments(principal.getId())));
     }
 
-    @DeleteMapping
+    @DeleteMapping("/delete")
     public ResponseEntity<BaseResponse<Void>> deleteEnrollment(@AuthenticationPrincipal CustomUserPrincipal principal,
                                                  @Valid @RequestBody SelectEnrollmentRequest request) {
         enrollmentService.deleteEnrollment(principal.getId() , request);
