@@ -33,7 +33,7 @@ public class User implements UserDetails {
     @Column(name = "user_id")
     private String userId; // 성능 측면에서는 UUID 객체로 관리하는 것이 효율적이긴 하지만, DB에 저장하거나 Json으로 응답하기에는 String이 편하다고 함.
 
-    @Column(name = "nickname", nullable = false)
+    @Column(name = "nickname", nullable = false, unique = true)
     private String nickname;
 
     @Column(name = "email", nullable = false, unique = true)
