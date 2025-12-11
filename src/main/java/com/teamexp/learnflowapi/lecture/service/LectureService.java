@@ -90,32 +90,26 @@ public class LectureService {
         lectureRepository.save(lecture);
 
         // 3단계: 이제 ID가 채워졌으므로 DTO 변환 가능
-        List<LectureFullCreateResponse.ChapterResponse> chapterResponses =
-            IntStream.range(0, lecture.getChapters().size())
-                .mapToObj(chapterIndex -> {
-                    Chapter chapter = lecture.getChapters().get(chapterIndex);
-                    List<LectureFullCreateResponse.LessonResponse> lessonResponses =
-                        IntStream.range(0, chapter.getLessons().size())
-                            .mapToObj(lessonIndex -> {
-                                Lesson lesson = chapter.getLessons().get(lessonIndex);
-                                return new LectureFullCreateResponse.LessonResponse(
-                                    lesson.getId(),
-                                    lesson.getLessonTitle(),
-                                    lesson.getLessonOrder(),
-                                    lesson.getLessonType().getDisplayName(),
-                                    lesson.getIsFreePreview()
-                                );
-                            })
-                            .collect(Collectors.toList());
+        List<LectureFullCreateResponse.ChapterResponse> chapterResponses = lecture.getChapters().stream()
+            .map(chapter -> {
+                List<LectureFullCreateResponse.LessonResponse> lessonResponses = chapter.getLessons().stream()
+                    .map(lesson -> new LectureFullCreateResponse.LessonResponse(
+                        lesson.getId(),
+                        lesson.getLessonTitle(),
+                        lesson.getLessonOrder(),
+                        lesson.getLessonType().getDisplayName(),
+                        lesson.getIsFreePreview()
+                    ))
+                    .collect(Collectors.toList());
 
-                    return new LectureFullCreateResponse.ChapterResponse(
-                        chapter.getId(),
-                        chapter.getChapterTitle(),
-                        chapter.getChapterOrder(),
-                        lessonResponses
-                    );
-                })
-                .collect(Collectors.toList());
+                return new LectureFullCreateResponse.ChapterResponse(
+                    chapter.getId(),
+                    chapter.getChapterTitle(),
+                    chapter.getChapterOrder(),
+                    lessonResponses
+                );
+            })
+            .collect(Collectors.toList());
 
         return new LectureFullCreateResponse(
             lecture.getId(),

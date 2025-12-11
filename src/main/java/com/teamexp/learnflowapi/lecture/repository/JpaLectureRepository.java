@@ -56,7 +56,7 @@ public interface JpaLectureRepository extends JpaRepository<Lecture, Long>, Lect
     }
 
     @Query("""
-        SELECT DISTINCT l FROM Lecture l
+        SELECT l FROM Lecture l
         LEFT JOIN LectureStatistic ls ON ls.lectureId = l.id
         WHERE l.status = :status
         AND (:categoryId IS NULL OR l.categoryId = :categoryId)
@@ -71,7 +71,7 @@ public interface JpaLectureRepository extends JpaRepository<Lecture, Long>, Lect
     );
 
     @Query("""
-        SELECT DISTINCT l FROM Lecture l
+        SELECT l FROM Lecture l
         LEFT JOIN LectureStatistic ls ON ls.lectureId = l.id
         WHERE l.status = :status
         AND (:categoryId IS NULL OR l.categoryId = :categoryId)
@@ -86,7 +86,7 @@ public interface JpaLectureRepository extends JpaRepository<Lecture, Long>, Lect
     );
 
     @Query("""
-        SELECT DISTINCT l FROM Lecture l
+        SELECT l FROM Lecture l
         LEFT JOIN LectureStatistic ls ON ls.lectureId = l.id
         WHERE l.status = :status
         AND (:categoryId IS NULL OR l.categoryId = :categoryId)
