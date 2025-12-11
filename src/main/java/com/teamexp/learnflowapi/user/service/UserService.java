@@ -3,6 +3,7 @@ package com.teamexp.learnflowapi.user.service;
 import com.teamexp.learnflowapi.global.config.PasswordConfig;
 import com.teamexp.learnflowapi.user.controller.dto.UserCreateRequest;
 import com.teamexp.learnflowapi.user.exception.EmailDuplicatedException;
+import com.teamexp.learnflowapi.user.exception.NicknameDuplicateException;
 import com.teamexp.learnflowapi.user.model.User;
 import com.teamexp.learnflowapi.user.model.vo.UserRole;
 import com.teamexp.learnflowapi.user.repository.UserRepository;
@@ -27,6 +28,10 @@ public class UserService {
     public void register(UserCreateRequest request) {
         if (userRepository.existsByEmail(request.email())) {
             throw new EmailDuplicatedException();
+        }
+
+        if (userRepository.existsByNickname(request.nickname())) {
+            throw new NicknameDuplicateException();
         }
 
         // password 암호화
