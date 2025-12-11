@@ -5,6 +5,7 @@ import com.teamexp.learnflowapi.content.dto.QuizListResponse;
 import com.teamexp.learnflowapi.content.dto.QuizSaveRequest;
 import com.teamexp.learnflowapi.content.model.Quiz;
 import com.teamexp.learnflowapi.content.repository.QuizRepository;
+import jakarta.persistence.EntityNotFoundException;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -12,7 +13,6 @@ import java.util.ArrayList;
 import java.util.List;
 
 @Service
-@Transactional
 public class QuizService {
 
     private final QuizRepository quizRepository;
@@ -25,12 +25,7 @@ public class QuizService {
     @Transactional(readOnly = true)
     public QuizListResponse getQuizzesByLesson(Long lessonId) {
         List<Quiz> quizzes = quizRepository.findByLessonIdOrderByOrderIndexAsc(lessonId);
-        return QuizListResponse.of(lessonId, quizzes);
-    }
-
-    @Transactional(readOnly = true)
-    public List<Quiz> getQuizzes(Long lessonId) {
-        return quizRepository.findByLessonIdOrderByOrderIndexAsc(lessonId);
+        return QuizListResponse.of(quizzes);
     }
 
     // 퀴즈 생성
@@ -41,27 +36,28 @@ public class QuizService {
         return quizRepository.save(quiz);
     }
 
-    // 퀴즈 저장
-    @Transactional
-    public QuizListResponse saveQuizzes(Long lessonId, QuizSaveRequest request) {
-
-        // 기존 퀴즈 삭제
-        quizRepository.deleteByLessonId(lessonId);
-
-        int orderIndex = 0;
-        List<Quiz> saved = new ArrayList<>();
-
-        for (QuizItemRequest item : request.quizzes()) {
-            Quiz quiz = Quiz.createQuiz(
-                    lessonId,
-                    orderIndex++,
-                    item.question(),
-                    item.correct()
-            );
-            saved.add(quizRepository.save(quiz));
-        }
-
-        return QuizListResponse.of(lessonId, saved);
-    }
+    // 코드 수정 변경 에정
+//    // 퀴즈 저장
+//    @Transactional
+//    public QuizListResponse saveQuizzes(Long lessonId, QuizSaveRequest request) {
+//
+//        // 기존 퀴즈 삭제
+//        quizRepository.deleteByLessonId(lessonId);
+//
+//        int orderIndex = 0;
+//        List<Quiz> saved = new ArrayList<>();
+//
+//        for (QuizItemRequest item : request.quizzes()) {
+//            Quiz quiz = Quiz.createQuiz(
+//                    lessonId,
+//                    orderIndex++,
+//                    item.question(),
+//                    item.correct()
+//            );
+//            saved.add(quizRepository.save(quiz));
+//        }
+//
+//        return QuizListResponse.of(saved);
+//    }
 
 }
