@@ -1,5 +1,6 @@
 package com.teamexp.learnflowapi.lecture.model;
 
+import com.teamexp.learnflowapi.lecture.exception.LessonNotFoundException;
 import jakarta.persistence.*;
 import lombok.Getter;
 
@@ -59,7 +60,7 @@ public class Chapter {
         return lessons.stream()
             .filter(l -> l.getId().equals(lessonId))
             .findFirst()
-            .orElseThrow(() -> new IllegalArgumentException("레슨을 찾을 수 없습니다: " + lessonId));
+            .orElseThrow(() -> new LessonNotFoundException());
 
     }
 

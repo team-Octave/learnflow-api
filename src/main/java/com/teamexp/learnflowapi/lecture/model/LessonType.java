@@ -1,6 +1,7 @@
 package com.teamexp.learnflowapi.lecture.model;
 
 
+import com.teamexp.learnflowapi.lecture.exception.LessonTypeInvalidException;
 
 public enum LessonType {
     VIDEO("VIDEO"),
@@ -22,6 +23,6 @@ public enum LessonType {
                 return type;
             }
         }
-        throw new IllegalArgumentException("No enum constant with displayName " + displayName);
+        throw new LessonTypeInvalidException();
     }
 }

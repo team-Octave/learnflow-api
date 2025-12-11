@@ -11,7 +11,6 @@ public record LectureCreateRequest(
 
     String description,
 
-    @NotBlank
     @NotNull(message = "카테고리는 필수 입력 값입니다.")
     Integer categoryId,
 

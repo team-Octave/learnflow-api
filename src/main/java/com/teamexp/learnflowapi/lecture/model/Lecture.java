@@ -1,5 +1,8 @@
 package com.teamexp.learnflowapi.lecture.model;
 
+import com.teamexp.learnflowapi.lecture.exception.LectureAlreadyPublishedException;
+import com.teamexp.learnflowapi.lecture.exception.LectureCannotPublishedWithoutChapterException;
+import com.teamexp.learnflowapi.lecture.exception.LectureCannotPublishedWithoutLessonException;
 import jakarta.persistence.*;
 import lombok.Getter;
 import org.springframework.data.annotation.CreatedDate;
@@ -97,15 +100,15 @@ public class Lecture {
 
     private void validateForAvailable() {
         if (!canAvailable()) {
-            throw new IllegalStateException("Lecture is already available.");
+            throw new LectureAlreadyPublishedException();
         }
         if (chapters.isEmpty()) {
-            throw new IllegalStateException("Lecture must have at least one chapter to be made available.");
+            throw new LectureCannotPublishedWithoutChapterException();
         }
         boolean hasLesson = chapters.stream()
                 .anyMatch(chapter -> !chapter.getLessons().isEmpty());
         if (!hasLesson) {
-            throw new IllegalStateException("Lecture must have at least one lesson to be made available.");
+            throw new LectureCannotPublishedWithoutLessonException();
         }
     }
 

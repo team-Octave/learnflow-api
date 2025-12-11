@@ -7,6 +7,9 @@ import com.teamexp.learnflowapi.lecture.dto.request.LessonCreateRequest;
 import com.teamexp.learnflowapi.lecture.dto.response.LectureFullCreateResponse;
 import com.teamexp.learnflowapi.lecture.dto.response.LectureResponse;
 import com.teamexp.learnflowapi.lecture.dto.response.PublishedResponse;
+import com.teamexp.learnflowapi.lecture.exception.ChapterNotFoundException;
+import com.teamexp.learnflowapi.lecture.exception.LectureNotFoundException;
+import com.teamexp.learnflowapi.lecture.exception.LectureInstructorUnauthorizedException;
 import com.teamexp.learnflowapi.lecture.model.*;
 import com.teamexp.learnflowapi.lecture.repository.LectureRepository;
 import com.teamexp.learnflowapi.lecture.repository.LectureStatisticRepository;
@@ -145,14 +148,14 @@ public class LectureService {
     @Transactional
     public LectureResponse addLesson(LessonCreateRequest request, Long lectureId, Long chapterId, String instructorId) {
         Lecture lecture = lectureRepository.findByIdWithChaptersAndLessons(lectureId)
-            .orElseThrow(() -> new IllegalArgumentException("강의를 찾을 수 없습니다."));
+            .orElseThrow(() -> new LectureNotFoundException());
 
         validateInstructor(lecture, instructorId);
 
         Chapter chapter = lecture.getChapters().stream()
             .filter(c -> c.getId().equals(chapterId))
             .findFirst()
-            .orElseThrow(() -> new IllegalArgumentException("챕터를 찾을 수 없습니다."));
+            .orElseThrow(() -> new ChapterNotFoundException() );
 
         Lesson lesson = createLessonByType(request, chapter.getLessons().size());
         chapter.addLesson(lesson);
@@ -238,7 +241,7 @@ public class LectureService {
 
     private Lecture findLectureWithValidation(Long lectureId, String instructorId) {
         Lecture lecture = lectureRepository.findByIdWithChapters(lectureId)
-            .orElseThrow(() -> new IllegalArgumentException("강의를 찾을 수 없습니다: " + lectureId));
+            .orElseThrow(() -> new LectureNotFoundException());
         validateInstructor(lecture, instructorId);
         return lecture;
     }
@@ -246,12 +249,12 @@ public class LectureService {
     // TODO : custom exception handling 고려
     private Lecture findLectureWithChaptersAndLessons(Long lectureId) {
         return lectureRepository.findByIdWithChaptersAndLessons(lectureId)
-            .orElseThrow(() -> new IllegalArgumentException("강의를 찾을 수 없습니다: " + lectureId));
+            .orElseThrow(() -> new LectureNotFoundException());
     }
 
     private void validateInstructor(Lecture lecture, String instructorId) {
         if (!lecture.getInstructorId().equals(instructorId)) {
-            throw new IllegalStateException("해당 강의에 대한 권한이 없습니다.");
+            throw new LectureInstructorUnauthorizedException();
         }
     }
 

@@ -1,5 +1,7 @@
 package com.teamexp.learnflowapi.lecture.model;
 
+import com.teamexp.learnflowapi.lecture.exception.LectureSortTypeInvalidException;
+
 public enum LectureSortType {
     POPULAR("POPULAR"),
     RATING("RATING"),
@@ -21,6 +23,6 @@ public enum LectureSortType {
                 return sortType;
             }
         }
-        throw new IllegalArgumentException("No enum constant with displayName " + displayName);
+        throw new LectureSortTypeInvalidException();
     }
 }

@@ -1,5 +1,7 @@
 package com.teamexp.learnflowapi.lecture.model;
 
+import com.teamexp.learnflowapi.lecture.exception.LectureLevelInvalidException;
+
 public enum LectureLevel {
     BEGINNER("BEGINNER"),
     INTERMEDIATE("INTERMEDIATE"),
@@ -22,6 +24,6 @@ public enum LectureLevel {
                 return level;
             }
         }
-        throw new IllegalArgumentException("No enum constant with displayName " + displayName);
+        throw new LectureLevelInvalidException();
     }
 }
