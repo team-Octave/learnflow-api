@@ -3,8 +3,10 @@ package com.teamexp.learnflowapi.user.service;
 import com.teamexp.learnflowapi.global.config.PasswordConfig;
 import com.teamexp.learnflowapi.user.controller.dto.NicknameCheckResponse;
 import com.teamexp.learnflowapi.user.controller.dto.UserCreateRequest;
+import com.teamexp.learnflowapi.user.controller.dto.UserReadResponse;
 import com.teamexp.learnflowapi.user.exception.EmailDuplicatedException;
 import com.teamexp.learnflowapi.user.exception.NicknameDuplicateException;
+import com.teamexp.learnflowapi.user.exception.UserNotFoundException;
 import com.teamexp.learnflowapi.user.model.User;
 import com.teamexp.learnflowapi.user.model.vo.UserRole;
 import com.teamexp.learnflowapi.user.repository.UserRepository;
@@ -56,5 +58,12 @@ public class UserService {
     @Transactional
     public void withdrawUser(String userId) {
         userRepository.deleteById(userId);
+    }
+
+    public UserReadResponse getUserInfo(String userId) {
+        User user = userRepository.findById(userId).orElseThrow(
+            UserNotFoundException::new
+        );
+        return new UserReadResponse(user.getNickname(), user.getEmail(), user.getRole().name());
     }
 }

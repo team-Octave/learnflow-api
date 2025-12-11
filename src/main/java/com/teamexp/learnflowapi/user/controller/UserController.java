@@ -4,6 +4,7 @@ import com.teamexp.learnflowapi.global.response.BaseResponse;
 import com.teamexp.learnflowapi.global.security.principal.CustomUserPrincipal;
 import com.teamexp.learnflowapi.user.controller.dto.NicknameCheckResponse;
 import com.teamexp.learnflowapi.user.controller.dto.UserCreateRequest;
+import com.teamexp.learnflowapi.user.controller.dto.UserReadResponse;
 import com.teamexp.learnflowapi.user.service.UserService;
 import jakarta.validation.Valid;
 import jakarta.validation.constraints.NotBlank;
@@ -51,5 +52,13 @@ public class UserController {
         return ResponseEntity
                 .status(HttpStatus.OK)
                 .body(BaseResponse.ok(null));
+    }
+
+    @GetMapping("/me")
+    public ResponseEntity<BaseResponse<UserReadResponse>> getUser(@AuthenticationPrincipal CustomUserPrincipal principal) {
+        UserReadResponse response = userService.getUserInfo(principal.getId());
+        return ResponseEntity
+                .status(HttpStatus.OK)
+                .body(BaseResponse.ok(response));
     }
 }
