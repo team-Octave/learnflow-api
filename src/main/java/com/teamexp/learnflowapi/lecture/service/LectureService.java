@@ -206,10 +206,12 @@ public class LectureService {
                 String thumbnailUrl = thumbnailRepository.findByLectureId(lecture.getId())
                     .map(Thumbnail::getFileUrl)
                     .orElseThrow(() -> new LectureThumbnailNotFoundException());
-                return LectureResponse.from(lecture, thumbnailUrl,
-                    userRepository.findById(lecture.getInstructorId()) // 강사 닉네임 조회
-                        .map(user -> user.getNickname())
-                        .orElse("Unknown Instructor"));
+
+                String instructorNickname = userRepository.findById(lecture.getInstructorId())
+                    .map(user -> user.getNickname())
+                    .orElse("Unknown Instructor");
+
+                return LectureResponse.from(lecture, thumbnailUrl, instructorNickname);
             })
             .collect(Collectors.toList());
     }
@@ -243,10 +245,12 @@ public class LectureService {
             String thumbnailUrl = thumbnailRepository.findByLectureId(lecture.getId())
                 .map(Thumbnail::getFileUrl)
                 .orElseThrow(() -> new LectureThumbnailNotFoundException());
-            return LectureResponse.simpleFromWithStats(lecture, statistic, thumbnailUrl,
-                userRepository.findById(lecture.getInstructorId()) // 강사 닉네임 조회
-                    .map(user -> user.getNickname())
-                    .orElse("Unknown Instructor"));
+
+            String instructorNickname = userRepository.findById(lecture.getInstructorId())
+                .map(user -> user.getNickname())
+                .orElse("Unknown Instructor");
+
+            return LectureResponse.simpleFromWithStats(lecture, statistic, thumbnailUrl, instructorNickname);
         });
     }
 
@@ -256,10 +260,12 @@ public class LectureService {
         String thumbnailUrl = thumbnailRepository.findByLectureId(lectureId)
             .map(Thumbnail::getFileUrl)
             .orElseThrow(() -> new LectureThumbnailNotFoundException());
-        return LectureResponse.from(lecture,thumbnailUrl,
-            userRepository.findById(lecture.getInstructorId()) // 강사 닉네임 조회
-                .map(user -> user.getNickname())
-                .orElse("Unknown Instructor"));
+
+        String instructorNickname = userRepository.findById(lecture.getInstructorId())
+            .map(user -> user.getNickname())
+            .orElse("Unknown Instructor");
+
+        return LectureResponse.from(lecture,thumbnailUrl, instructorNickname);
     }
 
     // 강사의 강의 목록 조회
@@ -272,10 +278,12 @@ public class LectureService {
                 String thumbnail = thumbnailRepository.findByLectureId(lecture.getId())
                     .map(Thumbnail::getFileUrl)
                     .orElseThrow(() -> new LectureThumbnailNotFoundException());
-                return LectureResponse.from(lecture, thumbnail,
-                    userRepository.findById(lecture.getInstructorId()) // 강사 닉네임 조회
-                        .map(user -> user.getNickname())
-                        .orElse("Unknown Instructor"));
+
+                String instructorNickname = userRepository.findById(lecture.getInstructorId())
+                    .map(user -> user.getNickname())
+                    .orElse("Unknown Instructor");
+
+                return LectureResponse.from(lecture, thumbnail, instructorNickname);
             }
         ).collect(Collectors.toList());
     }
@@ -288,10 +296,12 @@ public class LectureService {
                     String thumbnail = thumbnailRepository.findByLectureId(lecture.getId())
                         .map(Thumbnail::getFileUrl)
                         .orElseThrow(() -> new LectureThumbnailNotFoundException());
-                    return LectureResponse.from(lecture, thumbnail,
-                        userRepository.findById(lecture.getInstructorId()) // 강사 닉네임 조회
-                            .map(user -> user.getNickname())
-                            .orElse("Unknown Instructor"));
+
+                    String instructorNickname = userRepository.findById(lecture.getInstructorId())
+                        .map(user -> user.getNickname())
+                        .orElse("Unknown Instructor");
+
+                    return LectureResponse.from(lecture, thumbnail, instructorNickname);
                 }
             )
             .collect(Collectors.toList());
