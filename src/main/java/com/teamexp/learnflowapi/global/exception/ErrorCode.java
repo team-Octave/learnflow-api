@@ -40,7 +40,8 @@ public enum ErrorCode {
     THUMBNAIL_FILE_SIZE_EXCEEDED(HttpStatus.BAD_REQUEST, "파일 크기가 최대 허용 용량(10MB)을 초과했습니다."),
     LESSON_VIDEO_NOT_FOUND(HttpStatus.NOT_FOUND, "해당 레슨에 등록된 영상이 없습니다."),
     LECTURE_THUMBNAIL_NOT_FOUND(HttpStatus.NOT_FOUND, "해당 강의의 썸네일이 없습니다."),
-
+    QUIZ_NOT_FOUND(HttpStatus.NOT_FOUND, "등록된 퀴즈를 찾을 수 없습니다."),
+    QUIZ_LESSON_MISMATCH(HttpStatus.BAD_REQUEST, "다른 레슨의 퀴즈는 수정할 수 없습니다."),
 
     // Enrollment 도메인 관련
     ENROLLMENT_ALREADY_EXISTS(HttpStatus.CONFLICT, "이미 수강신청이 완료된 강좌입니다."),
