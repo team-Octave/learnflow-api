@@ -58,52 +58,43 @@ public interface EnrollmentRepository extends JpaRepository<Enrollment, Long> {
     """, nativeQuery = true)
     Object getProgressCounts(@Param("enrollmentId") Long enrollmentId);
 
-@Query(value = """
+    @Query(value = """
     SELECT 
         e.lecture_id AS lectureId, 
         e.enrollment_id AS enrollmentId,
         e.progress AS progress,
-        -- 완료된 레슨 ID 목록 (GROUP_CONCAT 사용)
+        -- [A] 완료된 레슨 ID 목록 (completed_at 오름차순 정렬 추가)
         CASE 
             WHEN COUNT(cl.lesson_id) = 0 THEN NULL 
             ELSE GROUP_CONCAT(DISTINCT cl.lesson_id ORDER BY cl.completed_at ASC) 
         END AS completedLessonIds,
-        -- 마지막으로 완료된 레슨의 챕터 ID
-        MAX(l_completed.chapter_id) AS lastCompletedLessonChapterId,
-        fcl.lecture_first_lesson_id,  -- 강의의 첫 번째 레슨 ID
-        fcl.lecture_first_chapter_id  -- 강의의 첫 번째 챕터 ID
+        
+        -- [B] 마지막으로 완료된 레슨의 챕터 ID (시간 기반)
+        SUBSTRING_INDEX(
+            GROUP_CONCAT(l_completed.chapter_id ORDER BY cl.completed_at DESC), 
+            ',', 
+            1
+        ) AS lastCompletedLessonChapterId,
+        
+        -- [C] 첫 번째 레슨/챕터 ID
+        fcl.lecture_first_lesson_id,  
+        fcl.lecture_first_chapter_id  
+        
     FROM enrollments e
     
-    -- 완료된 레슨 정보 조인 (LEFT JOIN으로 수강 시작만 하고 완료가 없는 경우도 처리)
     LEFT JOIN completed_lessons cl ON cl.enrollment_id = e.enrollment_id
     LEFT JOIN lessons l_completed ON l_completed.id = cl.lesson_id
     
-    -- 강의의 첫 번째 레슨/챕터 ID를 찾는 서브쿼리 (fcl: First Chapter and Lesson)
+    -- [C] 첫 번째 레슨/챕터 ID를 찾는 서브쿼리 (ROW_NUMBER() 사용 - MySQL 8.0+)
     LEFT JOIN (
         SELECT
             c_first.lecture_id,
             l_first.id AS lecture_first_lesson_id,
-            c_first.id AS lecture_first_chapter_id
+            c_first.id AS lecture_first_chapter_id,
+            ROW_NUMBER() OVER (PARTITION BY c_first.lecture_id ORDER BY c_first.chapter_order ASC, l_first.lesson_order ASC) as rn
         FROM chapters c_first
         JOIN lessons l_first ON c_first.id = l_first.chapter_id
-        
-        -- 가장 작은 chapter_order와 lesson_order를 가진 하나의 레코드만 선택
-        WHERE (c_first.lecture_id, c_first.chapter_order, l_first.lesson_order) IN (
-            SELECT
-                c_inner.lecture_id,
-                MIN(c_inner.chapter_order) AS min_chapter_order,
-                -- 최소 chapter_order를 가진 챕터의 최소 lesson_order를 찾음
-                (
-                    SELECT MIN(l_inner.lesson_order)
-                    FROM lessons l_inner
-                    JOIN chapters c_inner2 ON l_inner.chapter_id = c_inner2.id
-                    WHERE c_inner2.lecture_id = c_inner.lecture_id 
-                    AND c_inner2.chapter_order = MIN(c_inner.chapter_order)
-                ) AS min_lesson_order
-            FROM chapters c_inner
-            GROUP BY c_inner.lecture_id
-        )
-    ) fcl ON fcl.lecture_id = e.lecture_id
+    ) fcl ON fcl.lecture_id = e.lecture_id AND fcl.rn = 1
     
     WHERE e.enrollment_id = :enrollmentId
     GROUP BY 

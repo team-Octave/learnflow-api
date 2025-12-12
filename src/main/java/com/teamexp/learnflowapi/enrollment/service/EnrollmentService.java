@@ -129,7 +129,8 @@ public class EnrollmentService {
                 ? Arrays.stream(completedLessonIdsString.split(","))
                 .map(Long::parseLong)
                 .toList() : null;
-        Long lastCompletedLessonChapterId = (row[4] != null) ? ((Number) row[4]).longValue() : null;
+        String lastCompletedLessonChapterIdsString = (String) row[4];
+        Long lastCompletedLessonChapterId = (lastCompletedLessonChapterIdsString != null) ? Long.parseLong(lastCompletedLessonChapterIdsString) : null;
         Long firstLessonId = (row[5] != null) ? ((Number) row[5]).longValue() : null;
         Long firstChapterId = (row[6] != null) ? ((Number) row[6]).longValue() : null;
 
