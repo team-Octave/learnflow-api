@@ -1,5 +1,6 @@
 package com.teamexp.learnflowapi.lecture.controller;
 
+import com.teamexp.learnflowapi.global.response.BaseResponse;
 import com.teamexp.learnflowapi.global.security.principal.CustomUserPrincipal;
 import com.teamexp.learnflowapi.lecture.dto.request.ChapterCreateRequest;
 import com.teamexp.learnflowapi.lecture.dto.request.LectureCreateRequest;
@@ -38,17 +39,17 @@ public class LectureController {
     }
 
     @PostMapping
-    public ResponseEntity<LectureResponse> createLecture(
+    public ResponseEntity<BaseResponse<LectureResponse>> createLecture(
         @Valid @RequestBody LectureCreateRequest lectureCreateRequest,
         @AuthenticationPrincipal CustomUserPrincipal customUser
         ) {
-        LectureResponse lectureResponse = lectureService.createLecture(lectureCreateRequest, customUser.getId());
+        LectureResponse lectureResponse = lectureService.createLecture(lectureCreateRequest, customUser.getId(), customUser.getNickname());
 
-        return  ResponseEntity.status(HttpStatus.CREATED).body(lectureResponse);
+        return  ResponseEntity.status(HttpStatus.CREATED).body(BaseResponse.ok(lectureResponse));
     }
 
     @PostMapping("/{lectureId}/curriculum")
-    public ResponseEntity<LectureFullCreateResponse> createLectureFullCurriculum(
+    public ResponseEntity<BaseResponse<LectureFullCreateResponse>> createLectureFullCurriculum(
         @PathVariable Long lectureId,
         @Valid @RequestBody LectureFullCreateRequest request,
         @AuthenticationPrincipal CustomUserPrincipal customUser
@@ -56,10 +57,11 @@ public class LectureController {
         LectureFullCreateResponse response = lectureService.createLectureFullCurriculum(
             lectureId,
             request,
-            customUser.getId()
+            customUser.getId(),
+            customUser.getNickname()
         );
 
-        return ResponseEntity.status(HttpStatus.CREATED).body(response);
+        return ResponseEntity.status(HttpStatus.CREATED).body(BaseResponse.ok(response));
     }
 
 
@@ -91,43 +93,43 @@ public class LectureController {
 
     // 강의 출판 (강의 상태를 DRAFT -> PUBLISHED로 변경) & 멱등성 보장을 위해 PUT 메서드 사용
     @PutMapping("/{lectureId}/publish")
-    public ResponseEntity<PublishedResponse> publishLecture(
+    public ResponseEntity<BaseResponse<PublishedResponse>> publishLecture(
         @PathVariable Long lectureId,
         @AuthenticationPrincipal CustomUserPrincipal customUser
     ) {
         PublishedResponse publishedResponse = lectureService.makeAvailableLecture(lectureId, customUser.getId());
 
-        return ResponseEntity.status(HttpStatus.OK).body(publishedResponse);
+        return ResponseEntity.status(HttpStatus.OK).body(BaseResponse.ok(publishedResponse));
     }
 
     // 내 강의 조회
     @GetMapping("/my")
-    public ResponseEntity<List<LectureResponse>> getMyLectures(
+    public ResponseEntity<BaseResponse<List<LectureResponse>>> getMyLectures(
         @AuthenticationPrincipal CustomUserPrincipal customUser
     ) {
         List<LectureResponse> lectures = lectureService.getLecturesByInstructor(customUser.getId());
-        return ResponseEntity.status(HttpStatus.OK).body(lectures);
+        return ResponseEntity.status(HttpStatus.OK).body(BaseResponse.ok(lectures));
     }
 
     // 강의 목록 조회
     @GetMapping
-    public ResponseEntity<Page<LectureResponse>> getAllLectures(
+    public ResponseEntity<BaseResponse<Page<LectureResponse>>> getAllLectures(
         @RequestParam(required = false, defaultValue = "ALL") String category,
         @RequestParam(required = false, defaultValue = "ALL") String level,
         @RequestParam(required = false, defaultValue = "POPULAR") String sort,
         @PageableDefault(size = 16) Pageable pageable
     ) {
         Page<LectureResponse> lectures = lectureService.getAllLecturesWithFilters(category, level, sort, pageable);
-        return ResponseEntity.status(HttpStatus.OK).body(lectures);
+        return ResponseEntity.status(HttpStatus.OK).body(BaseResponse.ok(lectures));
     }
 
     // 강의 단건 조회 - user view & instructor view
     @GetMapping("/{lectureId}")
-    public ResponseEntity<LectureResponse> getLecture(
+    public ResponseEntity<BaseResponse<LectureResponse>> getLecture(
         @PathVariable Long lectureId
     ) {
         LectureResponse lecture = lectureService.getLecture(lectureId);
-        return ResponseEntity.status(HttpStatus.OK).body(lecture);
+        return ResponseEntity.status(HttpStatus.OK).body(BaseResponse.ok(lecture));
     }
 
 }

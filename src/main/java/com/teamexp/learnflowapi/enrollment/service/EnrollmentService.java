@@ -17,7 +17,9 @@ import com.teamexp.learnflowapi.enrollment.repository.CompletedLessonRepository;
 import com.teamexp.learnflowapi.enrollment.repository.EnrollmentRepository;
 import com.teamexp.learnflowapi.lecture.exception.LectureNotFoundException;
 import com.teamexp.learnflowapi.lecture.model.Lecture;
+import com.teamexp.learnflowapi.lecture.model.LectureStatistic;
 import com.teamexp.learnflowapi.lecture.repository.LectureRepository;
+import com.teamexp.learnflowapi.lecture.repository.LectureStatisticRepository;
 import jakarta.persistence.Tuple;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.dao.EmptyResultDataAccessException;
@@ -36,14 +38,17 @@ public class EnrollmentService {
     private final EnrollmentRepository enrollmentRepository;
     private final CompletedLessonRepository completedLessonRepository;
     private final LectureRepository lectureRepository;
+    private final LectureStatisticRepository lectureStatisticRepository;
 
     @Autowired
     public EnrollmentService(EnrollmentRepository enrollmentRepository,
                              CompletedLessonRepository completedLessonRepository,
-                             LectureRepository lectureRepository) {
+                             LectureRepository lectureRepository,
+                             LectureStatisticRepository lectureStatisticRepository) {
         this.enrollmentRepository = enrollmentRepository;
         this.completedLessonRepository = completedLessonRepository;
         this.lectureRepository = lectureRepository;
+        this.lectureStatisticRepository = lectureStatisticRepository;
     }
 
     // enrollment 생성
@@ -57,6 +62,9 @@ public class EnrollmentService {
         if (enrollmentRepository.existsByUserIdAndLectureId(userId, request.lectureId())) throw new EnrollmentAlreadyExistsException();
 
         enrollmentRepository.save(Enrollment.create(userId, request.lectureId()));
+
+        // 통계 업데이트
+        updateEnrollmentCount(request.lectureId(), true);
     }
 
     // lesson 완료
@@ -135,14 +143,24 @@ public class EnrollmentService {
     // 선택한 강좌 삭제
     public void deleteEnrollment(String userId, SelectEnrollmentRequest request) {
 
-        // 유저 검증
-        validUser(userId, request.enrollmentId());
+        // 유저 검증 및 lectureId 조회
+        Enrollment enrollment = enrollmentRepository.findById(request.enrollmentId())
+            .orElseThrow(EnrollmentNotFoundException::new);
+        
+        if (!Objects.equals(enrollment.getUserId(), userId)) {
+            throw new EnrollmentAccessDeniedException();
+        }
+
+        Long lectureId = enrollment.getLectureId();
 
         try {
             enrollmentRepository.deleteById(request.enrollmentId());
         } catch (EmptyResultDataAccessException e) {
             throw new EnrollmentNotFoundException();
         }
+
+        // 통계 업데이트
+        updateEnrollmentCount(lectureId, false);
     }
 
     private void validUser(String userId, Long enrollmentId) {
@@ -170,5 +188,21 @@ public class EnrollmentService {
         if (updateProgress == 100 && requestEnrollment.getStatus() == EnrollmentStatus.IN_PROGRESS) {
             requestEnrollment.updateStatus(EnrollmentStatus.COMPLETED);
         }
+    }
+
+    // 통계 업데이트 헬퍼 메서드
+    // Lecture 생성 시 LectureStatistic이 함께 생성되므로 항상 존재해야 함
+    private void updateEnrollmentCount(Long lectureId, boolean isAdd) {
+        LectureStatistic statistic = lectureStatisticRepository.findById(lectureId)
+            .orElseThrow(LectureNotFoundException::new);
+
+        // 통계 업데이트
+        if (isAdd) {
+            statistic.addEnrollment();
+        } else {
+            statistic.removeEnrollment();
+        }
+
+        lectureStatisticRepository.save(statistic);
     }
 }

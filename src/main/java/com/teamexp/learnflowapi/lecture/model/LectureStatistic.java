@@ -2,16 +2,18 @@ package com.teamexp.learnflowapi.lecture.model;
 
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
+import jakarta.persistence.EntityListeners;
 import jakarta.persistence.Id;
 import jakarta.persistence.Index;
 import jakarta.persistence.PostLoad;
 import jakarta.persistence.Table;
-import org.springframework.data.annotation.LastModifiedBy;
-
+import org.springframework.data.annotation.LastModifiedDate;
+import org.springframework.data.jpa.domain.support.AuditingEntityListener;
 
 import java.time.Instant;
 
 @Entity
+@EntityListeners(AuditingEntityListener.class)
 @Table(name = "lecture_statistics",
     indexes = {
         @Index(name = "idx_rating_average", columnList = "rating_average"),
@@ -37,8 +39,8 @@ public class LectureStatistic {
     @Column(name = "enrollment_count")
     private Long enrollmentCount;
 
-    @LastModifiedBy
-    @Column(name = "updated_at")
+    @LastModifiedDate
+    @Column(name = "updated_at", columnDefinition = "TIMESTAMP", nullable = false)
     private Instant updatedAt;
 
     protected LectureStatistic() {
@@ -52,12 +54,10 @@ public class LectureStatistic {
         this.ratingAverage = ratingAverage;
     }
 
-    // 정적 팩토리 메서드: 리뷰 추가 시 사용
-    public static LectureStatistic createForNewReview(Long lectureId, Integer rating) {
-        Long ratingSum = (long) rating;
-        Long ratingCount = 1L;
-        Double ratingAverage = (double) rating;
-        return new LectureStatistic(lectureId, ratingSum, ratingCount, 0L, ratingAverage);
+
+    // 정적 팩토리 메서드: Lecture 생성 시 초기 통계 생성
+    public static LectureStatistic createInitial(Long lectureId) {
+        return new LectureStatistic(lectureId, 0L, 0L, 0L, 0.0);
     }
 
 
@@ -96,6 +96,7 @@ public class LectureStatistic {
         }
     }
 
+    // ratingAverage 계산: ratingCount가 0인 경우 0 나누기 오류 방지를 위해 0.0 반환
     public void calculateRatingAverage() {
         this.ratingAverage = (ratingCount != null && ratingCount > 0)
             ? (double) ratingSum / ratingCount
@@ -113,6 +114,15 @@ public class LectureStatistic {
         this.ratingSum = Math.max(0, (this.ratingSum != null ? this.ratingSum : 0L) - rating);
         this.ratingCount = Math.max(0, (this.ratingCount != null ? this.ratingCount : 0L) - 1);
         calculateRatingAverage();
+    }
+
+    // 통계 업데이트 메서드
+    public void addEnrollment() {
+        this.enrollmentCount = (this.enrollmentCount != null ? this.enrollmentCount : 0L) + 1;
+    }
+
+    public void removeEnrollment() {
+        this.enrollmentCount = Math.max(0, (this.enrollmentCount != null ? this.enrollmentCount : 0L) - 1);
     }
 
 }
