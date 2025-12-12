@@ -16,8 +16,10 @@ import com.teamexp.learnflowapi.enrollment.model.EnrollmentStatus;
 import com.teamexp.learnflowapi.enrollment.repository.CompletedLessonRepository;
 import com.teamexp.learnflowapi.enrollment.repository.EnrollmentRepository;
 import com.teamexp.learnflowapi.lecture.exception.LectureNotFoundException;
+import com.teamexp.learnflowapi.lecture.exception.LectureStatusInvalidException;
 import com.teamexp.learnflowapi.lecture.model.Lecture;
 import com.teamexp.learnflowapi.lecture.model.LectureStatistic;
+import com.teamexp.learnflowapi.lecture.model.LectureStatus;
 import com.teamexp.learnflowapi.lecture.repository.LectureRepository;
 import com.teamexp.learnflowapi.lecture.repository.LectureStatisticRepository;
 import jakarta.persistence.Tuple;
@@ -59,6 +61,8 @@ public class EnrollmentService {
 
         // Lecture 확인
         Lecture lecture = lectureRepository.findById(request.lectureId()).orElseThrow(LectureNotFoundException::new);
+        // Lecture Status확인
+        if (!lecture.getStatus().equals(LectureStatus.AVAILABLE)) throw new LectureStatusInvalidException();
         // 자신의 강좌 수강 방지
         if (userId.equals(lecture.getInstructorId())) throw new SelfEnrollmentNotAllowedException();
         // 생성된 수강 확인
