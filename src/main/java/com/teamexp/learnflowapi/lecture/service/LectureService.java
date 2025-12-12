@@ -11,6 +11,7 @@ import com.teamexp.learnflowapi.lecture.dto.request.LessonCreateRequest;
 import com.teamexp.learnflowapi.lecture.dto.response.LectureFullCreateResponse;
 import com.teamexp.learnflowapi.lecture.dto.response.LectureResponse;
 import com.teamexp.learnflowapi.lecture.dto.response.PublishedResponse;
+import com.teamexp.learnflowapi.lecture.exception.LectureDeleteBlockedException;
 import com.teamexp.learnflowapi.lecture.exception.LectureNotFoundException;
 import com.teamexp.learnflowapi.lecture.exception.LectureInstructorUnauthorizedException;
 import com.teamexp.learnflowapi.lecture.model.*;
@@ -410,7 +411,15 @@ public class LectureService {
     @Transactional
     public void deleteLecture(Long lectureId, String instructorId) {
         Lecture lecture = findLectureWithValidation(lectureId, instructorId);
+        // lecture가 publish 상태이면 삭제 되면 안됨.
+        if (lecture.getStatus() == LectureStatus.AVAILABLE) {
+            throw new LectureDeleteBlockedException();
+        }
         lectureRepository.delete(lecture);
+
+        // 고아 객체가 남아있지 않도록 썸네일이랑, 강의 통계도 같이 삭제
+        thumbnailRepository.deleteByLectureId(lectureId);
+        lectureStatisticRepository.deleteById(lectureId);
     }
 
     private Lecture findLectureWithValidation(Long lectureId, String instructorId) {

@@ -11,6 +11,7 @@ import com.teamexp.learnflowapi.lecture.service.LectureService;
 import jakarta.validation.Valid;
 import org.springframework.http.HttpStatus;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
+import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
@@ -127,6 +128,16 @@ public class LectureController {
     ) {
         LectureResponse lecture = lectureService.getLecture(lectureId);
         return ResponseEntity.status(HttpStatus.OK).body(BaseResponse.ok(lecture));
+    }
+
+    // 강의 삭제
+    @DeleteMapping("/{lectureId}" )
+    public ResponseEntity<BaseResponse<Void>> deleteLecture(
+        @PathVariable("lectureId") Long lectureId,
+        @AuthenticationPrincipal CustomUserPrincipal customUser
+    ) {
+        lectureService.deleteLecture(lectureId, customUser.getId());
+        return ResponseEntity.status(HttpStatus.OK).body(BaseResponse.ok(null));
     }
 
 }
