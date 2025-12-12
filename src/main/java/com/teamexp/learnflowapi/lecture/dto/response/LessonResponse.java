@@ -3,23 +3,64 @@ package com.teamexp.learnflowapi.lecture.dto.response;
 import com.teamexp.learnflowapi.lecture.model.Lesson;
 import com.teamexp.learnflowapi.lecture.model.LessonType;
 
+import java.util.List;
+
 
 public record LessonResponse(
     Long id,
     String lessonTitle,
-    LessonType lessonType,
     String lessonTypeDisplayName,
     Integer lessonOrder,
-    Boolean isFreePreview
+    Boolean isFreePreview,
+    String videoUrl,
+    List<QuizQuestionResponse> quizQuestions
+
 ) {
-    public static LessonResponse from(Lesson lesson) {
+    public record QuizQuestionResponse(
+        Long id,
+        String question,
+        Integer orderIndex,
+        Boolean correct
+    ) {
+    }
+
+    public static LessonResponse withoutQuiz(
+        Long lessonId,
+        String lessonTitle,
+        String lessonTypeDisplayName,
+        Integer order,
+        Boolean isFreePreview,
+        String videoUrl
+    ) {
         return new LessonResponse(
-            lesson.getId(),
-            lesson.getLessonTitle(),
-            lesson.getLessonType(),
-            lesson.getLessonType().getDisplayName(),
-            lesson.getLessonOrder(),
-            lesson.getIsFreePreview()
+            lessonId,
+            lessonTitle,
+            lessonTypeDisplayName,
+            order,
+            isFreePreview,
+            videoUrl,
+            null
         );
     }
+
+    public static LessonResponse withoutVideo(
+        Long lessonId,
+        String lessonTitle,
+        String lessonTypeDisplayName,
+        Integer order,
+        Boolean isFreePreview,
+        List<LessonResponse.QuizQuestionResponse> quizQuestions
+    ) {
+        return new LessonResponse(
+            lessonId,
+            lessonTitle,
+            lessonTypeDisplayName,
+            order,
+            isFreePreview,
+            null,
+            quizQuestions
+        );
+    }
+
+
 }

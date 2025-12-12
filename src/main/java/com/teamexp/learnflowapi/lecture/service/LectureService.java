@@ -1,16 +1,16 @@
 package com.teamexp.learnflowapi.lecture.service;
 
 import com.teamexp.learnflowapi.content.exception.LectureThumbnailNotFoundException;
+import com.teamexp.learnflowapi.content.model.Quiz;
 import com.teamexp.learnflowapi.content.model.Thumbnail;
+import com.teamexp.learnflowapi.content.repository.QuizRepository;
 import com.teamexp.learnflowapi.content.repository.ThumbnailRepository;
-import com.teamexp.learnflowapi.lecture.dto.request.ChapterCreateRequest;
 import com.teamexp.learnflowapi.lecture.dto.request.LectureCreateRequest;
 import com.teamexp.learnflowapi.lecture.dto.request.LectureFullCreateRequest;
 import com.teamexp.learnflowapi.lecture.dto.request.LessonCreateRequest;
 import com.teamexp.learnflowapi.lecture.dto.response.LectureFullCreateResponse;
 import com.teamexp.learnflowapi.lecture.dto.response.LectureResponse;
 import com.teamexp.learnflowapi.lecture.dto.response.PublishedResponse;
-import com.teamexp.learnflowapi.lecture.exception.ChapterNotFoundException;
 import com.teamexp.learnflowapi.lecture.exception.LectureNotFoundException;
 import com.teamexp.learnflowapi.lecture.exception.LectureInstructorUnauthorizedException;
 import com.teamexp.learnflowapi.lecture.model.*;
@@ -25,6 +25,7 @@ import org.springframework.transaction.annotation.Transactional;
 
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 import java.util.stream.Collectors;
 import java.util.stream.IntStream;
 
@@ -36,12 +37,15 @@ public class LectureService {
     private final LectureStatisticRepository lectureStatisticRepository;
     private final ThumbnailRepository thumbnailRepository;
     private final UserRepository userRepository;
+    private final QuizRepository quizRepository;
 
-    public LectureService(LectureRepository lectureRepository, LectureStatisticRepository lectureStatisticRepository, ThumbnailRepository thumbnailRepository, UserRepository userRepository) {
+    public LectureService(LectureRepository lectureRepository, LectureStatisticRepository lectureStatisticRepository, ThumbnailRepository thumbnailRepository, UserRepository userRepository, QuizRepository quizRepository) {
         this.lectureRepository = lectureRepository;
         this.lectureStatisticRepository = lectureStatisticRepository;
         this.thumbnailRepository = thumbnailRepository;
         this.userRepository = userRepository;
+        this.quizRepository = quizRepository;
+
     }
 
     @Transactional
@@ -88,6 +92,8 @@ public class LectureService {
                 );
                 lecture.addChapter(chapter);
 
+                // case1. lessonType: VIDEO
+                // case2. lessonType: QUIZ
                 IntStream.range(0, chapterRequest.lessons().size())
                     .forEach(lessonIndex -> {
                         LectureFullCreateRequest.LessonRequest lessonRequest = chapterRequest.lessons().get(lessonIndex);
@@ -95,10 +101,22 @@ public class LectureService {
                             LessonType.forEntity(lessonRequest.lessonType()),
                             lessonRequest.lessonTitle(),
                             lessonIndex,
-                            lessonRequest.isFreePreview()
+                            lessonRequest.isFreePreview(),
+                            lessonRequest.videoUrl()
                         );
                         chapter.addLesson(lesson);
+                        List<Quiz> quizs = lessonRequest.quizQuestions(
+                            ).stream()
+                            .map(quizQuestionRequest -> Quiz.createQuiz(
+                                lesson.getId(),
+                                quizQuestionRequest.questionOrder(),
+                                quizQuestionRequest.question(),
+                                quizQuestionRequest.correct()
+                            ))
+                            .collect(Collectors.toList());
+                        lesson.bindQuizzes(quizs);
                     });
+
             });
 
         // 2단계: **여기서 save** - ID 생성 보장
@@ -108,13 +126,34 @@ public class LectureService {
         List<LectureFullCreateResponse.ChapterResponse> chapterResponses = lecture.getChapters().stream()
             .map(chapter -> {
                 List<LectureFullCreateResponse.LessonResponse> lessonResponses = chapter.getLessons().stream()
-                    .map(lesson -> new LectureFullCreateResponse.LessonResponse(
-                        lesson.getId(),
-                        lesson.getLessonTitle(),
-                        lesson.getLessonOrder(),
-                        lesson.getLessonType().getDisplayName(),
-                        lesson.getIsFreePreview()
-                    ))
+                    .map(lesson -> {
+                        if (lesson.getLessonType() == LessonType.QUIZ) {
+                            return LectureFullCreateResponse.LessonResponse.withoutVideo(
+                                lesson.getId(),
+                                lesson.getLessonTitle(),
+                                lesson.getLessonOrder(),
+                                lesson.getLessonType().getDisplayName(),
+                                lesson.getIsFreePreview(),
+                                lesson.unpackingQuizzes().stream()
+                                    .map(quizQuestion -> new LectureFullCreateResponse.LessonResponse.QuizQuestionResponse(
+                                        quizQuestion.getId(),
+                                        quizQuestion.getQuestion(),
+                                        quizQuestion.getOrderIndex(),
+                                        quizQuestion.getCorrect()
+                                    ))
+                                    .collect(Collectors.toList())
+                            );
+                        } else {
+                            return LectureFullCreateResponse.LessonResponse.withoutQuiz(
+                                lesson.getId(),
+                                lesson.getLessonTitle(),
+                                lesson.getLessonOrder(),
+                                lesson.getLessonType().getDisplayName(),
+                                lesson.getIsFreePreview(),
+                                lesson.getVideoUrl()
+                            );
+                        }
+                    })
                     .collect(Collectors.toList());
 
                 return new LectureFullCreateResponse.ChapterResponse(
@@ -280,6 +319,17 @@ public class LectureService {
             .map(user -> user.getNickname())
             .orElse("Unknown Instructor");
 
+        lecture.getChapters().forEach(chapter -> {
+            chapter.getLessons().forEach(lesson -> {
+                if (lesson.getLessonType() == LessonType.QUIZ) {
+                    quizRepository.findByLessonIdOrderByOrderIndexAsc(lesson.getId()).forEach(quiz -> {
+                        lesson.bindQuizzes(List.of(quiz));
+                    });
+                }
+            });
+        });
+
+
         return LectureResponse.from(lecture,thumbnailUrl, instructorNickname);
     }
 
@@ -347,16 +397,15 @@ public class LectureService {
         }
     }
 
-    // 레슨 타입에 따른 레슨 생성, Quiz&Video content async upload 처리 후 setter 호출 예정
-    private Lesson createLessonByType(LessonCreateRequest request, int orderIndex) {
-        return Lesson.createLesson(
-            request.lessonType(),
-            request.lessonTitle(),
-            orderIndex,
-            request.isFreePreview()
-        );
-
-    }
+//    // 레슨 타입에 따른 레슨 생성, Quiz&Video content async upload 처리 후 setter 호출 예정
+//    private Lesson createLessonByType(LessonCreateRequest request, int orderIndex) {
+//        return Lesson.createLesson(
+//            request.lessonType(),
+//            request.lessonTitle(),
+//            orderIndex,
+//            request.isFreePreview()
+//        );
+//    }
 
 
 }

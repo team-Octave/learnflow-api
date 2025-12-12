@@ -1,7 +1,6 @@
 package com.teamexp.learnflowapi.lecture.dto.request;
 
-import com.teamexp.learnflowapi.lecture.model.LectureLevel;
-import com.teamexp.learnflowapi.lecture.model.LessonType;
+
 import jakarta.validation.Valid;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotNull;
@@ -35,7 +34,21 @@ public record LectureFullCreateRequest(
 
         String lessonType,
 
-        Boolean isFreePreview
+        Boolean isFreePreview,
+
+        // Since lesson is video or quiz, videoURL is nullable
+        String videoUrl,
+        List<QuizQuestion> quizQuestions
     ) {
+        public record QuizQuestion(
+            @NotBlank(message = "퀴즈 질문은 필수 입력 값입니다.")
+            String question,
+
+            Integer questionOrder,
+
+            @NotNull(message = "정답 값은 필수 입력 값입니다.")
+            Boolean correct
+        ){
+        }
     }
 }
