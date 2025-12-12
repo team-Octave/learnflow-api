@@ -52,7 +52,7 @@ public record LectureResponse(
     }
 
     // Full detail including chapters and lessons info  without counts
-    public static LectureResponse simpleFrom(Lecture lecture, String instructorDisplayName) {
+    public static LectureResponse simpleFrom(Lecture lecture, String instructorDisplayName, String thumbnailUrl) {
         return new LectureResponse(
             lecture.getId(),
             lecture.getTitle(),
@@ -69,7 +69,7 @@ public record LectureResponse(
             null,
             null,
             null,
-            null
+            thumbnailUrl
         );
     }
 

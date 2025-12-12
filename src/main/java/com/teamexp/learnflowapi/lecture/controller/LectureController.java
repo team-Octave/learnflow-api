@@ -2,10 +2,8 @@ package com.teamexp.learnflowapi.lecture.controller;
 
 import com.teamexp.learnflowapi.global.response.BaseResponse;
 import com.teamexp.learnflowapi.global.security.principal.CustomUserPrincipal;
-import com.teamexp.learnflowapi.lecture.dto.request.ChapterCreateRequest;
 import com.teamexp.learnflowapi.lecture.dto.request.LectureCreateRequest;
 import com.teamexp.learnflowapi.lecture.dto.request.LectureFullCreateRequest;
-import com.teamexp.learnflowapi.lecture.dto.request.LessonCreateRequest;
 import com.teamexp.learnflowapi.lecture.dto.response.LectureFullCreateResponse;
 import com.teamexp.learnflowapi.lecture.dto.response.LectureResponse;
 import com.teamexp.learnflowapi.lecture.dto.response.PublishedResponse;

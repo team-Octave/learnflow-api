@@ -1,6 +1,7 @@
 package com.teamexp.learnflowapi.lecture.dto.response;
 
 import com.teamexp.learnflowapi.lecture.model.Chapter;
+import com.teamexp.learnflowapi.lecture.model.LessonType;
 
 
 import java.util.List;
@@ -20,7 +21,34 @@ public record ChapterResponse(
             chapter.getChapterOrder(),
             chapter.getLessons().size(),
             chapter.getLessons().stream()
-                .map(LessonResponse::from)
+                .map(lesson -> {
+                    if (lesson.getLessonType() == LessonType.QUIZ) {
+                        return LessonResponse.withoutVideo(
+                            lesson.getId(),
+                            lesson.getLessonTitle(),
+                            lesson.getLessonType().getDisplayName(),
+                            lesson.getLessonOrder(),
+                            lesson.getIsFreePreview(),
+                            lesson.unpackingQuizzes().stream()
+                                .map(quizQuestion -> new LessonResponse.QuizQuestionResponse(
+                                    quizQuestion.getId(),
+                                    quizQuestion.getQuestion(),
+                                    quizQuestion.getOrderIndex(),
+                                    quizQuestion.getCorrect()
+                                ))
+                                .collect(Collectors.toList())
+                        );
+                    } else {
+                        return LessonResponse.withoutQuiz(
+                            lesson.getId(),
+                            lesson.getLessonTitle(),
+                            lesson.getLessonType().getDisplayName(),
+                            lesson.getLessonOrder(),
+                            lesson.getIsFreePreview(),
+                            lesson.getVideoUrl()
+                        );
+                    }
+                })
                 .collect(Collectors.toList())
         );
     }
