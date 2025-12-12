@@ -39,6 +39,9 @@ public class LectureService {
     private final UserRepository userRepository;
     private final QuizRepository quizRepository;
 
+    /**
+     * Constructs a LectureService with the required repository dependencies.
+     */
     public LectureService(LectureRepository lectureRepository, LectureStatisticRepository lectureStatisticRepository, ThumbnailRepository thumbnailRepository, UserRepository userRepository, QuizRepository quizRepository) {
         this.lectureRepository = lectureRepository;
         this.lectureStatisticRepository = lectureStatisticRepository;
@@ -48,6 +51,14 @@ public class LectureService {
 
     }
 
+    /**
+     * Create a new lecture, initialize its statistics, and return a response representation.
+     *
+     * @param lectureCreateRequest DTO containing the lecture's title, description, level, and categoryId
+     * @param instructorId         identifier of the instructor creating the lecture
+     * @param userNickname         nickname of the user to include in the response
+     * @return                     a LectureResponse representing the persisted lecture populated with the provided nickname
+     */
     @Transactional
     public LectureResponse createLecture(LectureCreateRequest lectureCreateRequest, String instructorId,String userNickname) {
         // 1. 정적 팩토리 메서드로 생성 (객체 생성 로직은 엔티티에 위임)
@@ -72,7 +83,23 @@ public class LectureService {
 
     // TODO : 현재는 초기 curriculum 구성 메서드를 lesson, chapter 추가 메서드 정의했지만, Lecture 의 PUT/PATCH 메서드로 생각해서 수정하는 것도 고려해볼 것
     // 대량 데이터로 인한 성능 이슈 발생 시 별도 배치 작업으로 분리하는 것도 고려해볼 것(ex. 배치 처리 후 DB에 반영)
-    // 강의 curriculum 구성 메서드들
+    /**
+     * Builds and persists a full curriculum (chapters, lessons, and quizzes) for an existing lecture
+     * and returns the assembled response DTO.
+     *
+     * <p>The method validates the instructor for the lecture, creates Chapter, Lesson and Quiz entities
+     * from the provided request, saves the lecture (persisting generated IDs), and returns a
+     * LectureFullCreateResponse reflecting the persisted structure.
+     *
+     * @param lectureId     the ID of the lecture to attach the curriculum to
+     * @param request       the curriculum definition containing chapters, lessons, and quiz questions
+     * @param instructorId  the ID of the instructor performing the operation (used for validation)
+     * @param userNickname  the nickname of the requesting user included in the response
+     * @return              a LectureFullCreateResponse representing the persisted lecture with chapters,
+     *                      lessons, and quiz question data
+     * @throws LectureNotFoundException                if no lecture exists with the given lectureId
+     * @throws LectureInstructorUnauthorizedException  if the instructorId is not authorized for the lecture
+     */
     @Transactional
     public LectureFullCreateResponse createLectureFullCurriculum(
         Long lectureId,
@@ -308,7 +335,14 @@ public class LectureService {
         });
     }
 
-    // 강의 단건 조회
+    /**
+     * Retrieves a lecture with its chapters, lessons and (for quiz lessons) associated quizzes, and includes the lecture's thumbnail URL and instructor nickname.
+     *
+     * @param lectureId the ID of the lecture to retrieve
+     * @return a {@code LectureResponse} built from the lecture, its thumbnail URL, and the instructor's nickname
+     * @throws LectureNotFoundException if no lecture with the given ID exists
+     * @throws LectureThumbnailNotFoundException if the lecture has no associated thumbnail
+     */
     public LectureResponse getLecture(Long lectureId) {
         Lecture lecture = findLectureWithChaptersAndLessons(lectureId);
         String thumbnailUrl = thumbnailRepository.findByLectureId(lectureId)
@@ -391,6 +425,13 @@ public class LectureService {
             .orElseThrow(() -> new LectureNotFoundException());
     }
 
+    /**
+     * Verifies that the provided instructorId is the owner of the given lecture.
+     *
+     * @param lecture     the lecture whose instructor is being validated
+     * @param instructorId the expected instructor's identifier
+     * @throws LectureInstructorUnauthorizedException if the lecture's instructorId does not equal the provided instructorId
+     */
     private void validateInstructor(Lecture lecture, String instructorId) {
         if (!lecture.getInstructorId().equals(instructorId)) {
             throw new LectureInstructorUnauthorizedException();

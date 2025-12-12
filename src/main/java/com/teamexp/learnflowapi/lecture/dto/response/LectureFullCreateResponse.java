@@ -37,6 +37,17 @@ public record LectureFullCreateResponse(
         ) {
         }
 
+        /**
+         * Create a LessonResponse that includes a video but no quiz questions.
+         *
+         * @param lessonId      the lesson's identifier
+         * @param lessonTitle   the lesson's title
+         * @param order         the lesson's ordering index within its chapter
+         * @param lessonType    the display name of the lesson's type
+         * @param isFreePreview whether the lesson is available as a free preview
+         * @param videoUrl      the URL of the lesson's video (may be null)
+         * @return              a LessonResponse populated with the provided values and `quizQuestions` set to `null`
+         */
         public static LessonResponse withoutQuiz(
             Long lessonId,
             String lessonTitle,
@@ -56,6 +67,17 @@ public record LectureFullCreateResponse(
             );
         }
 
+        /**
+         * Create a LessonResponse that contains the provided quiz questions and explicitly has no video URL.
+         *
+         * @param lessonId       the lesson identifier
+         * @param lessonTitle    the lesson title
+         * @param order          the lesson's order within its chapter
+         * @param lessonType     the display name of the lesson type
+         * @param isFreePreview  whether the lesson is available as a free preview
+         * @param quizQuestions  the list of quiz questions for the lesson (may be null)
+         * @return               a LessonResponse with `videoUrl` set to null and `quizQuestions` set to the provided list
+         */
         public static LessonResponse withoutVideo(
             Long lessonId,
             String lessonTitle,

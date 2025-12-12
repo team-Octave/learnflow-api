@@ -14,6 +14,16 @@ public record ChapterResponse(
     int lessonCount,
     List<LessonResponse> lessons
 ) {
+    /**
+     * Create a ChapterResponse DTO from a Chapter domain model.
+     *
+     * The returned ChapterResponse contains id, title, order, lesson count, and a list of LessonResponse objects.
+     * Lessons of type QUIZ are mapped to LessonResponse instances that include a list of QuizQuestionResponse objects;
+     * other lesson types are mapped to LessonResponse instances that include the lesson's videoUrl.
+     *
+     * @param chapter the source Chapter to convert
+     * @return a ChapterResponse populated from the chapter's properties and converted lessons
+     */
     public static ChapterResponse from(Chapter chapter) {
         return new ChapterResponse(
             chapter.getId(),
