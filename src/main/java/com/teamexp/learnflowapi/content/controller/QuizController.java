@@ -4,6 +4,7 @@ import com.teamexp.learnflowapi.content.dto.QuizRequest;
 import com.teamexp.learnflowapi.content.dto.QuizResponse;
 import com.teamexp.learnflowapi.content.dto.QuizSaveRequest;
 
+import com.teamexp.learnflowapi.content.dto.QuizUpdateListRequest;
 import com.teamexp.learnflowapi.content.service.QuizService;
 import com.teamexp.learnflowapi.global.response.BaseResponse;
 import jakarta.validation.Valid;
@@ -12,6 +13,7 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.PutMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
@@ -48,6 +50,16 @@ public class QuizController {
         return ResponseEntity
                 .status(HttpStatus.CREATED)
                 .body(BaseResponse.ok(response));
+    }
+
+    // 퀴즈 수정
+    @PutMapping("/lessons/{lessonId}/quizzes")
+    public ResponseEntity<BaseResponse<List<QuizResponse>>> updateQuizzes(
+            @PathVariable Long lessonId,
+            @RequestBody @Valid QuizUpdateListRequest request
+    ) {
+        List<QuizResponse> response = quizService.updateQuizzes(lessonId, request);
+        return ResponseEntity.ok(BaseResponse.ok(response));
     }
 
 }
