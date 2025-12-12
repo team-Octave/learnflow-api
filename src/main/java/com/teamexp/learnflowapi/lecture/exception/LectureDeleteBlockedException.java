@@ -5,6 +5,6 @@ import com.teamexp.learnflowapi.global.exception.ErrorCode;
 
 public class LectureDeleteBlockedException extends BaseException {
     public LectureDeleteBlockedException() {
-        super(ErrorCode.LectureDeleteBlockedException);
+        super(ErrorCode.LECTURE_DELETE_BLOCKED);
     }
 }
