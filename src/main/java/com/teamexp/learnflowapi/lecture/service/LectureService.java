@@ -416,6 +416,10 @@ public class LectureService {
             throw new LectureDeleteBlockedException();
         }
         lectureRepository.delete(lecture);
+
+        // 고아 객체가 남아있지 않도록 썸네일이랑, 강의 통계도 같이 삭제
+        thumbnailRepository.deleteByLectureId(lectureId);
+        lectureStatisticRepository.deleteById(lectureId);
     }
 
     private Lecture findLectureWithValidation(Long lectureId, String instructorId) {
