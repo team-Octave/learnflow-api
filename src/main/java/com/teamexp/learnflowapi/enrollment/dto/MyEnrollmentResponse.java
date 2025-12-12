@@ -2,6 +2,7 @@ package com.teamexp.learnflowapi.enrollment.dto;
 
 import com.teamexp.learnflowapi.enrollment.model.EnrollmentStatus;
 
+import java.util.List;
 import java.time.Instant;
 
 public record MyEnrollmentResponse(
@@ -15,6 +16,10 @@ public record MyEnrollmentResponse(
         Instant enrolledAt,
         Instant updatedAt,
         Integer reviewRating,
-        String reviewContent
+        String reviewContent,
+        List<Long> completedLessonIds,
+        Long lastCompletedLessonChapterId,
+        Long firstChapterId,
+        Long firstLessonId
 ) {
 }

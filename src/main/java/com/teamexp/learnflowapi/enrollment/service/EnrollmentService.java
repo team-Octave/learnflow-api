@@ -29,7 +29,10 @@ import org.springframework.transaction.annotation.Transactional;
 import java.sql.Timestamp;
 import java.util.Arrays;
 import java.util.List;
+import java.util.Map;
 import java.util.Objects;
+import java.util.function.Function;
+import java.util.stream.Collectors;
 
 @Service
 @Transactional
@@ -90,22 +93,94 @@ public class EnrollmentService {
     @Transactional(readOnly = true)
     public List<MyEnrollmentResponse> getEnrollments(String userId) {
 
-        List<Tuple> result = enrollmentRepository.findMyEnrollmentsByUserIdNative(userId);
+//        List<Tuple> result = enrollmentRepository.findMyEnrollmentsByUserIdNative(userId);
+//
+//        List<MyEnrollmentResponse> responses = result.stream()
+//                .map(tuple -> new MyEnrollmentResponse(
+//                        (Long) tuple.get("lectureId"),
+//                        (Long) tuple.get("enrollmentId"),
+//                        tuple.get("reviewId") != null ? (Long) tuple.get("reviewId") : null,
+//                        (String) tuple.get("lectureThumbnail"),
+//                        (String) tuple.get("lectureTitle"),
+//                        EnrollmentStatus.valueOf((String) tuple.get("enrollmentStatus")),
+//                        (Integer) tuple.get("progress"),
+//                        ((Timestamp) tuple.get("enrolledAt")).toInstant(),
+//                        ((Timestamp) tuple.get("updatedAt")).toInstant(),
+//                        (Integer) tuple.get("reviewRating"),
+//                        (String) tuple.get("reviewContent")
+//                )).toList();
+//        return responses;
+        // 1. [1단계 쿼리] 기본 정보 조회
+        List<Tuple> basicResults = enrollmentRepository.findMyEnrollmentsByUserIdNative(userId);
 
-        List<MyEnrollmentResponse> responses = result.stream()
-                .map(tuple -> new MyEnrollmentResponse(
-                        (Long) tuple.get("lectureId"),
-                        (Long) tuple.get("enrollmentId"),
-                        tuple.get("reviewId") != null ? (Long) tuple.get("reviewId") : null,
-                        (String) tuple.get("lectureThumbnail"),
-                        (String) tuple.get("lectureTitle"),
-                        EnrollmentStatus.valueOf((String) tuple.get("enrollmentStatus")),
-                        (Integer) tuple.get("progress"),
-                        ((Timestamp) tuple.get("enrolledAt")).toInstant(),
-                        ((Timestamp) tuple.get("updatedAt")).toInstant(),
-                        (Integer) tuple.get("reviewRating"),
-                        (String) tuple.get("reviewContent")
-                )).toList();
+        // 2. 모든 enrollmentId를 추출
+        List<Long> enrollmentIds = basicResults.stream()
+                .map(tuple -> (Long) tuple.get("enrollmentId"))
+                .toList();
+
+        if (enrollmentIds.isEmpty()) {
+            return List.of();
+        }
+
+        // 3. [2단계 쿼리] 상세 진행 정보 Bulk 조회
+        List<Tuple> detailResults = enrollmentRepository.findEnrollmentDetailsBulk(enrollmentIds);
+
+        // 4. 상세 정보를 Map으로 변환 (O(N) 성능 확보)
+        Map<Long, Tuple> detailMap = detailResults.stream()
+                .collect(Collectors.toMap(
+                        tuple -> (Long) tuple.get("enrollmentId"),
+                        Function.identity()
+                ));
+
+        // 5. 기본 정보와 상세 정보를 합쳐 최종 DTO 생성
+        List<MyEnrollmentResponse> responses = basicResults.stream()
+                .map(basicTuple -> {
+                    Long enrollmentId = (Long) basicTuple.get("enrollmentId");
+                    Tuple detailTuple = detailMap.get(enrollmentId);
+
+                    // 파싱 및 합치기
+                    List<Long> completedLessIds = null;
+                    Long lastCompletedLessonChapterId = null;
+                    Long firstLessonId = null;
+                    Long firstChapterId = null;
+
+                    if (detailTuple != null) {
+                        // completedLessonIds (String.split() 사용)
+                        String completedLessonIdsString = detailTuple.get("completedLessonIds", String.class);
+                        completedLessIds = parseCommaSeparatedIds(completedLessonIdsString);
+
+                        // lastCompletedLessonChapterId (String -> Long 파싱)
+                        String lastCompletedChapterIdString = detailTuple.get("lastCompletedLessonChapterId", String.class);
+                        lastCompletedLessonChapterId = parseLongOrNull(lastCompletedChapterIdString);
+
+                        // firstLessonId / firstChapterId (Number 캐스팅)
+                        firstLessonId = detailTuple.get("firstLessonId", Number.class) != null
+                                ? detailTuple.get("firstLessonId", Number.class).longValue() : null;
+                        firstChapterId = detailTuple.get("firstChapterId", Number.class) != null
+                                ? detailTuple.get("firstChapterId", Number.class).longValue() : null;
+                    }
+
+                    // 최종 MyEnrollmentResponse 객체 생성
+                    return new MyEnrollmentResponse(
+                            (Long) basicTuple.get("lectureId"),
+                            enrollmentId,
+                            basicTuple.get("reviewId") != null ? (Long) basicTuple.get("reviewId") : null,
+                            (String) basicTuple.get("lectureThumbnail"),
+                            (String) basicTuple.get("lectureTitle"),
+                            EnrollmentStatus.valueOf((String) basicTuple.get("enrollmentStatus")),
+                            (Integer) basicTuple.get("progress"),
+                            ((Timestamp) basicTuple.get("enrolledAt")).toInstant(),
+                            ((Timestamp) basicTuple.get("updatedAt")).toInstant(),
+                            (Integer) basicTuple.get("reviewRating"),
+                            (String) basicTuple.get("reviewContent"),
+                            // 추가된 상세 정보
+                            completedLessIds,
+                            lastCompletedLessonChapterId,
+                            firstChapterId,
+                            firstLessonId
+                    );
+                }).toList();
+
         return responses;
     }
 
@@ -209,5 +284,40 @@ public class EnrollmentService {
         }
 
         lectureStatisticRepository.save(statistic);
+    }
+
+    private List<Long> parseCommaSeparatedIds(String idsString) {
+        if (idsString == null || idsString.trim().isEmpty()) {
+            return List.of();
+        }
+
+        // **주의**: 쿼리에서 DISTINCT를 사용했더라도, MySQL의 GROUP_CONCAT은 문자열을 반환합니다.
+        return Arrays.stream(idsString.split(","))
+                .map(String::trim) // 공백 제거
+                .filter(s -> !s.isEmpty()) // 빈 문자열 제거
+                .map(s -> {
+                    try {
+                        return Long.parseLong(s);
+                    } catch (NumberFormatException e) {
+                        // 긴급 상황이므로 일단 예외 발생
+                        throw new RuntimeException("ID 파싱 오류: " + s, e);
+                    }
+                })
+                .collect(Collectors.toList());
+    }
+
+    /**
+     * String 형태의 숫자 값을 Long으로 파싱합니다. (SUBSTRING_INDEX 결과 처리)
+     */
+    private Long parseLongOrNull(String value) {
+        if (value == null || value.trim().isEmpty()) {
+            return null;
+        }
+        try {
+            return Long.parseLong(value.trim());
+        } catch (NumberFormatException e) {
+            // 긴급 상황이므로 일단 예외 발생
+            throw new RuntimeException("숫자 변환 오류: " + value, e);
+        }
     }
 }
