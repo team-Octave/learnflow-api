@@ -11,6 +11,7 @@ import com.teamexp.learnflowapi.lecture.service.LectureService;
 import jakarta.validation.Valid;
 import org.springframework.http.HttpStatus;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
+import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
@@ -23,8 +24,6 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.web.PageableDefault;
-
-import java.util.List;
 
 @RestController
 @RequestMapping("/api/v1/lectures")
@@ -102,10 +101,11 @@ public class LectureController {
 
     // 내 강의 조회
     @GetMapping("/my")
-    public ResponseEntity<BaseResponse<List<LectureResponse>>> getMyLectures(
-        @AuthenticationPrincipal CustomUserPrincipal customUser
+    public ResponseEntity<BaseResponse<Page<LectureResponse>>> getMyLectures(
+        @AuthenticationPrincipal CustomUserPrincipal customUser,
+        @PageableDefault(size = 16) Pageable pageable
     ) {
-        List<LectureResponse> lectures = lectureService.getLecturesByInstructor(customUser.getId());
+        Page<LectureResponse> lectures = lectureService.getLecturesByInstructor(customUser.getId(), pageable);
         return ResponseEntity.status(HttpStatus.OK).body(BaseResponse.ok(lectures));
     }
 
@@ -128,6 +128,16 @@ public class LectureController {
     ) {
         LectureResponse lecture = lectureService.getLecture(lectureId);
         return ResponseEntity.status(HttpStatus.OK).body(BaseResponse.ok(lecture));
+    }
+
+    // 강의 삭제
+    @DeleteMapping("/{lectureId}" )
+    public ResponseEntity<BaseResponse<Void>> deleteLecture(
+        @PathVariable("lectureId") Long lectureId,
+        @AuthenticationPrincipal CustomUserPrincipal customUser
+    ) {
+        lectureService.deleteLecture(lectureId, customUser.getId());
+        return ResponseEntity.status(HttpStatus.OK).body(BaseResponse.ok(null));
     }
 
 }

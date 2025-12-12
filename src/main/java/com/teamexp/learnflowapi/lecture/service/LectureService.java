@@ -11,6 +11,7 @@ import com.teamexp.learnflowapi.lecture.dto.request.LessonCreateRequest;
 import com.teamexp.learnflowapi.lecture.dto.response.LectureFullCreateResponse;
 import com.teamexp.learnflowapi.lecture.dto.response.LectureResponse;
 import com.teamexp.learnflowapi.lecture.dto.response.PublishedResponse;
+import com.teamexp.learnflowapi.lecture.exception.LectureDeleteBlockedException;
 import com.teamexp.learnflowapi.lecture.exception.LectureNotFoundException;
 import com.teamexp.learnflowapi.lecture.exception.LectureInstructorUnauthorizedException;
 import com.teamexp.learnflowapi.lecture.model.*;
@@ -360,23 +361,31 @@ public class LectureService {
     }
 
     // 강사의 강의 목록 조회
-    public List<LectureResponse> getLecturesByInstructor(String instructorId) {
+    public Page<LectureResponse> getLecturesByInstructor(String instructorId, Pageable pageable) {
+        // Repository에서 페이지네이션된 강의 조회
+        Page<Lecture> lecturePage = lectureRepository.findByInstructorId(instructorId, pageable);
 
-        List<Lecture> lectures = lectureRepository.findByInstructorId(instructorId);
+        // N+1 문제 방지를 위해 모든 Lecture ID에 대한 통계 정보를 한 번에 조회
+        List<Long> lectureIds = lecturePage.getContent().stream()
+            .map(Lecture::getId)
+            .collect(Collectors.toList());
+        
+        Map<Long, LectureStatistic> statisticMap = lectureStatisticRepository.findAllById(lectureIds).stream()
+            .collect(Collectors.toMap(LectureStatistic::getLectureId, stat -> stat));
 
-        return lectures.stream().map(
-            lecture -> {
-                String thumbnail = thumbnailRepository.findByLectureId(lecture.getId())
-                    .map(Thumbnail::getFileUrl)
-                    .orElseThrow(() -> new LectureThumbnailNotFoundException());
+        // Page<LectureResponse>로 변환
+        return lecturePage.map(lecture -> {
+            LectureStatistic statistic = statisticMap.get(lecture.getId());
+            String thumbnailUrl = thumbnailRepository.findByLectureId(lecture.getId())
+                .map(Thumbnail::getFileUrl)
+                .orElseThrow(() -> new LectureThumbnailNotFoundException());
 
-                String instructorNickname = userRepository.findById(lecture.getInstructorId())
-                    .map(user -> user.getNickname())
-                    .orElse("Unknown Instructor");
+            String instructorNickname = userRepository.findById(lecture.getInstructorId())
+                .map(user -> user.getNickname())
+                .orElse("Unknown Instructor");
 
-                return LectureResponse.simpleFrom(lecture, instructorNickname, thumbnail);
-            }
-        ).collect(Collectors.toList());
+            return LectureResponse.simpleFromWithStats(lecture, statistic, thumbnailUrl, instructorNickname);
+        });
     }
 
     // 카테고리별 발행된 강의 목록 조회
@@ -402,7 +411,15 @@ public class LectureService {
     @Transactional
     public void deleteLecture(Long lectureId, String instructorId) {
         Lecture lecture = findLectureWithValidation(lectureId, instructorId);
+        // lecture가 publish 상태이면 삭제 되면 안됨.
+        if (lecture.getStatus() == LectureStatus.AVAILABLE) {
+            throw new LectureDeleteBlockedException();
+        }
         lectureRepository.delete(lecture);
+
+        // 고아 객체가 남아있지 않도록 썸네일이랑, 강의 통계도 같이 삭제
+        thumbnailRepository.deleteByLectureId(lectureId);
+        lectureStatisticRepository.deleteById(lectureId);
     }
 
     private Lecture findLectureWithValidation(Long lectureId, String instructorId) {

@@ -30,7 +30,7 @@ public enum ErrorCode {
     CHAPTER_NOT_FOUND_IN_LECTURE(HttpStatus.NOT_FOUND, "해당 강의에 존재하지 않는 챕터입니다."), // to class as ChapterNotFoundException
     LESSON_NOT_FOUND_IN_CHAPTER(HttpStatus.NOT_FOUND, "해당 챕터에 존재하지 않는 레슨입니다."), // to class as LessonNotFoundException
     LECTURE_SORT_TYPE_INVALID(HttpStatus.BAD_REQUEST, "유효하지 않은 강의 정렬 타입입니다."), // to class as LectureSortTypeInvalid
-    
+    LECTURE_DELETE_BLOCKED(HttpStatus.CONFLICT, "게시된 강좌는 삭제할 수 없습니다."), // to class as LectureDeleteBlockedException
 
     // Content 도메인 관련
     UPLOAD_NOT_EXIST(HttpStatus.BAD_REQUEST, "업로드할 파일이 없습니다."),
