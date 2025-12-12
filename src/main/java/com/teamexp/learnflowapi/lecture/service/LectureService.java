@@ -23,6 +23,7 @@ import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.util.Comparator;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
@@ -105,22 +106,48 @@ public class LectureService {
                             lessonRequest.videoUrl()
                         );
                         chapter.addLesson(lesson);
-                        List<Quiz> quizs = lessonRequest.quizQuestions(
-                            ).stream()
-                            .map(quizQuestionRequest -> Quiz.createQuiz(
-                                lesson.getId(),
-                                quizQuestionRequest.questionOrder(),
-                                quizQuestionRequest.question(),
-                                quizQuestionRequest.correct()
-                            ))
-                            .collect(Collectors.toList());
-                        lesson.bindQuizzes(quizs);
                     });
 
             });
 
         // 2단계: **여기서 save** - ID 생성 보장
         lectureRepository.save(lecture);
+
+        // Set을 정렬된 List로 한 번만 변환
+        List<Chapter> sortedChapters = lecture.getChapters().stream()
+            .sorted(Comparator.comparing(Chapter::getChapterOrder))
+            .toList();
+
+        for (int chapterIndex = 0; chapterIndex < request.chapters().size(); chapterIndex++) {
+            LectureFullCreateRequest.ChapterRequest chapterRequest = request.chapters().get(chapterIndex);
+            Chapter chapter = sortedChapters.get(chapterIndex);
+
+            // Lesson도 정렬된 List로 한 번만 변환
+            List<Lesson> sortedLessons = chapter.getLessons().stream()
+                .sorted(Comparator.comparing(Lesson::getLessonOrder))
+                .toList();
+
+            for (int lessonIndex = 0; lessonIndex < chapterRequest.lessons().size(); lessonIndex++) {
+                LectureFullCreateRequest.LessonRequest lessonRequest = chapterRequest.lessons().get(lessonIndex);
+                Lesson lesson = sortedLessons.get(lessonIndex);
+
+                if (lesson.getLessonType() == LessonType.QUIZ && lessonRequest.quizQuestions() != null) {
+                    List<Quiz> quizList = lessonRequest.quizQuestions().stream()
+                        .map(quizQuestion -> Quiz.createQuiz(
+                            lesson.getId(),
+                            quizQuestion.questionOrder(),
+                            quizQuestion.question(),
+                            quizQuestion.correct()
+                        ))
+                        .toList();
+
+                    quizRepository.saveAll(quizList);
+                    lesson.bindQuizzes(quizList);
+                }
+            }
+        }
+
+
 
         // 3단계: 이제 ID가 채워졌으므로 DTO 변환 가능
         List<LectureFullCreateResponse.ChapterResponse> chapterResponses = lecture.getChapters().stream()
@@ -322,10 +349,9 @@ public class LectureService {
         lecture.getChapters().forEach(chapter -> {
             chapter.getLessons().forEach(lesson -> {
                 if (lesson.getLessonType() == LessonType.QUIZ) {
-                    quizRepository.findByLessonIdOrderByOrderIndexAsc(lesson.getId()).forEach(quiz -> {
-                        lesson.bindQuizzes(List.of(quiz));
-                    });
-                }
+                        List<Quiz> quizzes = quizRepository.findByLessonIdOrderByOrderIndexAsc(lesson.getId());
+                        lesson.bindQuizzes(quizzes);
+                    }
             });
         });
 
