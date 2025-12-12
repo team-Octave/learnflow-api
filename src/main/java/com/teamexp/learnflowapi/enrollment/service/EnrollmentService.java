@@ -130,13 +130,17 @@ public class EnrollmentService {
                 .map(Long::parseLong)
                 .toList() : null;
         Long lastCompletedLessonChapterId = (row[4] != null) ? ((Number) row[4]).longValue() : null;
+        Long firstLessonId = (row[5] != null) ? ((Number) row[5]).longValue() : null;
+        Long firstChapterId = (row[6] != null) ? ((Number) row[6]).longValue() : null;
 
         return new SelectEnrollmentResponse(
                 lectureId,
                 enrollmentId,
                 progress,
                 completedLessIds,
-                lastCompletedLessonChapterId
+                lastCompletedLessonChapterId,
+                firstChapterId,
+                firstLessonId
         );
     }
 
