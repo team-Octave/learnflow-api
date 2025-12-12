@@ -91,7 +91,7 @@ public interface JpaLectureRepository extends JpaRepository<Lecture, Long>, Lect
         WHERE l.status = :status
         AND (:categoryId IS NULL OR l.categoryId = :categoryId)
         AND (:level IS NULL OR l.level = :level)
-        ORDER BY l.createdAt DESC
+        ORDER BY ls.updatedAt DESC NULLS LAST, l.createdAt DESC
         """)
     Page<Lecture> findByFiltersWithStatsOrderByLatest(
         @Param("categoryId") Integer categoryId,

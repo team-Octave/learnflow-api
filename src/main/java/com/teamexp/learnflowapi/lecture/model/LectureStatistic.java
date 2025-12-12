@@ -2,16 +2,18 @@ package com.teamexp.learnflowapi.lecture.model;
 
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
+import jakarta.persistence.EntityListeners;
 import jakarta.persistence.Id;
 import jakarta.persistence.Index;
 import jakarta.persistence.PostLoad;
 import jakarta.persistence.Table;
-import org.springframework.data.annotation.LastModifiedBy;
-
+import org.springframework.data.annotation.LastModifiedDate;
+import org.springframework.data.jpa.domain.support.AuditingEntityListener;
 
 import java.time.Instant;
 
 @Entity
+@EntityListeners(AuditingEntityListener.class)
 @Table(name = "lecture_statistics",
     indexes = {
         @Index(name = "idx_rating_average", columnList = "rating_average"),
@@ -37,8 +39,8 @@ public class LectureStatistic {
     @Column(name = "enrollment_count")
     private Long enrollmentCount;
 
-    @LastModifiedBy
-    @Column(name = "updated_at")
+    @LastModifiedDate
+    @Column(name = "updated_at", columnDefinition = "TIMESTAMP", nullable = false)
     private Instant updatedAt;
 
     protected LectureStatistic() {

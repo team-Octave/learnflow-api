@@ -18,6 +18,7 @@ import com.teamexp.learnflowapi.lecture.repository.LectureRepository;
 import com.teamexp.learnflowapi.lecture.repository.LectureStatisticRepository;
 import com.teamexp.learnflowapi.user.repository.UserRepository;
 import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -222,13 +223,27 @@ public class LectureService {
         Integer categoryId = "ALL".equals(category) ? null : (category != null ? Integer.parseInt(category) : null);
         LectureLevel lectureLevel = "ALL".equals(level) ? null : (level != null ? LectureLevel.forEntity(level) : null);
         
+        // 정렬 타입 파싱 및 기본값 처리
+        String sortBy = sort != null && !sort.isEmpty() ? sort : "POPULAR";
+        try {
+            LectureSortType.forEntity(sortBy); // 유효성 검증
+        } catch (Exception e) {
+            sortBy = "POPULAR"; // 유효하지 않은 값은 기본값으로 폴백
+        }
+        
+        // Pageable의 Sort를 제거하여 정렬 타입 파라미터와의 충돌 방지
+        Pageable pageableWithoutSort = PageRequest.of(
+            pageable.getPageNumber(),
+            pageable.getPageSize()
+        );
+        
         // Repository에서 필터링된 강의 조회
         Page<Lecture> lecturePage = lectureRepository.findByFiltersWithStats(
             categoryId,
             lectureLevel,
             LectureStatus.AVAILABLE,
-            sort,
-            pageable
+            sortBy,
+            pageableWithoutSort
         );
 
         // N+1 문제 방지를 위해 모든 Lecture ID에 대한 통계 정보를 한 번에 조회

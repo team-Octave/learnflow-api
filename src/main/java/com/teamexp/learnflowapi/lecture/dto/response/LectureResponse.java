@@ -75,12 +75,12 @@ public record LectureResponse(
 
     // Simple response with statistics for list view
     public static LectureResponse simpleFromWithStats(Lecture lecture, LectureStatistic statistic, String thumbnailUrl,String instructorDisplayName) {
-        Double ratingAvg = null;
-        Long enrollmentCnt = null;
+        Double ratingAvg = 0.0;
+        Long enrollmentCnt = 0L;
         
         if (statistic != null) {
-            ratingAvg = statistic.getRatingAverage();
-            enrollmentCnt = statistic.getEnrollmentCount();
+            ratingAvg = statistic.getRatingAverage() != null ? statistic.getRatingAverage() : 0.0;
+            enrollmentCnt = statistic.getEnrollmentCount() != null ? statistic.getEnrollmentCount() : 0L;
         }
         
         return new LectureResponse(
