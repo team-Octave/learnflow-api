@@ -15,6 +15,7 @@ import org.springframework.transaction.annotation.Transactional;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
+import java.util.Objects;
 import java.util.stream.Collectors;
 
 @Service
@@ -62,6 +63,8 @@ public class QuizService {
         // 요청에 들어온 퀴즈 ID 추출
         List<Long> quizIds = request.quizzes().stream()
                 .map(QuizUpdateRequest::id)
+                .filter(Objects::nonNull)
+                .distinct()
                 .toList();
 
         // 기존 퀴즈 조회
