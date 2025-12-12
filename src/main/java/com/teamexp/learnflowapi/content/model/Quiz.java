@@ -7,6 +7,7 @@ import jakarta.persistence.GeneratedValue;
 import jakarta.persistence.GenerationType;
 import jakarta.persistence.Id;
 import jakarta.persistence.Table;
+import jakarta.persistence.UniqueConstraint;
 import lombok.Getter;
 import org.springframework.data.annotation.CreatedDate;
 import org.springframework.data.annotation.LastModifiedDate;
@@ -15,7 +16,9 @@ import org.springframework.data.jpa.domain.support.AuditingEntityListener;
 import java.time.Instant;
 
 @Entity
-@Table(name = "quizzes")
+@Table(name = "quizzes", uniqueConstraints = {
+        @UniqueConstraint(name = "uk_quiz_lesson_order", columnNames = {"lesson_id", "order_index"})
+})
 @Getter
 @EntityListeners(AuditingEntityListener.class)
 public class Quiz {
