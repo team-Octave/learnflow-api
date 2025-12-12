@@ -7,7 +7,9 @@ public record SelectEnrollmentResponse(
         Long lectureId,
         Integer progress,
         List<Long> completedLessonIds,
-        Long lastCompletedLessonChapterId
+        Long lastCompletedLessonChapterId,
+        Long firstChapterId,
+        Long firstLessonId
 
 ) {
 }

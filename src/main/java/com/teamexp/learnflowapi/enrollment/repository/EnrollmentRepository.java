@@ -59,18 +59,48 @@ public interface EnrollmentRepository extends JpaRepository<Enrollment, Long> {
     Object getProgressCounts(@Param("enrollmentId") Long enrollmentId);
 
     @Query(value = """
-        SELECT 
-            e.lecture_id AS lectureId, 
-            e.enrollment_id AS enrollmentId,
-            e.progress AS progress,
-            CASE WHEN COUNT(cl.lesson_id) = 0 THEN NULL ELSE GROUP_CONCAT(DISTINCT cl.lesson_id) END AS completedLessonIds,
-            CASE WHEN MAX(l.chapter_id) IS NULL THEN NULL ELSE MAX(l.chapter_id) END AS lastCompletedLessonChapterId
-        FROM enrollments e
-        LEFT JOIN completed_lessons cl ON cl.enrollment_id = e.enrollment_id
-        LEFT JOIN lessons l ON l.id = cl.lesson_id
-        WHERE e.enrollment_id = :enrollmentId
-        GROUP BY e.enrollment_id, e.lecture_id
-    """, nativeQuery = true)
+    SELECT 
+        e.lecture_id AS lectureId, 
+        e.enrollment_id AS enrollmentId,
+        e.progress AS progress,
+        -- [A] 완료된 레슨 ID 목록 (completed_at 오름차순 정렬 추가)
+        CASE 
+            WHEN COUNT(cl.lesson_id) = 0 THEN NULL 
+            ELSE GROUP_CONCAT(DISTINCT cl.lesson_id ORDER BY cl.completed_at ASC) 
+        END AS completedLessonIds,
+        
+        -- [B] 마지막으로 완료된 레슨의 챕터 ID (시간 기반)
+        SUBSTRING_INDEX(
+            GROUP_CONCAT(l_completed.chapter_id ORDER BY cl.completed_at DESC), 
+            ',', 
+            1
+        ) AS lastCompletedLessonChapterId,
+        
+        -- [C] 첫 번째 레슨/챕터 ID
+        fcl.lecture_first_lesson_id,  
+        fcl.lecture_first_chapter_id  
+        
+    FROM enrollments e
+    
+    LEFT JOIN completed_lessons cl ON cl.enrollment_id = e.enrollment_id
+    LEFT JOIN lessons l_completed ON l_completed.id = cl.lesson_id
+    
+    -- [C] 첫 번째 레슨/챕터 ID를 찾는 서브쿼리 (ROW_NUMBER() 사용 - MySQL 8.0+)
+    LEFT JOIN (
+        SELECT
+            c_first.lecture_id,
+            l_first.id AS lecture_first_lesson_id,
+            c_first.id AS lecture_first_chapter_id,
+            ROW_NUMBER() OVER (PARTITION BY c_first.lecture_id ORDER BY c_first.chapter_order ASC, l_first.lesson_order ASC) as rn
+        FROM chapters c_first
+        JOIN lessons l_first ON c_first.id = l_first.chapter_id
+    ) fcl ON fcl.lecture_id = e.lecture_id AND fcl.rn = 1
+    
+    WHERE e.enrollment_id = :enrollmentId
+    GROUP BY 
+        e.enrollment_id, e.lecture_id, e.progress, 
+        fcl.lecture_first_lesson_id, fcl.lecture_first_chapter_id
+""", nativeQuery = true)
     Object selectEnrollment(@Param("enrollmentId") Long enrollmentId);
 
 }
