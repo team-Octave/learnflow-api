@@ -24,8 +24,6 @@ import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.web.PageableDefault;
 
-import java.util.List;
-
 @RestController
 @RequestMapping("/api/v1/lectures")
 public class LectureController {
@@ -102,10 +100,11 @@ public class LectureController {
 
     // 내 강의 조회
     @GetMapping("/my")
-    public ResponseEntity<BaseResponse<List<LectureResponse>>> getMyLectures(
-        @AuthenticationPrincipal CustomUserPrincipal customUser
+    public ResponseEntity<BaseResponse<Page<LectureResponse>>> getMyLectures(
+        @AuthenticationPrincipal CustomUserPrincipal customUser,
+        @PageableDefault(size = 16) Pageable pageable
     ) {
-        List<LectureResponse> lectures = lectureService.getLecturesByInstructor(customUser.getId());
+        Page<LectureResponse> lectures = lectureService.getLecturesByInstructor(customUser.getId(), pageable);
         return ResponseEntity.status(HttpStatus.OK).body(BaseResponse.ok(lectures));
     }
 

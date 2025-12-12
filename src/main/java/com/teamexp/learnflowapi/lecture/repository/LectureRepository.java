@@ -23,6 +23,8 @@ public interface LectureRepository  {
 
     List<Lecture> findByInstructorId(String instructorId);
 
+    Page<Lecture> findByInstructorId(String instructorId, Pageable pageable);
+
     List<Lecture> findByStatus(LectureStatus status);
 
     List<Lecture> findByCategoryId(Integer categoryId);
