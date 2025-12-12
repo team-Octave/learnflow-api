@@ -4,7 +4,6 @@ import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotNull;
 
 public record QuizUpdateRequest(
-        @NotNull(message = "퀴즈 ID는 필수 입니다.")
         Long id,
         @NotNull
         Integer orderIndex,
