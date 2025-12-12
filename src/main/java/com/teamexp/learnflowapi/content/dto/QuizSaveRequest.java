@@ -10,6 +10,6 @@ public record QuizSaveRequest(
         @NotNull(message = "퀴즈 목록이 비어있습니다.")
         @Size(min = 1, message = "퀴즈는 최소 1개 이상이어야 합니다.")
         @Valid
-        List<QuizItemRequest> quizzes
+        List<QuizRequest> quizzes
 ) {
 }

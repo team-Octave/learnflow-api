@@ -1,7 +1,6 @@
 package com.teamexp.learnflowapi.content.dto;
 
 import com.teamexp.learnflowapi.content.model.Quiz;
-import java.util.List;
 
 public record QuizResponse(
         Long id,

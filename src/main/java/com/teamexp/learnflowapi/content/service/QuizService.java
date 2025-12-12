@@ -2,6 +2,7 @@ package com.teamexp.learnflowapi.content.service;
 
 import com.teamexp.learnflowapi.content.dto.QuizRequest;
 import com.teamexp.learnflowapi.content.dto.QuizResponse;
+import com.teamexp.learnflowapi.content.dto.QuizSaveRequest;
 import com.teamexp.learnflowapi.content.model.Quiz;
 import com.teamexp.learnflowapi.content.repository.QuizRepository;
 import org.springframework.stereotype.Service;
@@ -29,13 +30,22 @@ public class QuizService {
 
     // 퀴즈 생성
     @Transactional
-    public QuizResponse createQuiz(Long lessonId, QuizRequest request) {
+    public List<QuizResponse> createQuiz(Long lessonId, QuizSaveRequest request) {
 
-        Quiz quiz = Quiz.createQuiz(lessonId, request.orderIndex(), request.question(), request.correct());
+       List<Quiz> quizzes = request.quizzes().stream()
+                .map(rq -> Quiz.createQuiz(
+                        lessonId,
+                        rq.orderIndex(),
+                        rq.question(),
+                        rq.correct()
+                ))
+                .toList();
 
-        Quiz saved = quizRepository.save(quiz);
-        return QuizResponse.from(saved);
+        List<Quiz> savedQuizzes = quizRepository.saveAll(quizzes);
+
+        return savedQuizzes.stream()
+                .map(QuizResponse::from)
+                .toList();
     }
 
-    //Todo 코드 수정 변경 에정
 }

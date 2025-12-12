@@ -7,6 +7,7 @@ import com.teamexp.learnflowapi.content.dto.QuizSaveRequest;
 import com.teamexp.learnflowapi.content.service.QuizService;
 import com.teamexp.learnflowapi.global.response.BaseResponse;
 import jakarta.validation.Valid;
+import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
@@ -38,13 +39,16 @@ public class QuizController {
 
     // 퀴즈 저장
     @PostMapping("lessons/{lessonId}/quizzes")
-    public ResponseEntity<BaseResponse<QuizResponse>> saveQuiz(
+    public ResponseEntity<BaseResponse<List<QuizResponse>>> createQuizzes(
             @PathVariable Long lessonId,
-            @Valid @RequestBody QuizRequest request
+            @Valid @RequestBody QuizSaveRequest request
     ) {
-        QuizResponse response = quizService.createQuiz(lessonId, request);
+        List<QuizResponse> response = quizService.createQuiz(lessonId, request);
 
-        return ResponseEntity.ok(BaseResponse.ok(response));
+        return ResponseEntity
+                .status(HttpStatus.CREATED)
+                .body(BaseResponse.ok(response));
     }
+
 }
 
