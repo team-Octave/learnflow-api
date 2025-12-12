@@ -67,7 +67,7 @@ public class LectureService {
         LectureStatistic initialStatistic = LectureStatistic.createInitial(savedLecture.getId());
         lectureStatisticRepository.save(initialStatistic);
 
-        return LectureResponse.simpleFrom(savedLecture, userNickname);
+        return LectureResponse.simpleFrom(savedLecture, userNickname, null);
     }
 
 
@@ -374,7 +374,7 @@ public class LectureService {
                     .map(user -> user.getNickname())
                     .orElse("Unknown Instructor");
 
-                return LectureResponse.from(lecture, thumbnail, instructorNickname);
+                return LectureResponse.simpleFrom(lecture, instructorNickname, thumbnail);
             }
         ).collect(Collectors.toList());
     }
