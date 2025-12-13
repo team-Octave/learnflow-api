@@ -7,7 +7,6 @@ import com.teamexp.learnflowapi.content.repository.QuizRepository;
 import com.teamexp.learnflowapi.content.repository.ThumbnailRepository;
 import com.teamexp.learnflowapi.lecture.dto.request.LectureCreateRequest;
 import com.teamexp.learnflowapi.lecture.dto.request.LectureFullCreateRequest;
-import com.teamexp.learnflowapi.lecture.dto.request.LessonCreateRequest;
 import com.teamexp.learnflowapi.lecture.dto.response.LectureFullCreateResponse;
 import com.teamexp.learnflowapi.lecture.dto.response.LectureResponse;
 import com.teamexp.learnflowapi.lecture.dto.response.PublishedResponse;
@@ -28,7 +27,6 @@ import org.springframework.transaction.annotation.Transactional;
 import java.util.Comparator;
 import java.util.List;
 import java.util.Map;
-import java.util.Set;
 import java.util.stream.Collectors;
 import java.util.stream.IntStream;
 
@@ -38,7 +36,7 @@ public class LectureService {
 
     // TODO : 썸네일 업로드 오류 시, 저장 안되는 오류가 있음. 이를 방지하고자 기본 이미지 URL 설정
     @Value("${spring.application.default-thumbnail}")
-    private String DEFAULT_IMAGE_URL;
+    private String defaultThumbnailUrl;
 
     private final LectureRepository lectureRepository;
     private final LectureStatisticRepository lectureStatisticRepository;
@@ -331,7 +329,7 @@ public class LectureService {
             LectureStatistic statistic = statisticMap.get(lecture.getId());
             String thumbnailUrl = thumbnailRepository.findByLectureId(lecture.getId())
                 .map(Thumbnail::getFileUrl)
-                .orElse(DEFAULT_IMAGE_URL); // TODO : 기본 이미지 URL 반환 처리 -> 추후 content upload API 오류 시, 되돌려야 하는 지 체크 필요
+                .orElse(defaultThumbnailUrl); // TODO : 기본 이미지 URL 반환 처리 -> 추후 content upload API 오류 시, 되돌려야 하는 지 체크 필요
 //                .orElseThrow(() -> new LectureThumbnailNotFoundException());
 
             String instructorNickname = userRepository.findById(lecture.getInstructorId())
@@ -347,7 +345,7 @@ public class LectureService {
         Lecture lecture = findLectureWithChaptersAndLessons(lectureId);
         String thumbnailUrl = thumbnailRepository.findByLectureId(lectureId)
             .map(Thumbnail::getFileUrl)
-            .orElse(DEFAULT_IMAGE_URL); // TODO : 기본 이미지 URL 반환 처리 -> 추후 content upload API 오류 시, 되돌려야 하는 지 체크 필요
+            .orElse(defaultThumbnailUrl); // TODO : 기본 이미지 URL 반환 처리 -> 추후 content upload API 오류 시, 되돌려야 하는 지 체크 필요
 //            .orElseThrow(() -> new LectureThumbnailNotFoundException());
 
         String instructorNickname = userRepository.findById(lecture.getInstructorId())
@@ -385,7 +383,7 @@ public class LectureService {
             LectureStatistic statistic = statisticMap.get(lecture.getId());
             String thumbnailUrl = thumbnailRepository.findByLectureId(lecture.getId())
                 .map(Thumbnail::getFileUrl)
-                .orElse(DEFAULT_IMAGE_URL); // TODO : 기본 이미지 URL 반환 처리 -> 추후 content upload API 오류 시, 되돌려야 하는 지 체크 필요
+                .orElse(defaultThumbnailUrl); // TODO : 기본 이미지 URL 반환 처리 -> 추후 content upload API 오류 시, 되돌려야 하는 지 체크 필요
 //                .orElseThrow(() -> new LectureThumbnailNotFoundException());
 
             String instructorNickname = userRepository.findById(lecture.getInstructorId())
