@@ -53,6 +53,14 @@ public record LectureResponse(
 
     // TODO : 임시 코드
     public static LectureResponse fromWithStatics(Lecture lecture, LectureStatistic statistic, String thumbnailUrl, String instructorDisplayName) {
+        Double ratingAvg = 0.0;
+        Long enrollmentCnt = 0L;
+
+        if (statistic != null) {
+            ratingAvg = statistic.getRatingAverage() != null ? statistic.getRatingAverage() : 0.0;
+            enrollmentCnt = statistic.getEnrollmentCount() != null ? statistic.getEnrollmentCount() : 0L;
+        }
+
         return new LectureResponse(
             lecture.getId(),
             lecture.getTitle(),
@@ -69,8 +77,8 @@ public record LectureResponse(
             lecture.getChapters().stream()
                 .map(ChapterResponse::from)
                 .collect(Collectors.toList()),
-            statistic.getRatingAverage(),
-            statistic.getEnrollmentCount(),
+            ratingAvg,
+            enrollmentCnt,
             thumbnailUrl
         );
     }
