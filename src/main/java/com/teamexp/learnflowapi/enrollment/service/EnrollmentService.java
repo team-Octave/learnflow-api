@@ -200,8 +200,8 @@ public class EnrollmentService {
         Object result = enrollmentRepository.selectEnrollment(request.enrollmentId());
         Object[] row = (Object[]) result;
 
-        Long lectureId = (Long) row[0];
-        Long enrollmentId = (Long) row[1];
+        Long lectureId = (Long) row[1];
+        Long enrollmentId = (Long) row[0];
         Integer progress = (Integer) row[2];
         String completedLessonIdsString = (String) row[3];
         List<Long> completedLessIds = (completedLessonIdsString != null && !completedLessonIdsString.isEmpty())
