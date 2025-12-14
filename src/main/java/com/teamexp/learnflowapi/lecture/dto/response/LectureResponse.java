@@ -51,6 +51,30 @@ public record LectureResponse(
         );
     }
 
+    // TODO : 임시 코드
+    public static LectureResponse fromWithStatics(Lecture lecture, LectureStatistic statistic, String thumbnailUrl, String instructorDisplayName) {
+        return new LectureResponse(
+            lecture.getId(),
+            lecture.getTitle(),
+            lecture.getDescription(),
+            lecture.getCategoryId(),
+            lecture.getLevel(),
+            lecture.getLevel().getDisplayName(),
+            lecture.getStatus().getDisplayName(),
+            lecture.getInstructorId(),
+            instructorDisplayName,
+            lecture.getChapters().size(),
+            lecture.getTotalLessonCount(),
+            lecture.getCreatedAt(),
+            lecture.getChapters().stream()
+                .map(ChapterResponse::from)
+                .collect(Collectors.toList()),
+            statistic.getRatingAverage(),
+            statistic.getEnrollmentCount(),
+            thumbnailUrl
+        );
+    }
+
     // Full detail including chapters and lessons info  without counts
     public static LectureResponse simpleFrom(Lecture lecture, String instructorDisplayName, String thumbnailUrl) {
         return new LectureResponse(

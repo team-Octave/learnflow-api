@@ -343,6 +343,14 @@ public class LectureService {
     // 강의 단건 조회
     public LectureResponse getLecture(Long lectureId) {
         Lecture lecture = findLectureWithChaptersAndLessons(lectureId);
+
+        // TODO : 임시 코드
+        List<Long> lectureIds = List.of(lectureId);
+        Map<Long, LectureStatistic> statisticMap = lectureStatisticRepository.findAllById(lectureIds).stream()
+            .collect(Collectors.toMap(LectureStatistic::getLectureId, stat -> stat));
+
+        LectureStatistic statistic = statisticMap.get(lecture.getId());
+
         String thumbnailUrl = thumbnailRepository.findByLectureId(lectureId)
             .map(Thumbnail::getFileUrl)
             .orElse(defaultThumbnailUrl); // TODO : 기본 이미지 URL 반환 처리 -> 추후 content upload API 오류 시, 되돌려야 하는 지 체크 필요
@@ -361,8 +369,7 @@ public class LectureService {
             });
         });
 
-
-        return LectureResponse.from(lecture,thumbnailUrl, instructorNickname);
+        return LectureResponse.fromWithStatics(lecture, statistic, thumbnailUrl, instructorNickname);
     }
 
     // 강사의 강의 목록 조회
