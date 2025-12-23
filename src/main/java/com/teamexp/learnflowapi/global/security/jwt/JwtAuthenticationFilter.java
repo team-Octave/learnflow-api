@@ -63,8 +63,12 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
 
             } catch (ExpiredJwtException e) {
                 // 토큰이 만료된 경우: 그냥 인증 없이 흘려보내거나, 에러 응답 처리
+                request.setAttribute("jwt_exception", "TOKEN_EXPIRED");
+                throw e;
             } catch (Exception e) {
                 // 토큰 검증 실패 시: 그냥 인증 없이 흘려보내거나, 에러 응답 처리
+                request.setAttribute("jwt_exception", "TOKEN_INVALID");
+                throw e;
             }
         }
 
