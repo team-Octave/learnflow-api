@@ -5,7 +5,9 @@ import com.teamexp.learnflowapi.content.model.Quiz;
 import com.teamexp.learnflowapi.content.model.Thumbnail;
 import com.teamexp.learnflowapi.content.repository.QuizRepository;
 import com.teamexp.learnflowapi.content.repository.ThumbnailRepository;
+import com.teamexp.learnflowapi.lecture.dto.request.ChapterCreateRequest;
 import com.teamexp.learnflowapi.lecture.dto.request.LectureCreateRequest;
+import com.teamexp.learnflowapi.lecture.dto.request.LectureCreateRequestV2;
 import com.teamexp.learnflowapi.lecture.dto.request.LectureFullCreateRequest;
 import com.teamexp.learnflowapi.lecture.dto.response.LectureFullCreateResponse;
 import com.teamexp.learnflowapi.lecture.dto.response.LectureResponse;
@@ -30,6 +32,15 @@ import java.util.Map;
 import java.util.stream.Collectors;
 import java.util.stream.IntStream;
 
+/**
+ * Lecture 도메인의 비즈니스 로직을 담당하는 서비스.
+ * 
+ * <p>TODO [Phase 1-1] SecurityEventLogger 통합 계획:
+ * - LectureAccessValidator와 연계하여 보안 이벤트 로깅
+ * - 민감한 작업(삭제, 발행 등) 수행 시 감사 로그 기록
+ * 
+ * @see LectureAccessValidator
+ */
 @Service
 @Transactional(readOnly = true)
 public class LectureService {
@@ -38,21 +49,31 @@ public class LectureService {
     @Value("${spring.application.default-thumbnail}")
     private String defaultThumbnailUrl;
 
+    // Repository
     private final LectureRepository lectureRepository;
     private final LectureStatisticRepository lectureStatisticRepository;
     private final ThumbnailRepository thumbnailRepository;
     private final UserRepository userRepository;
     private final QuizRepository quizRepository;
 
-    public LectureService(LectureRepository lectureRepository, LectureStatisticRepository lectureStatisticRepository, ThumbnailRepository thumbnailRepository, UserRepository userRepository, QuizRepository quizRepository) {
+    // Service or Validator
+    private final LectureAccessValidator lectureAccessValidator;
+    
+    // TODO [Phase 1-1]: SecurityEventLogger 의존성 주입 예정
+    // private final SecurityEventLogger securityEventLogger;
+
+    public LectureService(LectureRepository lectureRepository, LectureStatisticRepository lectureStatisticRepository, ThumbnailRepository thumbnailRepository, UserRepository userRepository, QuizRepository quizRepository, LectureAccessValidator lectureAccessValidator) {
         this.lectureRepository = lectureRepository;
         this.lectureStatisticRepository = lectureStatisticRepository;
         this.thumbnailRepository = thumbnailRepository;
         this.userRepository = userRepository;
         this.quizRepository = quizRepository;
 
+        this.lectureAccessValidator = lectureAccessValidator;
+
     }
 
+    @Deprecated
     @Transactional
     public LectureResponse createLecture(LectureCreateRequest lectureCreateRequest, String instructorId,String userNickname) {
         // 1. 정적 팩토리 메서드로 생성 (객체 생성 로직은 엔티티에 위임)
@@ -61,7 +82,8 @@ public class LectureService {
             lectureCreateRequest.description(),
             LectureLevel.forEntity(lectureCreateRequest.level()),
             lectureCreateRequest.categoryId(), // check category existence if needed
-            instructorId
+            instructorId,
+            lectureCreateRequest.thumbnailId() != null ? lectureCreateRequest.thumbnailId() : 0L // temperary thumbnailId
         );
 
         // 2. 저장
@@ -71,7 +93,42 @@ public class LectureService {
         LectureStatistic initialStatistic = LectureStatistic.createInitial(savedLecture.getId());
         lectureStatisticRepository.save(initialStatistic);
 
-        return LectureResponse.simpleFrom(savedLecture, userNickname, null);
+        String thumbnailUrl = thumbnailRepository.findByLectureId(savedLecture.getId())
+            .map(Thumbnail::getFileUrl)
+            .orElse(defaultThumbnailUrl); // TODO : 기본 이미지 URL 반환 처리 -> 추후 content upload API 오류 시, 되돌려야 하는 지 체크 필요
+            
+
+        return LectureResponse.simpleFrom(savedLecture, userNickname, thumbnailUrl);
+    }
+
+    // OVERLOAD for V2
+    @Transactional
+    public LectureResponse createLecture(LectureCreateRequestV2 lectureCreateRequest, String instructorId,String userNickname) {
+        // 1. 정적 팩토리 메서드로 생성 (객체 생성 로직은 엔티티에 위임)
+        Lecture lecture = Lecture.createLecture(
+            lectureCreateRequest.title(),
+            lectureCreateRequest.description(),
+            LectureLevel.forEntity(lectureCreateRequest.level()),
+            lectureCreateRequest.categoryId(), // check category existence if needed
+            instructorId,
+            lectureCreateRequest.thumbnailId() != null ? lectureCreateRequest.thumbnailId() : 0L // temperary thumbnailId
+        );
+
+        // 2. 저장
+        Lecture savedLecture = lectureRepository.save(lecture);
+
+        // 3. LectureStatistic 초기 생성 (모든 값이 0으로 초기화)
+        LectureStatistic initialStatistic = LectureStatistic.createInitial(savedLecture.getId());
+        lectureStatisticRepository.save(initialStatistic);
+
+        
+        // TODO : Change Get Thumbnail_Adapter API with lectureId, if null, return defaultThumbnailUrl
+        String thumbnailUrl = thumbnailRepository.findByLectureId(savedLecture.getId())
+            .map(Thumbnail::getFileUrl)
+            .orElse(defaultThumbnailUrl); // TODO : 기본 이미지 URL 반환 처리 -> 추후 content upload API 오류 시, 되돌려야 하는 지 체크 필요
+            
+
+        return LectureResponse.simpleFrom(savedLecture, userNickname, thumbnailUrl);
     }
 
 
@@ -210,6 +267,7 @@ public class LectureService {
 
 
 //    // 챕터 추가
+//    // TODO: ChapterUpdatedResponse 반환
 //    @Transactional
 //    public LectureResponse addChapter(ChapterCreateRequest request, Long lectureId, String instructorId) {
 //        Lecture lecture = findLectureWithValidation(lectureId, instructorId);
@@ -233,6 +291,7 @@ public class LectureService {
 //    }
 //
 //    // 레슨 추가
+//    // TODO: LessonUpdatedResponse 반환
 //    @Transactional
 //    public LectureResponse addLesson(LessonCreateRequest request, Long lectureId, Long chapterId, String instructorId) {
 //        Lecture lecture = lectureRepository.findByIdWithChaptersAndLessons(lectureId)
@@ -263,29 +322,13 @@ public class LectureService {
     @Transactional
     public PublishedResponse makeAvailableLecture(Long lectureId, String instructorId) {
         Lecture lecture = findLectureWithChaptersAndLessons(lectureId);
-        validateInstructor(lecture, instructorId);
+        lectureAccessValidator.validateOwnership(lecture, instructorId);
 
         lecture.makeAvailable();
 
         return PublishedResponse.from(lecture.getId(), lecture.getStatus());
     }
 
-    // 강의 목록 조회
-    public List<LectureResponse> getAllLectures() {
-        return lectureRepository.findByStatus(LectureStatus.AVAILABLE).stream()
-            .map(lecture -> {
-                String thumbnailUrl = thumbnailRepository.findByLectureId(lecture.getId())
-                    .map(Thumbnail::getFileUrl)
-                    .orElseThrow(() -> new LectureThumbnailNotFoundException());
-
-                String instructorNickname = userRepository.findById(lecture.getInstructorId())
-                    .map(user -> user.getNickname())
-                    .orElse("Unknown Instructor");
-
-                return LectureResponse.from(lecture, thumbnailUrl, instructorNickname);
-            })
-            .collect(Collectors.toList());
-    }
 
     // 강의 목록 조회 (필터링 및 페이지네이션)
     public Page<LectureResponse> getAllLecturesWithFilters(String category, String level, String sort, Pageable pageable) {
@@ -307,6 +350,13 @@ public class LectureService {
             pageable.getPageSize()
         );
         
+        // @TODO : 1. make view in DB Lecture with LectureStatistic.
+        // @TODO : 2. make index at view case popular/newest/rating.
+        // @TODO : 3. get from repository with custom query
+        // Since Get Lecture_list case has statistic info? (여러개의 lecture 목록을 호출하는 경우는 반드시 statistic 정보가 필요? 하지않나???)
+        // 근데 이거 view 만들어서 처리하는게 맞는지는 잘 모르겠음. 구조는 그런거 생각하고 bijective 하게 만든건 맞는데
+        // -> 단건 조회도 사용하긴 함. 생성말고는 다 사용할지도?
+
         // Repository에서 필터링된 강의 조회
         Page<Lecture> lecturePage = lectureRepository.findByFiltersWithStats(
             categoryId,
@@ -327,11 +377,14 @@ public class LectureService {
         // Page<LectureResponse>로 변환
         return lecturePage.map(lecture -> {
             LectureStatistic statistic = statisticMap.get(lecture.getId());
+
+            // @TODO : Change Get Thumbnail_url_list from content upload API with lectureId_list
             String thumbnailUrl = thumbnailRepository.findByLectureId(lecture.getId())
                 .map(Thumbnail::getFileUrl)
-                .orElse(defaultThumbnailUrl); // TODO : 기본 이미지 URL 반환 처리 -> 추후 content upload API 오류 시, 되돌려야 하는 지 체크 필요
+                .orElse(defaultThumbnailUrl); // @TODO : 기본 이미지 URL 반환 처리 -> 추후 content upload API 오류 시, 되돌려야 하는 지 체크 필요
 //                .orElseThrow(() -> new LectureThumbnailNotFoundException());
 
+            // TODO : Change Get Instructor Nickname_list response from Adapter API with userId_list
             String instructorNickname = userRepository.findById(lecture.getInstructorId())
                 .map(user -> user.getNickname())
                 .orElse("Unknown Instructor");
@@ -351,11 +404,13 @@ public class LectureService {
 
         LectureStatistic statistic = statisticMap.get(lecture.getId());
 
+        // TODO : Change Get Thumbnail_url from content upload API with lectureId
         String thumbnailUrl = thumbnailRepository.findByLectureId(lectureId)
             .map(Thumbnail::getFileUrl)
             .orElse(defaultThumbnailUrl); // TODO : 기본 이미지 URL 반환 처리 -> 추후 content upload API 오류 시, 되돌려야 하는 지 체크 필요
 //            .orElseThrow(() -> new LectureThumbnailNotFoundException());
 
+        // TODO : Change Get Instructor Nickname response from Adapter API with userId
         String instructorNickname = userRepository.findById(lecture.getInstructorId())
             .map(user -> user.getNickname())
             .orElse("Unknown Instructor");
@@ -372,7 +427,6 @@ public class LectureService {
         return LectureResponse.fromWithStatics(lecture, statistic, thumbnailUrl, instructorNickname);
     }
 
-    // 강사의 강의 목록 조회
     public Page<LectureResponse> getLecturesByInstructor(String instructorId, Pageable pageable) {
         // Repository에서 페이지네이션된 강의 조회
         Page<Lecture> lecturePage = lectureRepository.findByInstructorId(instructorId, pageable);
@@ -406,10 +460,12 @@ public class LectureService {
         return lectureRepository.findByCategoryIdAndStatus(categoryId, LectureStatus.AVAILABLE).stream()
             .map(
                 lecture -> {
+                    // TODO : Change Get Thumbnail_url from content upload API with lectureId
                     String thumbnail = thumbnailRepository.findByLectureId(lecture.getId())
                         .map(Thumbnail::getFileUrl)
                         .orElseThrow(() -> new LectureThumbnailNotFoundException());
 
+                    // TODO : Change Get Instructor Nickname response from Adapter API with userId
                     String instructorNickname = userRepository.findById(lecture.getInstructorId())
                         .map(user -> user.getNickname())
                         .orElse("Unknown Instructor");
@@ -428,17 +484,22 @@ public class LectureService {
         if (lecture.getStatus() == LectureStatus.AVAILABLE) {
             throw new LectureDeleteBlockedException();
         }
-        lectureRepository.delete(lecture);
 
+        lecture.softDelete();
+
+        lectureRepository.save(lecture);
+
+        // @TODO: 해당 요청도 해당 서비스에 위임
         // 고아 객체가 남아있지 않도록 썸네일이랑, 강의 통계도 같이 삭제
         thumbnailRepository.deleteByLectureId(lectureId);
         lectureStatisticRepository.deleteById(lectureId);
     }
 
+    // 강의 조회 및 강사 검증
     private Lecture findLectureWithValidation(Long lectureId, String instructorId) {
         Lecture lecture = lectureRepository.findByIdWithChapters(lectureId)
             .orElseThrow(() -> new LectureNotFoundException());
-        validateInstructor(lecture, instructorId);
+        lectureAccessValidator.validateOwnership(lecture, instructorId);
         return lecture;
     }
 
@@ -447,11 +508,6 @@ public class LectureService {
             .orElseThrow(() -> new LectureNotFoundException());
     }
 
-    private void validateInstructor(Lecture lecture, String instructorId) {
-        if (!lecture.getInstructorId().equals(instructorId)) {
-            throw new LectureInstructorUnauthorizedException();
-        }
-    }
 
 //    // 레슨 타입에 따른 레슨 생성, Quiz&Video content async upload 처리 후 setter 호출 예정
 //    private Lesson createLessonByType(LessonCreateRequest request, int orderIndex) {
