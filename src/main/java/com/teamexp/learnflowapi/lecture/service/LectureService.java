@@ -132,6 +132,46 @@ public class LectureService {
     }
 
 
+    /**
+     * 강의 전체 커리큘럼(Chapter + Lesson)을 일괄 생성합니다.
+     * 
+     * <p>TODO [Phase 1-2a] 메서드 분해 계획:
+     * <pre>
+     * // 현재 거대 메서드를 다음과 같이 분해 예정:
+     * 
+     * // 1. Chapter 생성 (개별 메서드로 분리)
+     * private Chapter createChapter(Lecture lecture, ChapterRequest request, int chapterOrder) {
+     *     Chapter chapter = Chapter.createChapter(request.chapterTitle(), chapterOrder);
+     *     lecture.addChapter(chapter);
+     *     return chapter;
+     * }
+     * 
+     * // 2. Lesson 생성 (개별 메서드로 분리)
+     * private Lesson createLesson(Chapter chapter, LessonRequest request, int lessonOrder) {
+     *     Lesson lesson = Lesson.createLesson(
+     *         LessonType.forEntity(request.lessonType()),
+     *         request.lessonTitle(),
+     *         lessonOrder,
+     *         request.isFreePreview(),
+     *         request.videoUrl()
+     *     );
+     *     chapter.addLesson(lesson);
+     *     return lesson;
+     * }
+     * 
+     * // 3. Quiz 바인딩 (개별 메서드로 분리)
+     * private void bindQuizzesToLessons(List&lt;Chapter&gt; chapters, List&lt;ChapterRequest&gt; requests) {
+     *     // Quiz 생성 및 Lesson에 바인딩 로직
+     * }
+     * 
+     * // 4. Response 생성 (LectureResponseFactory로 위임 예정 - Phase 1-3)
+     * private LectureFullCreateResponse buildCurriculumResponse(Lecture lecture, String userNickname) {
+     *     // DTO 변환 로직 -> LectureResponseFactory.createFullCurriculumResponse() 호출
+     * }
+     * </pre>
+     * 
+     * @see LectureResponseFactory (Phase 1-3에서 생성 예정)
+     */
     // TODO : 현재는 초기 curriculum 구성 메서드를 lesson, chapter 추가 메서드 정의했지만, Lecture 의 PUT/PATCH 메서드로 생각해서 수정하는 것도 고려해볼 것
     // 대량 데이터로 인한 성능 이슈 발생 시 별도 배치 작업으로 분리하는 것도 고려해볼 것(ex. 배치 처리 후 DB에 반영)
     // 강의 curriculum 구성 메서드들
@@ -144,10 +184,12 @@ public class LectureService {
     ) {
         Lecture lecture = findLectureWithValidation(lectureId, instructorId);
 
+        // TODO [Phase 1-2a]: createChapter(), createLesson() 메서드로 분리 예정
         // 1단계: 엔티티만 생성 및 추가 (아직 DTO 변환 안 함)
         IntStream.range(0, request.chapters().size())
             .forEach(chapterIndex -> {
                 LectureFullCreateRequest.ChapterRequest chapterRequest = request.chapters().get(chapterIndex);
+                // TODO: createChapter(lecture, chapterRequest, chapterIndex) 호출로 대체
                 Chapter chapter = Chapter.createChapter(
                     chapterRequest.chapterTitle(),
                     chapterIndex
@@ -159,6 +201,7 @@ public class LectureService {
                 IntStream.range(0, chapterRequest.lessons().size())
                     .forEach(lessonIndex -> {
                         LectureFullCreateRequest.LessonRequest lessonRequest = chapterRequest.lessons().get(lessonIndex);
+                        // TODO: createLesson(chapter, lessonRequest, lessonIndex) 호출로 대체
                         Lesson lesson = Lesson.createLesson(
                             LessonType.forEntity(lessonRequest.lessonType()),
                             lessonRequest.lessonTitle(),
