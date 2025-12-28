@@ -170,6 +170,67 @@ public class LectureService {
      * }
      * </pre>
      * 
+     * <p>TODO [Phase 1-2b] reorderChaptersAndLessons 메서드 pseudo code:
+     * <pre>
+     * // Chapter 및 Lesson을 order 필드 기반으로 재정렬하는 메서드
+     * // 목적: createLectureFullCurriculum의 220-252 라인 로직을 분리
+     * 
+     * private void reorderChaptersAndLessons(
+     *     Lecture lecture, 
+     *     List&lt;ChapterRequest&gt; chapterRequests
+     * ) {
+     *     // 1. Chapter를 chapterOrder 기준으로 정렬
+     *     List&lt;Chapter&gt; sortedChapters = lecture.getChapters().stream()
+     *         .sorted(Comparator.comparing(Chapter::getChapterOrder))
+     *         .toList();
+     *     
+     *     // 2. 각 Chapter별로 반복
+     *     for (int chapterIndex = 0; chapterIndex &lt; chapterRequests.size(); chapterIndex++) {
+     *         ChapterRequest chapterRequest = chapterRequests.get(chapterIndex);
+     *         Chapter chapter = sortedChapters.get(chapterIndex);
+     *         
+     *         // 3. 각 Chapter의 Lesson을 lessonOrder 기준으로 정렬
+     *         List&lt;Lesson&gt; sortedLessons = chapter.getLessons().stream()
+     *             .sorted(Comparator.comparing(Lesson::getLessonOrder))
+     *             .toList();
+     *         
+     *         // 4. 각 Lesson별로 반복하며 Quiz 바인딩 처리
+     *         for (int lessonIndex = 0; lessonIndex &lt; chapterRequest.lessons().size(); lessonIndex++) {
+     *             LessonRequest lessonRequest = chapterRequest.lessons().get(lessonIndex);
+     *             Lesson lesson = sortedLessons.get(lessonIndex);
+     *             
+     *             // 5. QUIZ 타입 Lesson인 경우 Quiz 엔티티 생성 및 바인딩
+     *             if (lesson.getLessonType() == LessonType.QUIZ 
+     *                 && lessonRequest.quizQuestions() != null) {
+     *                 
+     *                 // 6. Quiz 엔티티 생성
+     *                 List&lt;Quiz&gt; quizList = lessonRequest.quizQuestions().stream()
+     *                     .map(quizQuestion -> Quiz.createQuiz(
+     *                         lesson.getId(),                    // lessonId (save 후 생성됨)
+     *                         quizQuestion.questionOrder(),
+     *                         quizQuestion.question(),
+     *                         quizQuestion.correct()
+     *                     ))
+     *                     .toList();
+     *                 
+     *                 // 7. Quiz 저장 및 Lesson에 바인딩
+     *                 quizRepository.saveAll(quizList);
+     *                 lesson.bindQuizzes(quizList);
+     *             }
+     *         }
+     *     }
+     *     
+     *     // 참고: 이 메서드는 반드시 lectureRepository.save(lecture) 호출 이후에 실행되어야 함
+     *     // 이유: Lesson의 ID가 필요하기 때문 (Quiz.createQuiz의 lessonId 파라미터)
+     * }
+     * 
+     * // 호출 예시 (createLectureFullCurriculum 메서드 내):
+     * // 1. Chapter 및 Lesson 엔티티 생성
+     * // 2. lectureRepository.save(lecture); // ID 생성
+     * // 3. reorderChaptersAndLessons(lecture, request.chapters()); // Quiz 바인딩
+     * // 4. buildCurriculumResponse(lecture, userNickname); // Response 생성
+     * </pre>
+     * 
      * @see LectureResponseFactory (Phase 1-3에서 생성 예정)
      */
     // TODO : 현재는 초기 curriculum 구성 메서드를 lesson, chapter 추가 메서드 정의했지만, Lecture 의 PUT/PATCH 메서드로 생각해서 수정하는 것도 고려해볼 것
