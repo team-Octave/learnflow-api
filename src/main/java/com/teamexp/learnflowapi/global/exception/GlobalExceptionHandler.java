@@ -8,6 +8,7 @@ import java.util.Map;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.authentication.BadCredentialsException;
+import org.springframework.security.authentication.DisabledException;
 import org.springframework.validation.FieldError;
 import org.springframework.web.bind.MethodArgumentNotValidException;
 import org.springframework.web.bind.MissingRequestHeaderException;
@@ -86,6 +87,19 @@ public class GlobalExceptionHandler {
             .status(HttpStatus.BAD_REQUEST)
             .body(BaseResponse.error("MISSING_HEADER", e.getHeaderName() + " 헤더가 필요합니다."));
     }
+
+
+
+    /*
+    * 유저가 논리적으로 삭제 되었을 때, 발생하는 에러 처리
+    * */
+    @ExceptionHandler(DisabledException.class)
+    public ResponseEntity<?> handleDisabled(DisabledException e) {
+        return ResponseEntity
+            .status(HttpStatus.UNAUTHORIZED)
+            .body(BaseResponse.error("USER_DISABLED", "없는 유저입니다."));
+    }
+
 
 
 }
