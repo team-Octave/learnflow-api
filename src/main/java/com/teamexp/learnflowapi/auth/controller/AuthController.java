@@ -1,11 +1,13 @@
 package com.teamexp.learnflowapi.auth.controller;
 
 import com.teamexp.learnflowapi.auth.controller.dto.LoginRequest;
-import com.teamexp.learnflowapi.auth.controller.dto.LoginResponse;
+import com.teamexp.learnflowapi.auth.controller.dto.TokenResponse;
 import com.teamexp.learnflowapi.auth.controller.dto.ReissuanceResponse;
+import com.teamexp.learnflowapi.auth.controller.dto.LoginResponse;
 import com.teamexp.learnflowapi.auth.service.AuthService;
 import com.teamexp.learnflowapi.global.response.BaseResponse;
 import jakarta.validation.Valid;
+import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.PostMapping;
@@ -26,9 +28,12 @@ public class AuthController {
 
     @PostMapping("/login")
     public ResponseEntity<BaseResponse<LoginResponse>> login(@Valid @RequestBody LoginRequest request) {
-        LoginResponse response = authService.login(request);
+        TokenResponse response = authService.login(request);
 
-        return ResponseEntity.ok(BaseResponse.ok(response));
+        return ResponseEntity
+            .status(HttpStatus.OK)
+            .header(HttpHeaders.SET_COOKIE, response.refreshToken().toString())
+            .body(BaseResponse.ok(LoginResponse.of(response)));
     }
 
     @PostMapping("/reissue")
