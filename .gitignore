@@ -45,7 +45,10 @@ out/
 application.yml
 application.yaml
 application-local.yml
+application-local.yaml
 application-local.properties
+application-dev.yml
+application-dev.yaml
 
 ### Shell Script Files ###
 *.sh
