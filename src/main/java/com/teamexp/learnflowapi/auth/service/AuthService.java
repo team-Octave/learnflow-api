@@ -51,7 +51,10 @@ public class AuthService {
         );
         String refreshToken = jwtTokenProvider.createRefreshToken(user.getId());
 
-        // 4. DTO로 맵핑
+        // 4. 발급한 refresh token DB에 저장하는 로직 필요 (RTR 방식)
+        tokenService.storeToken(refreshToken, user.getId());
+
+        // 5. DTO로 맵핑
         return new LoginResponse(accessToken, refreshToken);
     }
 
