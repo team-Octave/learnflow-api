@@ -1,12 +1,7 @@
 package com.teamexp.learnflowapi.auth.controller.dto;
 
 public record LoginResponse(
-    String accessToken
+    String accessToken,
+    String refreshToken
 ) {
-
-    public static LoginResponse of(TokenResponse tokenResponse) {
-        return new LoginResponse(
-            tokenResponse.accessToken()
-        );
-    }
 }

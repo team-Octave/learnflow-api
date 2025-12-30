@@ -1,9 +1,8 @@
 package com.teamexp.learnflowapi.auth.controller;
 
 import com.teamexp.learnflowapi.auth.controller.dto.LoginRequest;
-import com.teamexp.learnflowapi.auth.controller.dto.TokenResponse;
-import com.teamexp.learnflowapi.auth.controller.dto.ReissuanceResponse;
 import com.teamexp.learnflowapi.auth.controller.dto.LoginResponse;
+import com.teamexp.learnflowapi.auth.controller.dto.ReissuanceResponse;
 import com.teamexp.learnflowapi.auth.service.AuthService;
 import com.teamexp.learnflowapi.global.response.BaseResponse;
 import jakarta.validation.Valid;
@@ -28,12 +27,11 @@ public class AuthController {
 
     @PostMapping("/login")
     public ResponseEntity<BaseResponse<LoginResponse>> login(@Valid @RequestBody LoginRequest request) {
-        TokenResponse response = authService.login(request);
+        LoginResponse response = authService.login(request);
 
         return ResponseEntity
             .status(HttpStatus.OK)
-            .header(HttpHeaders.SET_COOKIE, response.refreshToken().toString())
-            .body(BaseResponse.ok(LoginResponse.of(response)));
+            .body(BaseResponse.ok(response));
     }
 
     @PostMapping("/reissue")

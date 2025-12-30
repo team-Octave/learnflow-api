@@ -1,18 +1,16 @@
 package com.teamexp.learnflowapi.auth.service;
 
 import com.teamexp.learnflowapi.auth.controller.dto.LoginRequest;
-import com.teamexp.learnflowapi.auth.controller.dto.TokenResponse;
+import com.teamexp.learnflowapi.auth.controller.dto.LoginResponse;
 import com.teamexp.learnflowapi.auth.controller.dto.ReissuanceResponse;
 import com.teamexp.learnflowapi.auth.exception.RefreshTokenInvalidException;
 import com.teamexp.learnflowapi.auth.exception.UserNotFoundException;
 import com.teamexp.learnflowapi.global.security.principal.CustomUserPrincipal;
 import com.teamexp.learnflowapi.global.security.jwt.JwtTokenProvider;
-import com.teamexp.learnflowapi.global.utils.CookieUtil;
 import com.teamexp.learnflowapi.user.model.User;
 import com.teamexp.learnflowapi.user.repository.UserRepository;
 import io.jsonwebtoken.Claims;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.http.ResponseCookie;
 import org.springframework.security.authentication.AuthenticationManager;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.core.Authentication;
@@ -24,18 +22,16 @@ public class AuthService {
     private final AuthenticationManager authenticationManager;
     private final JwtTokenProvider jwtTokenProvider;
     private final UserRepository userRepository;
-    private final CookieUtil cookieUtil;
 
     @Autowired
     public AuthService(AuthenticationManager authenticationManager, JwtTokenProvider jwtTokenProvider,
-                       UserRepository userRepository, CookieUtil cookieUtil) {
+                       UserRepository userRepository) {
         this.authenticationManager = authenticationManager;
         this.jwtTokenProvider = jwtTokenProvider;
         this.userRepository = userRepository;
-        this.cookieUtil = cookieUtil;
     }
 
-    public TokenResponse login(LoginRequest request) {
+    public LoginResponse login(LoginRequest request) {
         // 1. 스프링 시큐리티 인증 시도 (이메일/비번)
         Authentication authentication = authenticationManager.authenticate(
             new UsernamePasswordAuthenticationToken(
@@ -53,11 +49,8 @@ public class AuthService {
         );
         String refreshToken = jwtTokenProvider.createRefreshToken(user.getId());
 
-        // 4. Refresh Token Cookie 객체 생성하기
-        ResponseCookie refreshCookie = cookieUtil.createRefreshTokenCookie(refreshToken);
-
         // 4. DTO로 맵핑
-        return new TokenResponse(accessToken, refreshCookie);
+        return new LoginResponse(accessToken, refreshToken);
     }
 
     public ReissuanceResponse reissueToken(String tokenHeader) {
