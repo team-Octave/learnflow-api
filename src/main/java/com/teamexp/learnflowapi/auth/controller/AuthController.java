@@ -9,6 +9,7 @@ import jakarta.validation.Valid;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.web.bind.annotation.CookieValue;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestHeader;
@@ -35,9 +36,9 @@ public class AuthController {
     }
 
     @PostMapping("/reissue")
-    public ResponseEntity<BaseResponse<ReissuanceResponse>> reissueToken(@RequestHeader(name = "Authorization") String tokenHeader) {
+    public ResponseEntity<BaseResponse<ReissuanceResponse>> reissueToken(@CookieValue(name = "refresh_token") String refreshToken) {
 
-        ReissuanceResponse response = authService.reissueToken(tokenHeader);
+        ReissuanceResponse response = authService.reissueToken(refreshToken);
 
         return ResponseEntity
             .status(HttpStatus.OK)
