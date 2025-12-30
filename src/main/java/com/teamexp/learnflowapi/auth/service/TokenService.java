@@ -1,5 +1,6 @@
 package com.teamexp.learnflowapi.auth.service;
 
+import com.teamexp.learnflowapi.auth.exception.RefreshTokenInvalidException;
 import com.teamexp.learnflowapi.auth.model.Token;
 import com.teamexp.learnflowapi.auth.repository.TokenRepository;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -17,19 +18,26 @@ public class TokenService {
     }
 
     @Transactional
-    public boolean validateToken(String token, String userId) {
-
-        // DB에서 토큰과 사용자 ID로 토큰 조회
-        return tokenRepository.existsByTokenAndUserId(token, userId);
-    }
-
-    @Transactional
-    public void storeToken(String token, String userId) {
+    public void issueRefreshToken(String userId, String refreshToken) {
         tokenRepository.findByUserId(userId)
             .ifPresentOrElse(
-                existing -> existing.rotate(token),
-                () -> tokenRepository.save(Token.createToken(userId, token))
+                existing -> existing.rotate(refreshToken),
+                () -> tokenRepository.save(Token.createToken(userId, refreshToken))
             );
+    }
+    @Transactional
+    public void rotateRefreshToken(String userId, String oldToken, String newToken) {
+
+        Token token = tokenRepository.findByUserId(userId)
+            .orElseThrow(RefreshTokenInvalidException::new);
+
+        // ❗ 여기서 RTR의 핵심
+        if (!token.getToken().equals(oldToken)) {
+            throw new RefreshTokenInvalidException();
+        }
+
+        // 기존 refresh token은 여기서 "소모됨"
+        token.rotate(newToken);
     }
 
 }

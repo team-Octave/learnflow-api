@@ -52,5 +52,9 @@ public class Token {
         this.token = token;
     }
 
+    public String getToken() {
+        return this.token;
+    }
+
 
 }

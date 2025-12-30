@@ -15,6 +15,7 @@ import org.springframework.security.authentication.AuthenticationManager;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.core.Authentication;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
 @Service
 public class AuthService {
@@ -33,6 +34,7 @@ public class AuthService {
         this.tokenService = tokenService;
     }
 
+    @Transactional
     public LoginResponse login(LoginRequest request) {
         // 1. 스프링 시큐리티 인증 시도 (이메일/비번)
         Authentication authentication = authenticationManager.authenticate(
@@ -52,12 +54,13 @@ public class AuthService {
         String refreshToken = jwtTokenProvider.createRefreshToken(user.getId());
 
         // 4. 발급한 refresh token DB에 저장하는 로직 필요 (RTR 방식)
-        tokenService.storeToken(refreshToken, user.getId());
+        tokenService.issueRefreshToken(user.getId(), refreshToken);
 
         // 5. DTO로 맵핑
         return new LoginResponse(accessToken, refreshToken);
     }
 
+    @Transactional
     public ReissuanceResponse reissueToken(String refreshToken) {
         // 검증 로직 추가(토큰이 비어있는 경우)
         if (refreshToken == null) {
@@ -73,10 +76,6 @@ public class AuthService {
         Claims claims = jwtTokenProvider.parseToken(refreshToken);
         String userId = claims.getSubject();
 
-        // refresh Token을 DB에서 검증하는 로직
-        if (!tokenService.validateToken(refreshToken, userId)) {
-            throw new RefreshTokenInvalidException();
-        }
 
         // 유저 정보 조회
         User findUser = userRepository.findById(userId).orElseThrow(
@@ -89,7 +88,7 @@ public class AuthService {
         String newRefreshToken = jwtTokenProvider.createRefreshToken(userId);
 
         // 새로 발급한 refresh token DB에 저장하는 로직 필요 (RTR 방식)
-        tokenService.storeToken(newRefreshToken, userId);
+        tokenService.rotateRefreshToken(userId, refreshToken, newRefreshToken);
 
         // DTO로 반환하거나 필요한 작업 수행
         return new ReissuanceResponse(newAccessToken, newRefreshToken);
