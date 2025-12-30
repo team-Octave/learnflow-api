@@ -45,5 +45,18 @@ public class AuthController {
             .body(BaseResponse.ok(response));
     }
 
+    @PostMapping("/logout")
+    public ResponseEntity<BaseResponse<Void>> logout(
+        @CookieValue(name = "refresh_token") String refreshToken
+    ) {
+        authService.logout(refreshToken);
+
+        return ResponseEntity
+            .status(HttpStatus.OK)
+            .body(BaseResponse.ok(null));
+    }
+
+
+
 
 }

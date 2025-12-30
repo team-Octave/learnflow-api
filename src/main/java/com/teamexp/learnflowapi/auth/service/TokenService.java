@@ -40,4 +40,19 @@ public class TokenService {
         token.rotate(newToken);
     }
 
+    @Transactional
+    public void revokeRefreshToken(String userId, String refreshToken) {
+
+        Token token = tokenRepository.findByUserId(userId)
+            .orElseThrow(RefreshTokenInvalidException::new);
+
+        // 현재 세션의 토큰이 맞는지 확인
+        if (!token.getToken().equals(refreshToken)) {
+            throw new RefreshTokenInvalidException();
+        }
+
+        // 로그아웃 = refresh token 제거
+        tokenRepository.delete(token);
+    }
+
 }

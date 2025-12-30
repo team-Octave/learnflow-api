@@ -93,4 +93,18 @@ public class AuthService {
         // DTO로 반환하거나 필요한 작업 수행
         return new ReissuanceResponse(newAccessToken, newRefreshToken);
     }
+
+    @Transactional
+    public void logout(String refreshToken) {
+
+        if (refreshToken == null || !jwtTokenProvider.validateToken(refreshToken)) {
+            throw new RefreshTokenInvalidException();
+        }
+
+        Claims claims = jwtTokenProvider.parseToken(refreshToken);
+        String userId = claims.getSubject();
+
+        tokenService.revokeRefreshToken(userId, refreshToken);
+    }
+
 }
