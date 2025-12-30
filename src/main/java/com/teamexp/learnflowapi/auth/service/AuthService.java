@@ -57,7 +57,7 @@ public class AuthService {
         tokenService.issueRefreshToken(user.getId(), refreshToken);
 
         // 5. DTO로 맵핑
-        return new LoginResponse(accessToken, refreshToken);
+        return new LoginResponse(user.getNickname(), user.getEmail(), user.getRole().name(), accessToken, refreshToken);
     }
 
     @Transactional
