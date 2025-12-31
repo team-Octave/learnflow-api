@@ -1,5 +1,8 @@
 package com.teamexp.learnflowapi.enrollment.service;
 
+
+import com.teamexp.learnflowapi.content.model.Thumbnail;
+import com.teamexp.learnflowapi.content.repository.ThumbnailRepository;
 import com.teamexp.learnflowapi.enrollment.dto.CreateCompletedLessonRequest;
 import com.teamexp.learnflowapi.enrollment.dto.CreateEnrollmentRequest;
 import com.teamexp.learnflowapi.enrollment.dto.MyEnrollmentResponse;
@@ -17,22 +20,19 @@ import com.teamexp.learnflowapi.enrollment.repository.CompletedLessonRepository;
 import com.teamexp.learnflowapi.enrollment.repository.EnrollmentRepository;
 import com.teamexp.learnflowapi.lecture.exception.LectureNotFoundException;
 import com.teamexp.learnflowapi.lecture.exception.LectureStatusInvalidException;
-import com.teamexp.learnflowapi.lecture.model.Lecture;
-import com.teamexp.learnflowapi.lecture.model.LectureStatistic;
-import com.teamexp.learnflowapi.lecture.model.LectureStatus;
+import com.teamexp.learnflowapi.lecture.exception.LessonNotFoundException;
+import com.teamexp.learnflowapi.lecture.model.*;
 import com.teamexp.learnflowapi.lecture.repository.LectureRepository;
 import com.teamexp.learnflowapi.lecture.repository.LectureStatisticRepository;
-import jakarta.persistence.Tuple;
+import com.teamexp.learnflowapi.review.model.Review;
+import com.teamexp.learnflowapi.review.repository.ReviewRepository;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.dao.EmptyResultDataAccessException;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
-import java.sql.Timestamp;
-import java.util.Arrays;
-import java.util.List;
-import java.util.Map;
-import java.util.Objects;
+
+import java.util.*;
 import java.util.function.Function;
 import java.util.stream.Collectors;
 
@@ -44,16 +44,20 @@ public class EnrollmentService {
     private final CompletedLessonRepository completedLessonRepository;
     private final LectureRepository lectureRepository;
     private final LectureStatisticRepository lectureStatisticRepository;
+    private final ThumbnailRepository thumbnailRepository;
+    private final ReviewRepository reviewRepository;
 
     @Autowired
     public EnrollmentService(EnrollmentRepository enrollmentRepository,
                              CompletedLessonRepository completedLessonRepository,
                              LectureRepository lectureRepository,
-                             LectureStatisticRepository lectureStatisticRepository) {
+                             LectureStatisticRepository lectureStatisticRepository, ThumbnailRepository thumbnailRepository, ReviewRepository reviewRepository) {
         this.enrollmentRepository = enrollmentRepository;
         this.completedLessonRepository = completedLessonRepository;
         this.lectureRepository = lectureRepository;
         this.lectureStatisticRepository = lectureStatisticRepository;
+        this.thumbnailRepository = thumbnailRepository;
+        this.reviewRepository = reviewRepository;
     }
 
     // enrollment 생성
@@ -77,19 +81,39 @@ public class EnrollmentService {
     // lesson 완료
     public void createCompletedLesson(String userId , CreateCompletedLessonRequest request) {
 
-        // 요청 enrollment 검증
-        if (!enrollmentRepository.existsById(request.enrollmentId())) throw new EnrollmentNotFoundException();
-        // enrollment에 있는 userId와 현재 로그인 userId 검증
-        validUser(userId, request.enrollmentId());
-        // completed lesson 중복 확인
-        if (completedLessonRepository.existsByEnrollmentIdAndLessonId(request.enrollmentId(), request.lessonId())) throw new CompletedLessonAlreadyExistsException();
+        // 1. Enrollment 조회 (기존 existsById 대신 findById로 엔티티를 한 번에 가져옵니다)
+        Enrollment enrollment = enrollmentRepository.findById(request.enrollmentId())
+                .orElseThrow(EnrollmentNotFoundException::new);
 
-        // completedLesson 생성
+        // 2. 유저 검증 (가져온 enrollment 객체로 즉시 확인)
+        if (!Objects.equals(enrollment.getUserId(), userId)) {
+            throw new EnrollmentAccessDeniedException();
+        }
+
+        // 3. [핵심 추가] 해당 강의 정보를 가져와서, 요청한 레슨(lessonId)이 진짜 이 강의에 있는지 확인!
+        Lecture lecture = lectureRepository.findByIdWithChaptersAndLessons(enrollment.getLectureId())
+                .orElseThrow(LectureNotFoundException::new);
+
+        boolean isLessonInLecture = lecture.getChapters().stream()
+                .flatMap(chapter -> chapter.getLessons().stream())
+                .anyMatch(lesson -> lesson.getId().equals(request.lessonId()));
+
+        if (!isLessonInLecture) {
+            // "이 강의에는 해당 레슨이 없습니다" (다른 강의의 레슨 ID거나 없는 번호)
+            throw new LessonNotFoundException();
+        }
+
+        // 4. 이미 완료한 레슨인지 중복 확인
+        if (completedLessonRepository.existsByEnrollmentIdAndLessonId(request.enrollmentId(), request.lessonId())) {
+            throw new CompletedLessonAlreadyExistsException();
+        }
+
+        // 5. completedLesson 생성 및 저장
         CompletedLesson completedLesson = CompletedLesson
                 .createCompletedLesson(request.enrollmentId(), request.lessonId());
         completedLessonRepository.save(completedLesson);
 
-        // 진행률 업데이트
+        // 6. 진행률 업데이트
         updateProgress(request);
     }
 
@@ -97,126 +121,127 @@ public class EnrollmentService {
     @Transactional(readOnly = true)
     public List<MyEnrollmentResponse> getEnrollments(String userId) {
 
-//        List<Tuple> result = enrollmentRepository.findMyEnrollmentsByUserIdNative(userId);
-//
-//        List<MyEnrollmentResponse> responses = result.stream()
-//                .map(tuple -> new MyEnrollmentResponse(
-//                        (Long) tuple.get("lectureId"),
-//                        (Long) tuple.get("enrollmentId"),
-//                        tuple.get("reviewId") != null ? (Long) tuple.get("reviewId") : null,
-//                        (String) tuple.get("lectureThumbnail"),
-//                        (String) tuple.get("lectureTitle"),
-//                        EnrollmentStatus.valueOf((String) tuple.get("enrollmentStatus")),
-//                        (Integer) tuple.get("progress"),
-//                        ((Timestamp) tuple.get("enrolledAt")).toInstant(),
-//                        ((Timestamp) tuple.get("updatedAt")).toInstant(),
-//                        (Integer) tuple.get("reviewRating"),
-//                        (String) tuple.get("reviewContent")
-//                )).toList();
-//        return responses;
-        // 1. [1단계 쿼리] 기본 정보 조회
-        List<Tuple> basicResults = enrollmentRepository.findMyEnrollmentsByUserIdNative(userId);
+        List<Enrollment> enrollments = enrollmentRepository.findByUserId(userId);
 
-        // 2. 모든 enrollmentId를 추출
-        List<Long> enrollmentIds = basicResults.stream()
-                .map(tuple -> (Long) tuple.get("enrollmentId"))
-                .toList();
-
-        if (enrollmentIds.isEmpty()) {
+        if(enrollments.isEmpty()){
             return List.of();
         }
 
-        // 3. [2단계 쿼리] 상세 진행 정보 Bulk 조회
-        List<Tuple> detailResults = enrollmentRepository.findEnrollmentDetailsBulk(enrollmentIds);
+        List<Long> enrollmentIds = enrollments.stream().map(Enrollment::getId).toList();
 
-        // 4. 상세 정보를 Map으로 변환 (O(N) 성능 확보)
-        Map<Long, Tuple> detailMap = detailResults.stream()
+        List<Long> lectureIds = enrollments.stream().map(Enrollment::getLectureId).distinct().toList();
+
+        Map<Long, Lecture> lectureMap = lectureRepository.findAllById(lectureIds).stream()
+                .collect(Collectors.toMap(Lecture::getId, Function.identity()));
+
+        Map<Long, String> thumbnailMap = thumbnailRepository.findAllByLectureIdIn(lectureIds).stream()
+                .collect(Collectors.toMap(Thumbnail::getLectureId, Thumbnail::getFileUrl));
+
+        Map<Long, Review> reviewMap = reviewRepository.findByEnrollment_IdIn(enrollmentIds).stream()
                 .collect(Collectors.toMap(
-                        tuple -> (Long) tuple.get("enrollmentId"),
+                        review -> review.getEnrollment().getId(),
                         Function.identity()
                 ));
 
-        // 5. 기본 정보와 상세 정보를 합쳐 최종 DTO 생성
-        List<MyEnrollmentResponse> responses = basicResults.stream()
-                .map(basicTuple -> {
-                    Long enrollmentId = (Long) basicTuple.get("enrollmentId");
-                    Tuple detailTuple = detailMap.get(enrollmentId);
+        Map<Long, List<CompletedLesson>> completedLessonMap =
+                completedLessonRepository.findAllByEnrollmentIdInOrderByCompletedAtAsc(enrollmentIds).stream()
+                        .collect(Collectors.groupingBy(CompletedLesson::getEnrollmentId));
 
-                    // 파싱 및 합치기
-                    List<Long> completedLessIds = null;
-                    Long lastCompletedLessonChapterId = null;
-                    Long firstLessonId = null;
-                    Long firstChapterId = null;
+        return enrollments.stream()
+                .map(enrollment -> {
+                    Lecture lecture = lectureMap.get(enrollment.getLectureId());
+                    if(lecture == null)   return null;
 
-                    if (detailTuple != null) {
-                        // completedLessonIds (String.split() 사용)
-                        String completedLessonIdsString = detailTuple.get("completedLessonIds", String.class);
-                        completedLessIds = parseCommaSeparatedIds(completedLessonIdsString);
+                    Review review = reviewMap.get(enrollment.getId());
+                    List<CompletedLesson> myCompletedLessons = completedLessonMap.getOrDefault(enrollment.getId(), List.of());
 
-                        // lastCompletedLessonChapterId (String -> Long 파싱)
-                        String lastCompletedChapterIdString = detailTuple.get("lastCompletedLessonChapterId", String.class);
-                        lastCompletedLessonChapterId = parseLongOrNull(lastCompletedChapterIdString);
+                    List<Long> completedLessonIds = myCompletedLessons.stream()
+                            .map(CompletedLesson::getLessonId)
+                            .toList();
+                    Long lastCompletedChapterId = calculateLastCompletedChapterId(lecture, myCompletedLessons);
+                    Long firstChapterId = getFirstChapterId(lecture);
+                    Long firstLessonId = getFirstLessonId(lecture);
 
-                        // firstLessonId / firstChapterId (Number 캐스팅)
-                        firstLessonId = detailTuple.get("firstLessonId", Number.class) != null
-                                ? detailTuple.get("firstLessonId", Number.class).longValue() : null;
-                        firstChapterId = detailTuple.get("firstChapterId", Number.class) != null
-                                ? detailTuple.get("firstChapterId", Number.class).longValue() : null;
-                    }
-
-                    // 최종 MyEnrollmentResponse 객체 생성
                     return new MyEnrollmentResponse(
-                            (Long) basicTuple.get("lectureId"),
-                            enrollmentId,
-                            basicTuple.get("reviewId") != null ? (Long) basicTuple.get("reviewId") : null,
-                            (String) basicTuple.get("lectureThumbnail"),
-                            (String) basicTuple.get("lectureTitle"),
-                            EnrollmentStatus.valueOf((String) basicTuple.get("enrollmentStatus")),
-                            (Integer) basicTuple.get("progress"),
-                            ((Timestamp) basicTuple.get("enrolledAt")).toInstant(),
-                            ((Timestamp) basicTuple.get("updatedAt")).toInstant(),
-                            (Integer) basicTuple.get("reviewRating"),
-                            (String) basicTuple.get("reviewContent"),
-                            // 추가된 상세 정보
-                            completedLessIds,
-                            lastCompletedLessonChapterId,
-                            firstChapterId,
+                            lecture.getId(),
+                            enrollment.getId(),
+                            review != null ? review.getId() : null,
+                            thumbnailMap.getOrDefault(lecture.getId(), null),
+                            lecture.getTitle(),
+                            enrollment.getStatus(),
+                            enrollment.getProgress(),
+                            enrollment.getEnrolledAt(),
+                            enrollment.getUpdatedAt(),
+                            review != null ? review.getRating() : null,
+                            review != null ? review.getContent() : null,
+                            completedLessonIds,           // List<Long>
+                            lastCompletedChapterId,       // Long
+                            firstChapterId,               // Long
                             firstLessonId
-                    );
-                }).toList();
 
-        return responses;
+                    );
+
+                })
+                .filter(Objects::nonNull)
+                .collect(Collectors.toList());
+
     }
+    private Long calculateLastCompletedChapterId(Lecture lecture, List<CompletedLesson> completedLessons) {
+        if (completedLessons.isEmpty()) return null;
+
+
+        Long lastLessonId = completedLessons.get(completedLessons.size() - 1).getLessonId();
+
+        return lecture.getChapters().stream()
+                .filter(chapter -> chapter.getLessons().stream()
+                        .anyMatch(lesson -> lesson.getId().equals(lastLessonId)))
+                .findFirst()
+                .map(Chapter::getId)
+                .orElse(null);
+    }
+
+    private Long getFirstChapterId(Lecture lecture) {
+        return lecture.getChapters().stream()
+                .min(Comparator.comparing(Chapter::getChapterOrder))
+                .map(Chapter::getId)
+                .orElse(null);
+    }
+
+    private Long getFirstLessonId(Lecture lecture) {
+        return lecture.getChapters().stream()
+                .min(Comparator.comparing(Chapter::getChapterOrder)) // 첫 번째 챕터 찾기
+                .flatMap(chapter -> chapter.getLessons().stream()
+                        .min(Comparator.comparing(Lesson::getLessonOrder))) // 그 챕터의 첫 번째 레슨 찾기
+                .map(Lesson::getId)
+                .orElse(null);
+    }
+
 
     @Transactional(readOnly = true)
     public SelectEnrollmentResponse selectEnrollment(String userId, SelectEnrollmentRequest request) {
 
-        // 요청을 보낸 유저와, 수강 신청한 유저 검증
         validUser(userId, request.enrollmentId());
-        // Enrollment 검증
-        Enrollment enrollment = enrollmentRepository.findById(request.enrollmentId()).orElseThrow(EnrollmentNotFoundException::new);
+        Enrollment enrollment = enrollmentRepository.findById(request.enrollmentId()).
+                orElseThrow(EnrollmentNotFoundException::new);
 
-        // Native 쿼리
-        Object result = enrollmentRepository.selectEnrollment(request.enrollmentId());
-        Object[] row = (Object[]) result;
+        Lecture lecture = lectureRepository.findById(enrollment.getLectureId())
+                .orElseThrow(LectureNotFoundException::new);
 
-        Long lectureId = (Long) row[1];
-        Long enrollmentId = (Long) row[0];
-        Integer progress = (Integer) row[2];
-        String completedLessonIdsString = (String) row[3];
-        List<Long> completedLessIds = (completedLessonIdsString != null && !completedLessonIdsString.isEmpty())
-                ? Arrays.stream(completedLessonIdsString.split(","))
-                .map(Long::parseLong)
-                .toList() : null;
-        String lastCompletedLessonChapterIdsString = (String) row[4];
-        Long lastCompletedLessonChapterId = (lastCompletedLessonChapterIdsString != null) ? Long.parseLong(lastCompletedLessonChapterIdsString) : null;
-        Long firstLessonId = (row[5] != null) ? ((Number) row[5]).longValue() : null;
-        Long firstChapterId = (row[6] != null) ? ((Number) row[6]).longValue() : null;
+        List<CompletedLesson> completedLessons = completedLessonRepository
+                .findAllByEnrollmentIdOrderByCompletedAtAsc(enrollment.getId());
+
+        List<Long> completedLessIds = completedLessons.stream()
+                .map(CompletedLesson::getLessonId)
+                .toList();
+
+        Long lastCompletedLessonChapterId = calculateLastCompletedChapterId(lecture, completedLessons);
+        Long firstChapterId = getFirstChapterId(lecture);
+        Long firstLessonId = getFirstLessonId(lecture);
 
         return new SelectEnrollmentResponse(
-                lectureId,
-                enrollmentId,
-                progress,
+                enrollment.getId(),
+                lecture.getId(),
+                enrollment.getProgress(),
                 completedLessIds,
                 lastCompletedLessonChapterId,
                 firstChapterId,
@@ -257,15 +282,20 @@ public class EnrollmentService {
     }
 
     private void updateProgress(CreateCompletedLessonRequest request) {
-        Enrollment requestEnrollment = enrollmentRepository.findById(request.enrollmentId()).orElseThrow(EnrollmentNotFoundException::new);
+        Enrollment requestEnrollment = enrollmentRepository.findById(request.enrollmentId())
+                .orElseThrow(EnrollmentNotFoundException::new);
 
-        Object result = enrollmentRepository.getProgressCounts(requestEnrollment.getId());
+        Lecture lecture = lectureRepository.findById(requestEnrollment.getLectureId())
+                        .orElseThrow(LectureNotFoundException::new);
 
-        Object[] row = (Object[]) result;
+        int totalLessonCount = lecture.getTotalLessonCount();
 
-        int completedLessonCount = ((Number) row[0]).intValue();
-        int totalLessonCount = ((Number) row[1]).intValue();
-        int updateProgress = (int) Math.round((double) completedLessonCount / totalLessonCount * 100);
+        int completedLessonCount = completedLessonRepository.countByEnrollmentId(requestEnrollment.getId());
+
+        int updateProgress = 0;
+        if (totalLessonCount > 0) {
+            updateProgress = (int) Math.round((double) completedLessonCount / totalLessonCount * 100);
+        }
 
         requestEnrollment.updateProgress(updateProgress);
 
@@ -290,38 +320,4 @@ public class EnrollmentService {
         lectureStatisticRepository.save(statistic);
     }
 
-    private List<Long> parseCommaSeparatedIds(String idsString) {
-        if (idsString == null || idsString.trim().isEmpty()) {
-            return List.of();
-        }
-
-        // **주의**: 쿼리에서 DISTINCT를 사용했더라도, MySQL의 GROUP_CONCAT은 문자열을 반환합니다.
-        return Arrays.stream(idsString.split(","))
-                .map(String::trim) // 공백 제거
-                .filter(s -> !s.isEmpty()) // 빈 문자열 제거
-                .map(s -> {
-                    try {
-                        return Long.parseLong(s);
-                    } catch (NumberFormatException e) {
-                        // 긴급 상황이므로 일단 예외 발생
-                        throw new RuntimeException("ID 파싱 오류: " + s, e);
-                    }
-                })
-                .collect(Collectors.toList());
-    }
-
-    /**
-     * String 형태의 숫자 값을 Long으로 파싱합니다. (SUBSTRING_INDEX 결과 처리)
-     */
-    private Long parseLongOrNull(String value) {
-        if (value == null || value.trim().isEmpty()) {
-            return null;
-        }
-        try {
-            return Long.parseLong(value.trim());
-        } catch (NumberFormatException e) {
-            // 긴급 상황이므로 일단 예외 발생
-            throw new RuntimeException("숫자 변환 오류: " + value, e);
-        }
-    }
 }
