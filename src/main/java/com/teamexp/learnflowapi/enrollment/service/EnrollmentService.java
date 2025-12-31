@@ -150,7 +150,9 @@ public class EnrollmentService {
         return enrollments.stream()
                 .map(enrollment -> {
                     Lecture lecture = lectureMap.get(enrollment.getLectureId());
-                    if(lecture == null)   return null;
+                    if(lecture == null) {
+                        throw new LessonNotFoundException();
+                    }
 
                     Review review = reviewMap.get(enrollment.getId());
                     List<CompletedLesson> myCompletedLessons = completedLessonMap.getOrDefault(enrollment.getId(), List.of());
