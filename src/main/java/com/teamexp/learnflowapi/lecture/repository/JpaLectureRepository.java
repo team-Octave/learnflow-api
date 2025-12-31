@@ -5,6 +5,7 @@ import com.teamexp.learnflowapi.lecture.model.LectureLevel;
 import com.teamexp.learnflowapi.lecture.model.LectureStatus;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
+import org.springframework.data.jpa.repository.EntityGraph;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
@@ -17,14 +18,15 @@ import java.util.Optional;
 public interface JpaLectureRepository extends JpaRepository<Lecture, Long>, LectureRepository {
 
     @Override
-    @Query("SELECT l FROM Lecture l LEFT JOIN FETCH l.chapters WHERE l.id = :id")
+    @Query("SELECT l FROM Lecture l LEFT JOIN FETCH l.chapters WHERE l.id = :id AND l.deleteFlag = false")
     Optional<Lecture> findByIdWithChapters(@Param("id") Long id);
 
     @Override
     @Query("SELECT DISTINCT l FROM Lecture l " +
         "LEFT JOIN FETCH l.chapters c " +
         "LEFT JOIN FETCH c.lessons " +
-        "WHERE l.id = :id")
+        "LEFT JOIN FETCH l.statistic " +
+        "WHERE l.id = :id AND l.deleteFlag = false")
     Optional<Lecture> findByIdWithChaptersAndLessons(@Param("id") Long id);
 
     @Override
@@ -42,6 +44,7 @@ public interface JpaLectureRepository extends JpaRepository<Lecture, Long>, Lect
     @Override
     List<Lecture> findByCategoryIdAndStatus(Integer categoryId, LectureStatus status);
 
+    @EntityGraph("Lecture.withStatistic")
     @Override
     default Page<Lecture> findByFiltersWithStats(
         Integer categoryId,
@@ -58,10 +61,65 @@ public interface JpaLectureRepository extends JpaRepository<Lecture, Long>, Lect
         };
     }
 
+    @EntityGraph("Lecture.withStatistic")
+    @Override
+    default Page<Lecture> findAllWithStatsForAdmin(String sortBy, Pageable pageable) {
+        return switch (sortBy) {
+            case "POPULAR" -> findAllWithStatsForAdminOrderByPopular(pageable);
+            case "RATING" -> findAllWithStatsForAdminOrderByRating(pageable);
+            case "LATEST" -> findAllWithStatsForAdminOrderByLatest(pageable);
+            default -> findAllWithStatsForAdminOrderByPopular(pageable);
+        };
+    }
+
+    @EntityGraph("Lecture.withStatistic")
     @Query("""
         SELECT l FROM Lecture l
-        LEFT JOIN LectureStatistic ls ON ls.lectureId = l.id
+        LEFT JOIN l.statistic ls
+        ORDER BY ls.enrollmentCount DESC NULLS LAST
+        """)
+    Page<Lecture> findAllWithStatsForAdminOrderByPopular(Pageable pageable);
+
+    @EntityGraph("Lecture.withStatistic")
+    @Query("""
+        SELECT l FROM Lecture l
+        LEFT JOIN l.statistic ls
+        ORDER BY ls.ratingAverage DESC NULLS LAST
+        """)
+    Page<Lecture> findAllWithStatsForAdminOrderByRating(Pageable pageable);
+
+    @EntityGraph("Lecture.withStatistic")
+    @Query("""
+        SELECT l FROM Lecture l
+        LEFT JOIN l.statistic ls
+        ORDER BY l.updatedAt DESC NULLS LAST, l.createdAt DESC
+        """)
+    Page<Lecture> findAllWithStatsForAdminOrderByLatest(Pageable pageable);
+
+    @Query("SELECT l FROM Lecture l LEFT JOIN FETCH l.chapters WHERE l.id = :id")
+    Optional<Lecture> findByIdWithChaptersForAdmin(@Param("id") Long id);
+
+    @Query("SELECT DISTINCT l FROM Lecture l " +
+        "LEFT JOIN FETCH l.chapters c " +
+        "LEFT JOIN FETCH c.lessons " +
+        "LEFT JOIN FETCH l.statistic " +
+        "WHERE l.id = :id")
+    Optional<Lecture> findByIdWithChaptersAndLessonsForAdmin(@Param("id") Long id);
+
+    @EntityGraph("Lecture.withStatistic")
+    @Query("""
+        SELECT l FROM Lecture l
+        LEFT JOIN l.statistic ls
+        WHERE l.id = :id
+        """)
+    Optional<Lecture> findByIdWithStatisticForAdmin(@Param("id") Long id);
+
+    @EntityGraph("Lecture.withStatistic")
+    @Query("""
+        SELECT l FROM Lecture l
+        LEFT JOIN l.statistic ls
         WHERE l.status = :status
+        AND l.deleteFlag = false
         AND (:categoryId IS NULL OR l.categoryId = :categoryId)
         AND (:level IS NULL OR l.level = :level)
         ORDER BY ls.enrollmentCount DESC NULLS LAST
@@ -75,8 +133,9 @@ public interface JpaLectureRepository extends JpaRepository<Lecture, Long>, Lect
 
     @Query("""
         SELECT l FROM Lecture l
-        LEFT JOIN LectureStatistic ls ON ls.lectureId = l.id
+        LEFT JOIN l.statistic ls
         WHERE l.status = :status
+        AND l.deleteFlag = false
         AND (:categoryId IS NULL OR l.categoryId = :categoryId)
         AND (:level IS NULL OR l.level = :level)
         ORDER BY ls.ratingAverage DESC NULLS LAST
@@ -88,18 +147,32 @@ public interface JpaLectureRepository extends JpaRepository<Lecture, Long>, Lect
         Pageable pageable
     );
 
+    @EntityGraph("Lecture.withStatistic")
     @Query("""
         SELECT l FROM Lecture l
-        LEFT JOIN LectureStatistic ls ON ls.lectureId = l.id
+        LEFT JOIN l.statistic ls
         WHERE l.status = :status
+        AND l.deleteFlag = false
         AND (:categoryId IS NULL OR l.categoryId = :categoryId)
         AND (:level IS NULL OR l.level = :level)
-        ORDER BY ls.updatedAt DESC NULLS LAST, l.createdAt DESC
+        ORDER BY l.updatedAt DESC NULLS LAST, l.createdAt DESC
         """)
     Page<Lecture> findByFiltersWithStatsOrderByLatest(
         @Param("categoryId") Integer categoryId,
         @Param("level") LectureLevel level,
         @Param("status") LectureStatus status,
+        Pageable pageable
+    );
+
+    @EntityGraph("Lecture.withStatistic")
+    @Query("""
+        SELECT l FROM Lecture l
+        WHERE l.instructorId = :instructorId
+        AND l.deleteFlag = false
+        ORDER BY l.updatedAt DESC NULLS LAST, l.createdAt DESC
+        """)
+    Page<Lecture> findByInstructorIdOrderByUpdatedAtDesc(
+        @Param("instructorId") String instructorId,
         Pageable pageable
     );
 }

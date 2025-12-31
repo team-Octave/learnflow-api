@@ -3,8 +3,12 @@ package com.teamexp.learnflowapi.lecture.model;
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
 import jakarta.persistence.EntityListeners;
+import jakarta.persistence.FetchType;
 import jakarta.persistence.Id;
 import jakarta.persistence.Index;
+import jakarta.persistence.JoinColumn;
+import jakarta.persistence.MapsId;
+import jakarta.persistence.OneToOne;
 import jakarta.persistence.PostLoad;
 import jakarta.persistence.Table;
 import org.springframework.data.annotation.LastModifiedDate;
@@ -22,10 +26,14 @@ import java.time.Instant;
 public class LectureStatistic {
 
     // Lecture and Statistic have bijective relationship
-    // Since make loosely coupled relationship, not use @MapsId
     @Id
     @Column(name = "lecture_id")
     private Long lectureId;
+
+    @OneToOne(fetch = FetchType.LAZY, optional = false)
+    @MapsId
+    @JoinColumn(name = "lecture_id")
+    private Lecture lecture;
 
     @Column(name = "rating_sum")
     private Long ratingSum;
@@ -56,8 +64,15 @@ public class LectureStatistic {
 
 
     // 정적 팩토리 메서드: Lecture 생성 시 초기 통계 생성
-    public static LectureStatistic createInitial(Long lectureId) {
-        return new LectureStatistic(lectureId, 0L, 0L, 0L, 0.0);
+    public static LectureStatistic createInitial(Lecture lecture) {
+        LectureStatistic statistic = new LectureStatistic(null, 0L, 0L, 0L, 0.0);
+        statistic.bindLecture(lecture);
+        return statistic;
+    }
+
+    void bindLecture(Lecture lecture) {
+        this.lecture = lecture;
+        this.lectureId = lecture != null ? lecture.getId() : null;
     }
 
 

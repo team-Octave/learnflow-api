@@ -62,6 +62,22 @@ public class Lesson {
         return new Lesson(lessonType, lessonTitle, lessonOrder, (isFreePreview != null ? isFreePreview : false), videoUrl);
     }
 
+    public void updateTitle(String lessonTitle) {
+        this.lessonTitle = lessonTitle;
+    }
+
+    public void updateFreePreview(Boolean isFreePreview) {
+        this.isFreePreview = (isFreePreview != null ? isFreePreview : false);
+    }
+
+    public void updateVideoUrl(String videoUrl) {
+        this.videoUrl = videoUrl;
+    }
+
+    public void changeOrder(Integer lessonOrder) {
+        this.lessonOrder = lessonOrder;
+    }
+
     void setChapter(Chapter chapter) {
         this.chapter = chapter;
     }

@@ -5,6 +5,7 @@ import com.teamexp.learnflowapi.lecture.model.LessonType;
 
 
 import java.util.List;
+import java.util.Optional;
 import java.util.stream.Collectors;
 
 public record ChapterResponse(
@@ -23,20 +24,24 @@ public record ChapterResponse(
             chapter.getLessons().stream()
                 .map(lesson -> {
                     if (lesson.getLessonType() == LessonType.QUIZ) {
+                        List<LessonResponse.QuizQuestionResponse> quizQuestions = Optional.ofNullable(lesson.unpackingQuizzes())
+                            .orElse(List.of())
+                            .stream()
+                            .map(quizQuestion -> new LessonResponse.QuizQuestionResponse(
+                                quizQuestion.getId(),
+                                quizQuestion.getQuestion(),
+                                quizQuestion.getOrderIndex(),
+                                quizQuestion.getCorrect()
+                            ))
+                            .collect(Collectors.toList());
+
                         return LessonResponse.withoutVideo(
                             lesson.getId(),
                             lesson.getLessonTitle(),
                             lesson.getLessonType().getDisplayName(),
                             lesson.getLessonOrder(),
                             lesson.getIsFreePreview(),
-                            lesson.unpackingQuizzes().stream()
-                                .map(quizQuestion -> new LessonResponse.QuizQuestionResponse(
-                                    quizQuestion.getId(),
-                                    quizQuestion.getQuestion(),
-                                    quizQuestion.getOrderIndex(),
-                                    quizQuestion.getCorrect()
-                                ))
-                                .collect(Collectors.toList())
+                            quizQuestions
                         );
                     } else {
                         return LessonResponse.withoutQuiz(

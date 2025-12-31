@@ -25,13 +25,19 @@ public interface LectureRepository  {
 
     Page<Lecture> findByInstructorId(String instructorId, Pageable pageable);
 
+    Page<Lecture> findByInstructorIdOrderByUpdatedAtDesc(String instructorId, Pageable pageable);
+
     List<Lecture> findByStatus(LectureStatus status);
 
     List<Lecture> findByCategoryId(Integer categoryId);
 
     List<Lecture> findByCategoryIdAndStatus(Integer categoryId, LectureStatus status);
 
+    List<Lecture> findByCategoryIdAndStatusAndDeleteFlagFalse(Integer categoryId, LectureStatus status);
+
     Page<Lecture> findByFiltersWithStats(Integer categoryId, LectureLevel level, LectureStatus status, String sortBy, Pageable pageable);
+
+    Page<Lecture> findAllWithStatsForAdmin(String sortBy, Pageable pageable);
 
     void delete(Lecture lecture);
 

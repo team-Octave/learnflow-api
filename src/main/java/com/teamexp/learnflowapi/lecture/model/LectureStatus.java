@@ -24,4 +24,10 @@ public enum LectureStatus {
         }
         throw new LectureStatusInvalidException();
     }
+
+    public boolean isPublic() {
+        // 도메인 지식: 공개 상태 판별
+        return this == AVAILABLE;
+    }
+
 }
