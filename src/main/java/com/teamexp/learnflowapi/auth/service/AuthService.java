@@ -78,7 +78,7 @@ public class AuthService {
 
 
         // 유저 정보 조회
-        User findUser = userRepository.findById(userId).orElseThrow(
+        User findUser = userRepository.findByUserIdAndDelFlagFalse(userId).orElseThrow(
             UserNotFoundException::new
         );
 
