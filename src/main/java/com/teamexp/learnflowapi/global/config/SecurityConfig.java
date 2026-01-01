@@ -37,6 +37,7 @@ public class SecurityConfig {
     @Bean
     public SecurityFilterChain securityFilterChain(HttpSecurity http) throws Exception {
         http
+                .cors(cors -> {}) // CORS 설정 적용.
                 .csrf(AbstractHttpConfigurer::disable)
                 .sessionManagement(session ->
                         session.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
@@ -46,6 +47,7 @@ public class SecurityConfig {
                         .requestMatchers("/api/v1/users/check").permitAll()    // 닉네임 체크
                         .requestMatchers("/api/v1/auth/login").permitAll()    // 로그인
                         .requestMatchers("/api/v1/auth/reissue").permitAll()   // 토큰 재발급
+                        .requestMatchers("/api/v1/auth/logout").permitAll() // 로그아웃
                         .requestMatchers(HttpMethod.GET, "/api/v1/lectures/my").authenticated()
                         .requestMatchers(HttpMethod.GET, "/api/v1/lectures").permitAll() // 강의 전체 조회
                         .requestMatchers(HttpMethod.GET, "/api/v1/lectures/*").permitAll() // 강의 단건 조회

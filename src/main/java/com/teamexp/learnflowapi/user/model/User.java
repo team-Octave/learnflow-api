@@ -55,7 +55,7 @@ public class User implements UserDetails {
     private Instant updatedAt;
 
     @Column(name = "del_flag", nullable = false)
-    private Boolean delFlag = false;
+    private boolean delFlag = false;
 
     // JPA를 위한 기본 생성자
     protected User() {}
@@ -98,7 +98,7 @@ public class User implements UserDetails {
     public boolean isCredentialsNonExpired() { return true; }
 
     @Override
-    public boolean isEnabled() { return true; }
+    public boolean isEnabled() { return !delFlag; }
 
     public String getUserId() {
         return userId;
@@ -124,7 +124,7 @@ public class User implements UserDetails {
         return updatedAt;
     }
 
-    public Boolean getDelFlag() {
+    public boolean getDelFlag() {
         return delFlag;
     }
 }
