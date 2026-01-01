@@ -2,6 +2,7 @@ package com.teamexp.learnflowapi.global.security.jwt;
 
 import io.jsonwebtoken.Claims;
 import io.jsonwebtoken.ExpiredJwtException;
+import io.jsonwebtoken.JwtException;
 import jakarta.servlet.FilterChain;
 import jakarta.servlet.ServletException;
 import jakarta.servlet.http.HttpServletRequest;
@@ -63,8 +64,16 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
 
             } catch (ExpiredJwtException e) {
                 // 토큰이 만료된 경우: 그냥 인증 없이 흘려보내거나, 에러 응답 처리
-            } catch (Exception e) {
+                request.setAttribute("jwt_exception", "TOKEN_EXPIRED");
+                throw e;
+            } catch (JwtException e) {
                 // 토큰 검증 실패 시: 그냥 인증 없이 흘려보내거나, 에러 응답 처리
+                request.setAttribute("jwt_exception", "TOKEN_INVALID");
+                throw e;
+            } catch (Exception e) {
+                // 기타 알 수 없는 예외
+                request.setAttribute("another_exception", "UNKNOWN_ERROR");
+                throw e;
             }
         }
 
