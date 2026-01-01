@@ -29,6 +29,9 @@ public class JwtAuthenticationEntryPoint implements AuthenticationEntryPoint {
         } else if ("TOKEN_INVALID".equals(exception)) {
             code = "TOKEN_INVALID";
             message = "유효하지 않은 토큰입니다.";
+        } else if ("UNKNOWN_ERROR".equals(exception)) {
+            code = "UNKNOWN_ERROR";
+            message = "알 수 없는 오류로 인해 인증에 실패했습니다.";
         }
 
         response.setStatus(HttpStatus.UNAUTHORIZED.value());
