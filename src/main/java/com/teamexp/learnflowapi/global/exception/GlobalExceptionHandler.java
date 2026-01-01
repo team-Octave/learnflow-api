@@ -11,6 +11,7 @@ import org.springframework.security.authentication.BadCredentialsException;
 import org.springframework.security.authentication.DisabledException;
 import org.springframework.validation.FieldError;
 import org.springframework.web.bind.MethodArgumentNotValidException;
+import org.springframework.web.bind.MissingRequestCookieException;
 import org.springframework.web.bind.MissingRequestHeaderException;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
@@ -98,6 +99,16 @@ public class GlobalExceptionHandler {
         return ResponseEntity
             .status(HttpStatus.UNAUTHORIZED)
             .body(BaseResponse.error("USER_DISABLED", "없는 유저입니다."));
+    }
+
+    /*
+    * 쿠키 누락 시, 발생하는 예외 처리
+    * */
+    @ExceptionHandler(MissingRequestCookieException.class)
+    public ResponseEntity<?> handleMissingCookie(MissingRequestCookieException e) {
+        return ResponseEntity
+            .status(HttpStatus.BAD_REQUEST)
+            .body(BaseResponse.error("MISSING_COOKIE", e.getCookieName() + " 쿠키가 필요합니다."));
     }
 
 
