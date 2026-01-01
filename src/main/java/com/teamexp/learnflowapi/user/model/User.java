@@ -55,7 +55,7 @@ public class User implements UserDetails {
     private Instant updatedAt;
 
     @Column(name = "del_flag", nullable = false)
-    private Boolean delFlag = false;
+    private boolean delFlag = false;
 
     // JPA를 위한 기본 생성자
     protected User() {}
