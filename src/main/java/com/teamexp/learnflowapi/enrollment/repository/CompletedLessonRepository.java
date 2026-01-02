@@ -4,11 +4,17 @@ import com.teamexp.learnflowapi.enrollment.model.CompletedLesson;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.stereotype.Repository;
 
-// TODO 구현 예정
+import java.util.List;
+
+
 @Repository
 public interface CompletedLessonRepository extends JpaRepository<CompletedLesson, Long> {
 
     int countByEnrollmentId(Long enrollmentId);
 
     boolean existsByEnrollmentIdAndLessonId(Long enrollmentId, Long lessonId);
+
+    List<CompletedLesson> findAllByEnrollmentIdInOrderByCompletedAtAsc(List<Long> enrollmentIds);
+
+    List<CompletedLesson> findAllByEnrollmentIdOrderByCompletedAtAsc(Long enrollmentId);
 }
