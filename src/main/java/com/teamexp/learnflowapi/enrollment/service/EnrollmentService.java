@@ -151,7 +151,7 @@ public class EnrollmentService {
                 .map(enrollment -> {
                     Lecture lecture = lectureMap.get(enrollment.getLectureId());
                     if(lecture == null) {
-                        throw new LessonNotFoundException();
+                        throw new LectureNotFoundException();
                     }
 
                     Review review = reviewMap.get(enrollment.getId());
