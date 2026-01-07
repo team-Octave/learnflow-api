@@ -24,7 +24,7 @@ jobs:
       - name: Upload to GCP VM
         uses: appleboy/scp-action@v0.1.7
         with:
-          host: 35.216.86.196
+          host: ${{ secrets.GCP_VM_IP }}
           username: deployer
           key: ${{ secrets.SSH_PRIVATE_KEY }}
           source: "build/libs/*.jar"
@@ -34,7 +34,7 @@ jobs:
       - name: Restart Application
         uses: appleboy/ssh-action@v1.0.3
         with:
-          host: 35.216.86.196
+          host: ${{ secrets.GCP_VM_IP }}
           username: deployer
           key: ${{ secrets.SSH_PRIVATE_KEY }}
           script: |
