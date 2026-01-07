@@ -1,0 +1,43 @@
+name: LearnFlow API CD (Dev Environment)
+
+on:
+  push:
+    branches: [ "develop" ]
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Set up JDK 17
+        uses: actions/setup-java@v4
+        with:
+          java-version: '17'
+          distribution: 'temurin'
+
+      - name: Build with Gradle
+        run: ./gradlew clean bootJar
+
+      # 파일 전송 및 배포 (아까 설정한 deployer 계정 활용)
+      - name: Upload to GCP VM
+        uses: appleboy/scp-action@v0.1.7
+        with:
+          host: 35.216.86.196
+          username: deployer
+          key: ${{ secrets.SSH_PRIVATE_KEY }}
+          source: "build/libs/*.jar"
+          target: "/opt/app"
+          strip_components: 2
+
+      - name: Restart Application
+        uses: appleboy/ssh-action@v1.0.3
+        with:
+          host: 35.216.86.196
+          username: deployer
+          key: ${{ secrets.SSH_PRIVATE_KEY }}
+          script: |
+            sudo fuser -k 8080/tcp || true
+            # dev 프로필 적용
+            nohup java -jar /opt/app/*.jar --spring.profiles.active=dev > /opt/app/app.log 2>&1 &
