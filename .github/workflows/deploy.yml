@@ -17,6 +17,9 @@ jobs:
           java-version: '17'
           distribution: 'temurin'
 
+      - name: Grant execute permission for gradlew
+        run: chmod +x gradlew
+
       - name: Build with Gradle
         run: ./gradlew clean bootJar
 
@@ -37,6 +40,8 @@ jobs:
           username: deployer
           key: ${{ secrets.SSH_PRIVATE_KEY }}
           script: |
+            cd /opt/app 
+            
             PID=$(sudo lsof -ti:8080 || true)
             if [ -n "$PID" ]; then
               echo "Sending SIGTERM to process $PID"
@@ -56,19 +61,19 @@ jobs:
               fi
             fi
 
-            mkdir -p /opt/app/backup
-            if [ -f "/opt/app/app.jar" ]; then
-              mv /opt/app/app.jar /opt/app/backup/app.jar.$(date +%Y%m%d%H%M%S)
+            mkdir -p backup
+            if [ -f "app.jar" ]; then
+              sudo mv app.jar backup/app.jar.$(date +%Y%m%d%H%M%S)
             fi
 
-            LATEST_JAR=$(find /opt/app -maxdepth 1 -name "*.jar" -type f -printf '%T@ %p\n' | sort -rn | head -1 | cut -d' ' -f2-)
+            LATEST_JAR=$(find . -maxdepth 1 -name "*.jar" -type f -printf '%T@ %p\n' | sort -rn | head -1 | cut -d' ' -f2-)
             if [ -z "$LATEST_JAR" ]; then
               echo "Error: No JAR file found"
               exit 1
             fi
-            mv "$LATEST_JAR" /opt/app/app.jar
+            sudo mv "$LATEST_JAR" app.jar
 
-            nohup java -jar /opt/app/app.jar --spring.profiles.active=dev > /opt/app/app.log 2>&1 &
+            nohup java -jar app.jar --spring.profiles.active=dev > app.log 2>&1 &
 
             echo "Waiting for application to start (Health Check)..."
             for i in {1..30}; do
@@ -77,7 +82,7 @@ jobs:
                 exit 0
               fi
               echo "Still waiting... ($i/30)"
-              sleep 3
+              sleep 4
             done
             
             echo "Error: Application failed to start within time limit"
