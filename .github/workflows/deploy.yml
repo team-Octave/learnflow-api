@@ -1,4 +1,4 @@
-name: LearnFlow API CD (Dev Environment)
+name: LearnFlow API CD (Enhanced)
 
 on:
   push:
@@ -20,9 +20,9 @@ jobs:
       - name: Build with Gradle
         run: ./gradlew clean bootJar
 
-      # 파일 전송 및 배포 (아까 설정한 deployer 계정 활용)
+      # 1. SCP 액션 버전을 v1.0.0으로 업데이트
       - name: Upload to GCP VM
-        uses: appleboy/scp-action@v0.1.7
+        uses: appleboy/scp-action@v1.0.0
         with:
           host: ${{ secrets.GCP_VM_IP }}
           username: deployer
@@ -31,13 +31,18 @@ jobs:
           target: "/opt/app"
           strip_components: 2
 
+      # 2. SSH 액션 버전을 v1.2.4로 업데이트
       - name: Restart Application
-        uses: appleboy/ssh-action@v1.0.3
+        uses: appleboy/ssh-action@v1.2.4
         with:
           host: ${{ secrets.GCP_VM_IP }}
           username: deployer
           key: ${{ secrets.SSH_PRIVATE_KEY }}
           script: |
+            mkdir -p /opt/app/backup
+            mv /opt/app/app.jar /opt/app/backup/app.jar.$(date +%Y%m%d%H%M%S) || true
+            mv /opt/app/*.jar /opt/app/app.jar
+
             sudo fuser -k 8080/tcp || true
-            # dev 프로필 적용
-            nohup java -jar /opt/app/*.jar --spring.profiles.active=dev > /opt/app/app.log 2>&1 &
+            
+            nohup java -jar /opt/app/app.jar --spring.profiles.active=dev > /opt/app/app.log 2>&1 &
