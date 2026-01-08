@@ -56,9 +56,17 @@ public class QuizService {
                 .toList();
     }
 
-    // 퀴즈 수정(업데이트)
     @Transactional
     public List<QuizResponse> updateQuizzes(Long lessonId, QuizUpdateListRequest request) {
+        List<Quiz> quizzes = saveOrUpdateQuizzes(lessonId, request);
+        return quizzes.stream()
+                .map(QuizResponse::from)
+                .toList();
+    }
+
+    // 퀴즈 수정(업데이트)
+    @Transactional
+    public List<Quiz> saveOrUpdateQuizzes(Long lessonId, QuizUpdateListRequest request) {
 
         // 요청에 들어온 퀴즈 ID 추출
         List<Long> quizIds = request.quizzes().stream()
@@ -70,11 +78,19 @@ public class QuizService {
         // 기존 퀴즈 조회
         List<Quiz> existingQuizzes = quizRepository.findAllById(quizIds);
 
+        // 요청에 들어오지않은 기존의 퀴즈 목록을 삭제
+        // quizIds - existingQuizzes.stream().map(Quiz::getId).toList()
+        List<Long> disjointQuizIds = quizIds.stream()
+                .filter(id -> !existingQuizzes.stream().map(Quiz::getId).toList().contains(id))
+                .toList();
+        
+        quizRepository.deleteAllById(disjointQuizIds);
+
         // id를 엔티티로 변환
         Map<Long, Quiz> quizById = existingQuizzes.stream()
                 .collect(Collectors.toMap(Quiz::getId, q -> q));
 
-        List<QuizResponse> result = new ArrayList<>();
+        List<Quiz> result = new ArrayList<>();
 
         // 요청 들어온 퀴즈들에 대해서만 수정 차리
         for (QuizUpdateRequest item : request.quizzes()) {
@@ -88,7 +104,7 @@ public class QuizService {
                         item.correct()
                 );
                 Quiz saved = quizRepository.save(newQuiz);
-                result.add(QuizResponse.from(saved));
+                result.add(saved);
                 continue;
             }
 
@@ -102,11 +118,13 @@ public class QuizService {
             }
 
             quiz.update(
+                    item.orderIndex(),
                     item.question(),
                     item.correct()
             );
         }
+        List<Quiz> savedQuizzes = quizRepository.saveAll(result);
 
-        return result;
+        return savedQuizzes;
     }
 }

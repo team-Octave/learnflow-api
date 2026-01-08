@@ -3,6 +3,7 @@ package com.teamexp.learnflowapi.lecture.service;
 import com.teamexp.learnflowapi.content.model.Quiz;
 import com.teamexp.learnflowapi.content.repository.QuizRepository;
 import com.teamexp.learnflowapi.content.repository.ThumbnailRepository;
+import com.teamexp.learnflowapi.content.service.QuizService;
 import com.teamexp.learnflowapi.lecture.dto.request.ChapterCreateRequest;
 import com.teamexp.learnflowapi.lecture.dto.request.ChapterUpdateRequest;
 import com.teamexp.learnflowapi.lecture.dto.request.CurriculumBindRequest;
@@ -10,7 +11,6 @@ import com.teamexp.learnflowapi.lecture.dto.request.LectureCreateRequest;
 import com.teamexp.learnflowapi.lecture.dto.request.LectureCreateRequestV2;
 import com.teamexp.learnflowapi.lecture.dto.request.LectureFullCreateRequest;
 import com.teamexp.learnflowapi.lecture.dto.request.LessonCreateRequest;
-import com.teamexp.learnflowapi.lecture.dto.request.LessonQuizReplaceRequest;
 import com.teamexp.learnflowapi.lecture.dto.request.LessonUpdateRequest;
 import com.teamexp.learnflowapi.lecture.dto.response.ChapterResponse;
 import com.teamexp.learnflowapi.lecture.dto.response.LectureFullCreateResponse;
@@ -21,7 +21,6 @@ import com.teamexp.learnflowapi.lecture.exception.LectureAlreadyPublishedExcepti
 import com.teamexp.learnflowapi.lecture.exception.LectureDeleteBlockedException;
 import com.teamexp.learnflowapi.lecture.exception.LessonNotFoundException;
 import com.teamexp.learnflowapi.lecture.exception.LectureNotFoundException;
-import com.teamexp.learnflowapi.lecture.exception.LessonTypeInvalidException;
 import com.teamexp.learnflowapi.lecture.model.*;
 import com.teamexp.learnflowapi.lecture.repository.LectureRepository;
 import com.teamexp.learnflowapi.lecture.repository.LectureStatisticRepository;
@@ -58,23 +57,26 @@ public class LectureService {
     // Repository
     private final LectureRepository lectureRepository;
     private final LectureStatisticRepository lectureStatisticRepository;
+    private final ThumbnailRepository thumbnailRepository;
     private final UserRepository userRepository;
     private final QuizRepository quizRepository;
 
     // Service or Validator
     private final LectureAccessValidator lectureAccessValidator;
+    private final QuizService quizService;
     
     // TODO [Phase 1-1]: SecurityEventLogger 의존성 주입 예정
     // private final SecurityEventLogger securityEventLogger;
 
-    public LectureService(LectureRepository lectureRepository, LectureStatisticRepository lectureStatisticRepository, ThumbnailRepository thumbnailRepository, UserRepository userRepository, QuizRepository quizRepository, LectureAccessValidator lectureAccessValidator) {
+    public LectureService(LectureRepository lectureRepository, LectureStatisticRepository lectureStatisticRepository, ThumbnailRepository thumbnailRepository, UserRepository userRepository, QuizRepository quizRepository, LectureAccessValidator lectureAccessValidator, QuizService quizService) {
         this.lectureRepository = lectureRepository;
         this.lectureStatisticRepository = lectureStatisticRepository;
+        this.thumbnailRepository = thumbnailRepository;
         this.userRepository = userRepository;
         this.quizRepository = quizRepository;
 
         this.lectureAccessValidator = lectureAccessValidator;
-
+        this.quizService = quizService;
     }
 
     @Deprecated
@@ -334,11 +336,25 @@ public class LectureService {
             request.lessonTitle(),
             chapter.getLessons().size(),
             request.isFreePreview(),
-            null
+            request.videoUrl()
         );
         chapter.addLesson(lesson);
 
         lectureRepository.save(lecture);
+
+        if (lesson.getLessonType() == LessonType.QUIZ) {
+            List<Quiz> quizzes = request.quizQuestions().stream()
+                .map(q -> Quiz.createQuiz(
+                    lesson.getId(),
+                    q.questionOrder(),
+                    q.question(),
+                    q.correct()
+                ))
+                .toList();
+            quizRepository.saveAll(quizzes);
+            lesson.bindQuizzes(quizzes);
+        }
+
         return toLessonResponse(lesson);
     }
 
@@ -360,10 +376,11 @@ public class LectureService {
 
         lectureRepository.save(lecture);
 
-        if (lesson.getLessonType() == LessonType.QUIZ) {
-            List<Quiz> quizzes = quizRepository.findByLessonIdOrderByOrderIndexAsc(lesson.getId());
-            lesson.bindQuizzes(quizzes);
-        }
+        // 해당 요청에서 받은 퀴즈 목록에서, Id 가 존재하는 퀴즈는 이미 저장된 퀴즈니 업데이트하고, 존재하지 않는 퀴즈는 새로 생성한다.
+        // need change update return type to Quiz
+        
+        List<Quiz> savedQuizzes = quizService.saveOrUpdateQuizzes(lesson.getId(), request.quizQuestions());
+        lesson.bindQuizzes(savedQuizzes);
 
         return toLessonResponse(lesson);
     }
@@ -379,32 +396,35 @@ public class LectureService {
         lectureRepository.save(lecture);
     }
 
-    @Transactional
-    public LessonResponse replaceLessonQuizV2(Long lectureId, Long lessonId, LessonQuizReplaceRequest request, String instructorId) {
-        Lecture lecture = findEditableLectureWithChaptersAndLessons(lectureId, instructorId);
-        Chapter chapter = findChapterContainingLesson(lecture, lessonId);
-        Lesson lesson = chapter.findByLessonId(lessonId);
 
-        if (lesson.getLessonType() != LessonType.QUIZ) {
-            throw new LessonTypeInvalidException();
-        }
+    // 퀴즈가 한번에 레슨과 함께 생성되기때문에, 순서의 개념이 의미가 없음 TODO: Deprecated
+    // @Deprecated(since="next-commit")
+    // @Transactional
+    // public LessonResponse replaceLessonQuizV2(Long lectureId, Long lessonId, LessonQuizReplaceRequest request, String instructorId) {
+    //     Lecture lecture = findEditableLectureWithChaptersAndLessons(lectureId, instructorId);
+    //     Chapter chapter = findChapterContainingLesson(lecture, lessonId);
+    //     Lesson lesson = chapter.findByLessonId(lessonId);
 
-        quizRepository.deleteByLessonId(lessonId);
+    //     if (lesson.getLessonType() != LessonType.QUIZ) {
+    //         throw new LessonTypeInvalidException();
+    //     }
 
-        List<Quiz> quizList = request.quizQuestions().stream()
-            .map(q -> Quiz.createQuiz(
-                lessonId,
-                q.questionOrder(),
-                q.question(),
-                q.correct()
-            ))
-            .toList();
+    //     quizRepository.deleteByLessonId(lessonId);
 
-        quizRepository.saveAll(quizList);
-        lesson.bindQuizzes(quizList);
+    //     List<Quiz> quizList = request.quizQuestions().stream()
+    //         .map(q -> Quiz.createQuiz(
+    //             lessonId,
+    //             q.questionOrder(),
+    //             q.question(),
+    //             q.correct()
+    //         ))
+    //         .toList();
 
-        return toLessonResponse(lesson);
-    }
+    //     quizRepository.saveAll(quizList);
+    //     lesson.bindQuizzes(quizList);
+
+    //     return toLessonResponse(lesson);
+    // }
 
     @Transactional
     public void bindAndReorderCurriculumV2(Long lectureId, CurriculumBindRequest request, String instructorId) {
@@ -434,44 +454,26 @@ public class LectureService {
         Chapter chapter = findChapterContainingLesson(lecture, lessonId);
         Lesson lesson = chapter.findByLessonId(lessonId);
 
-        if (lesson.getLessonType() == LessonType.QUIZ) {
-            // explicitly do not expose quiz questions for this endpoint
-            return LessonResponse.withoutVideo(
-                lesson.getId(),
-                lesson.getLessonTitle(),
-                lesson.getLessonType().getDisplayName(),
-                lesson.getLessonOrder(),
-                lesson.getIsFreePreview(),
-                List.of() 
-            );
-        }
-
-        return LessonResponse.withoutQuiz(
-            lesson.getId(),
-            lesson.getLessonTitle(),
-            lesson.getLessonType().getDisplayName(),
-            lesson.getLessonOrder(),
-            lesson.getIsFreePreview(),
-            lesson.getVideoUrl()
-        );
-    }
-
-    // After if BC divided with Lecture and Lesson, move to LessonDomain
-    @Transactional(readOnly = true)
-    public LessonResponse getLessonWithQuizV2(Long lectureId, Long lessonId, String instructorId) {
-        Lecture lecture = findLectureWithChaptersAndLessons(lectureId);
-        lectureAccessValidator.validateOwnership(lecture, instructorId);
-
-        Chapter chapter = findChapterContainingLesson(lecture, lessonId);
-        Lesson lesson = chapter.findByLessonId(lessonId);
-
-        if (lesson.getLessonType() == LessonType.QUIZ) {
-            List<Quiz> quizzes = quizRepository.findByLessonIdOrderByOrderIndexAsc(lessonId);
-            lesson.bindQuizzes(quizzes);
-        }
+        List<Quiz> quizzes = quizRepository.findByLessonIdOrderByOrderIndexAsc(lessonId);
+        lesson.bindQuizzes(quizzes);
 
         return toLessonResponse(lesson);
     }
+
+    // After if BC divided with Lecture and Lesson, move to LessonDomain
+    // @Transactional(readOnly = true)
+    // public LessonResponse getLessonWithQuizV2(Long lectureId, Long lessonId, String instructorId) {
+    //     Lecture lecture = findLectureWithChaptersAndLessons(lectureId);
+    //     lectureAccessValidator.validateOwnership(lecture, instructorId);
+
+    //     Chapter chapter = findChapterContainingLesson(lecture, lessonId);
+    //     Lesson lesson = chapter.findByLessonId(lessonId);
+
+    //     List<Quiz> quizzes = quizRepository.findByLessonIdOrderByOrderIndexAsc(lessonId);
+    //     lesson.bindQuizzes(quizzes);
+
+    //     return toLessonResponse(lesson);
+    // }
 
     private Lecture findEditableLectureWithChaptersAndLessons(Long lectureId, String instructorId) {
         Lecture lecture = findLectureWithChaptersAndLessons(lectureId);
@@ -523,59 +525,6 @@ public class LectureService {
         );
     }
 
-
-
-//    // 챕터 추가
-//    // TODO: ChapterUpdatedResponse 반환
-//    @Transactional
-//    public LectureResponse addChapter(ChapterCreateRequest request, Long lectureId, String instructorId) {
-//        Lecture lecture = findLectureWithValidation(lectureId, instructorId);
-//
-//        // findByLectureId 가 Optional이라 null 처리 필요
-//        Thumbnail thumbnail = thumbnailRepository.findByLectureId(lectureId).orElseThrow(
-//            () -> new LectureThumbnailNotFoundException()
-//        );
-//
-//        String thumbnailUrl = thumbnail.getFileUrl();
-//
-//
-//        Chapter chapter = Chapter.createChapter(
-//            request.chapterTitle(),
-//            lecture.getChapters().size()
-//        );
-//
-//        lecture.addChapter(chapter);
-//
-//        return LectureResponse.from(lecture,thumbnailUrl);
-//    }
-//
-//    // 레슨 추가
-//    // TODO: LessonUpdatedResponse 반환
-//    @Transactional
-//    public LectureResponse addLesson(LessonCreateRequest request, Long lectureId, Long chapterId, String instructorId) {
-//        Lecture lecture = lectureRepository.findByIdWithChaptersAndLessons(lectureId)
-//            .orElseThrow(() -> new LectureNotFoundException());
-//
-//        validateInstructor(lecture, instructorId);
-//
-//        Chapter chapter = lecture.getChapters().stream()
-//            .filter(c -> c.getId().equals(chapterId))
-//            .findFirst()
-//            .orElseThrow(() -> new ChapterNotFoundException() );
-//
-//        // findByLectureId 가 Optional이라 null 처리 필요
-//        Thumbnail thumbnail = thumbnailRepository.findByLectureId(lectureId).orElseThrow(
-//            () -> new LectureThumbnailNotFoundException()
-//        );
-//
-//        String thumbnailUrl = thumbnail.getFileUrl();
-//
-//        Lesson lesson = createLessonByType(request, chapter.getLessons().size());
-//        chapter.addLesson(lesson);
-//
-//        return LectureResponse.from(lecture,thumbnailUrl);
-//    }
-
     // 강의 발행
     // 동시에 여러 강의 발행 요청이 올 경우를 대비해 강의 상태 변경 시 낙관적 락(Optimistic Lock) 적용 고려
     @Transactional
@@ -583,11 +532,26 @@ public class LectureService {
         Lecture lecture = findLectureWithChaptersAndLessons(lectureId);
         lectureAccessValidator.validateOwnership(lecture, instructorId);
 
-        lecture.makeAvailable();
+        lecture.makeSubmitted();
 
         return PublishedResponse.from(lecture.getId(), lecture.getStatus());
     }
 
+    // Only Admin can call this method
+    // check admin at controller
+    public void allowPublishLecture(Long lectureId) {
+        Lecture lecture = findLectureWithChaptersAndLessons(lectureId);
+
+        lecture.allowPublish();
+    }
+
+    // Only Admin can call this method
+    // check admin at controller
+    public void notAllowPublishLecture(Long lectureId) {
+        Lecture lecture = findLectureWithChaptersAndLessons(lectureId);
+
+        lecture.notAllowPublish();
+    }
 
     // 강의 목록 조회 (필터링 및 페이지네이션)
     public Page<LectureResponse> getAllLecturesWithFilters(String category, String level, String sort, Pageable pageable) {
@@ -639,10 +603,18 @@ public class LectureService {
     }
 
     // 강의 단건 조회
+    @Transactional(readOnly = true)
     public LectureResponse getLecture(Long lectureId) {
         Lecture lecture = findLectureWithChaptersAndLessons(lectureId);
 
         LectureStatistic statistic = lecture.getStatistic();
+
+
+        // @Deprecated // TODO: 모든 lecture의 thumbnailUrl 역정규화 완료 후 제거
+        if (lecture.getThumbnailUrl() == null && lecture.getThumbnailId() != null) {
+            String thumbnailUrl = thumbnailRepository.findFileUrlById(lecture.getThumbnailId());
+            lecture.setThumbnailUrl(thumbnailUrl);
+        }
 
         // TODO : Change Get Instructor Nickname response from Adapter API with userId
         String instructorNickname = userRepository.findById(lecture.getInstructorId())
@@ -725,7 +697,7 @@ public class LectureService {
         return lecture;
     }
 
-    private Lecture findLectureWithChaptersAndLessons(Long lectureId) {
+    public Lecture findLectureWithChaptersAndLessons(Long lectureId) {
         Lecture lecture = lectureRepository.findByIdWithChaptersAndLessons(lectureId)
             .orElseThrow(() -> new LectureNotFoundException());
         validateNotDeleted(lecture);

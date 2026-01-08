@@ -94,7 +94,11 @@ public class Lecture {
     @Column(name = "instructor_id") // user_id is UUID string
     private String instructorId;
 
-    @Column(name = "thumbnail_url") // thumbnail 역정규화
+    @Deprecated
+    @Column(name = "thumbnail_id", insertable = false, updatable = false)
+    private Long thumbnailId;
+    
+    @Column(name = "thumbnail_url", insertable = true, updatable = true) // thumbnail 역정규화
     private String thumbnailUrl;
 
     @OneToOne(mappedBy = "lecture", cascade = CascadeType.ALL, fetch = FetchType.LAZY, optional = true)
@@ -132,7 +136,7 @@ public class Lecture {
 
     // thumbnailId created after lecture creation, so need setter
     @Deprecated // 제거될 예정, UploadThumbnail -> createLecture 로 변환되면서 setter 제거 계획
-    private void setThumbnailUrl(String thumbnailUrl) {
+    public void setThumbnailUrl(String thumbnailUrl) {
         this.thumbnailUrl = thumbnailUrl;
     }
 
@@ -213,8 +217,18 @@ public class Lecture {
     }
 
 
-    public void makeAvailable() {
+    public void makeSubmitted() {
         validateForAvailable();
+        this.status = LectureStatus.SUBMITTED;
+    }
+
+    // Only Admin can call this method
+    public void notAllowPublish() {
+        this.status = LectureStatus.REJECTED;
+    }
+    
+    // Only Admin can call this method
+    public void allowPublish() {
         this.status = LectureStatus.AVAILABLE;
     }
 

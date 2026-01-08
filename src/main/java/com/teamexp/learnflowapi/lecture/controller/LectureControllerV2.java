@@ -39,12 +39,6 @@ public class LectureControllerV2 {
         this.lectureService = lectureService;
     }
 
-    @GetMapping
-    public String testV2() {
-        return "Lecture API V2";
-    }
-    
-
     @PostMapping
     public ResponseEntity<BaseResponse<LectureResponse>> createLecture(
         @Valid @RequestBody LectureCreateRequestV2 lectureCreateRequest,
@@ -120,16 +114,16 @@ public class LectureControllerV2 {
         return ResponseEntity.status(HttpStatus.OK).body(BaseResponse.ok(null));
     }
 
-    @PutMapping("/{lectureId}/lessons/{lessonId}/quiz")
-    public ResponseEntity<BaseResponse<LessonResponse>> replaceLessonQuiz(
-        @PathVariable Long lectureId,
-        @PathVariable Long lessonId,
-        @Valid @RequestBody LessonQuizReplaceRequest request,
-        @AuthenticationPrincipal CustomUserPrincipal customUser
-    ) {
-        LessonResponse response = lectureService.replaceLessonQuizV2(lectureId, lessonId, request, customUser.getId());
-        return ResponseEntity.status(HttpStatus.OK).body(BaseResponse.ok(response));
-    }
+    // @PutMapping("/{lectureId}/lessons/{lessonId}/quiz")
+    // public ResponseEntity<BaseResponse<LessonResponse>> replaceLessonQuiz(
+    //     @PathVariable Long lectureId,
+    //     @PathVariable Long lessonId,
+    //     @Valid @RequestBody LessonQuizReplaceRequest request,
+    //     @AuthenticationPrincipal CustomUserPrincipal customUser
+    // ) {
+    //     LessonResponse response = lectureService.replaceLessonQuizV2(lectureId, lessonId, request, customUser.getId());
+    //     return ResponseEntity.status(HttpStatus.OK).body(BaseResponse.ok(response));
+    // }
 
     @PutMapping("/{lectureId}/curriculum/bind")
     public ResponseEntity<BaseResponse<Void>> bindCurriculum(
@@ -153,13 +147,13 @@ public class LectureControllerV2 {
     }
 
     // Get Lesson Response with Quiz Questions
-    @GetMapping("/{lectureId}/lessons/{lessonId}/quiz")
-    public ResponseEntity<BaseResponse<LessonResponse>> getLessonWithQuiz(
-        @PathVariable Long lectureId,
-        @PathVariable Long lessonId,
-        @AuthenticationPrincipal CustomUserPrincipal customUser
-    ) {
-        LessonResponse response = lectureService.getLessonWithQuizV2(lectureId, lessonId, customUser.getId());
-        return ResponseEntity.status(HttpStatus.OK).body(BaseResponse.ok(response));
-    }
+    // @GetMapping("/{lectureId}/lessons/{lessonId}/quiz")
+    // public ResponseEntity<BaseResponse<LessonResponse>> getLessonWithQuiz(
+    //     @PathVariable Long lectureId,
+    //     @PathVariable Long lessonId,
+    //     @AuthenticationPrincipal CustomUserPrincipal customUser
+    // ) {
+    //     LessonResponse response = lectureService.getLessonWithQuizV2(lectureId, lessonId, customUser.getId());
+    //     return ResponseEntity.status(HttpStatus.OK).body(BaseResponse.ok(response));
+    // }
 }

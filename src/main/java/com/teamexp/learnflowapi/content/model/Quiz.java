@@ -61,7 +61,8 @@ public class Quiz {
         return new Quiz(lessonId, orderIndex, question, correct);
     }
 
-    public void update(String question, Boolean correct) {
+    public void update(Integer orderIndex, String question, Boolean correct) {
+        this.orderIndex = orderIndex;
         this.question = question;
         this.correct = correct;
     }

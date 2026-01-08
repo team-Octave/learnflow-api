@@ -1,5 +1,7 @@
 package com.teamexp.learnflowapi.lecture.dto.request;
 
+import com.teamexp.learnflowapi.content.dto.QuizUpdateListRequest;
+
 import jakarta.validation.constraints.Size;
 
 /**
@@ -11,8 +13,10 @@ public record LessonUpdateRequest(
     @Size(max = 200, message = "레슨 제목은 200자를 초과할 수 없습니다.")
     String lessonTitle,
     Boolean isFreePreview,
-    String videoUrl
+    String videoUrl,
+    QuizUpdateListRequest quizQuestions
 ) {
+
 }
 
 

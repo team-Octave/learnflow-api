@@ -4,7 +4,9 @@ import com.teamexp.learnflowapi.lecture.exception.LectureStatusInvalidException;
 
 public enum LectureStatus {
     AVAILABLE("PUBLISHED"),
-    UNAVAILABLE("UNPUBLISHED");
+    UNAVAILABLE("UNPUBLISHED"),
+    SUBMITTED("SUBMITTED"),
+    REJECTED("REJECTED");
 
     private final String displayName;
 
