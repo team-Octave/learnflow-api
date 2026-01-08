@@ -1,0 +1,84 @@
+name: LearnFlow API CD (Perfect Version)
+
+on:
+  push:
+    branches: [ "develop" ]
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Set up JDK 17
+        uses: actions/setup-java@v4
+        with:
+          java-version: '17'
+          distribution: 'temurin'
+
+      - name: Build with Gradle
+        run: ./gradlew clean bootJar
+
+      - name: Upload to GCP VM
+        uses: appleboy/scp-action@v1.0.0
+        with:
+          host: ${{ secrets.GCP_VM_IP }}
+          username: deployer
+          key: ${{ secrets.SSH_PRIVATE_KEY }}
+          source: "build/libs/*.jar"
+          target: "/opt/app"
+          strip_components: 2
+
+      - name: Restart Application
+        uses: appleboy/ssh-action@v1.2.4
+        with:
+          host: ${{ secrets.GCP_VM_IP }}
+          username: deployer
+          key: ${{ secrets.SSH_PRIVATE_KEY }}
+          script: |
+            PID=$(sudo lsof -ti:8080 || true)
+            if [ -n "$PID" ]; then
+              echo "Sending SIGTERM to process $PID"
+              sudo kill -15 $PID || true
+            
+              for i in {1..30}; do
+                if ! sudo lsof -ti:8080 > /dev/null 2>&1; then
+                  echo "Process terminated gracefully"
+                  break
+                fi
+                sleep 1
+              done
+
+              if sudo lsof -ti:8080 > /dev/null 2>&1; then
+                echo "Force killing process"
+                sudo fuser -k 8080/tcp || true
+              fi
+            fi
+
+            mkdir -p /opt/app/backup
+            if [ -f "/opt/app/app.jar" ]; then
+              mv /opt/app/app.jar /opt/app/backup/app.jar.$(date +%Y%m%d%H%M%S)
+            fi
+
+            LATEST_JAR=$(find /opt/app -maxdepth 1 -name "*.jar" -type f -printf '%T@ %p\n' | sort -rn | head -1 | cut -d' ' -f2-)
+            if [ -z "$LATEST_JAR" ]; then
+              echo "Error: No JAR file found"
+              exit 1
+            fi
+            mv "$LATEST_JAR" /opt/app/app.jar
+
+            nohup java -jar /opt/app/app.jar --spring.profiles.active=dev > /opt/app/app.log 2>&1 &
+
+            echo "Waiting for application to start (Health Check)..."
+            for i in {1..30}; do
+              if curl -f http://localhost:8080/actuator/health > /dev/null 2>&1; then
+                echo "Application started successfully"
+                exit 0
+              fi
+              echo "Still waiting... ($i/30)"
+              sleep 3
+            done
+            
+            echo "Error: Application failed to start within time limit"
+            exit 1
