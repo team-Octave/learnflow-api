@@ -1,4 +1,4 @@
-name: LearnFlow API CD (Enhanced)
+name: LearnFlow API CD
 
 on:
   push:
@@ -20,7 +20,6 @@ jobs:
       - name: Build with Gradle
         run: ./gradlew clean bootJar
 
-      # 1. SCP 액션 버전을 v1.0.0으로 업데이트
       - name: Upload to GCP VM
         uses: appleboy/scp-action@v1.0.0
         with:
@@ -31,7 +30,6 @@ jobs:
           target: "/opt/app"
           strip_components: 2
 
-      # 2. SSH 액션 버전을 v1.2.4로 업데이트
       - name: Restart Application
         uses: appleboy/ssh-action@v1.2.4
         with:
@@ -40,8 +38,18 @@ jobs:
           key: ${{ secrets.SSH_PRIVATE_KEY }}
           script: |
             mkdir -p /opt/app/backup
-            mv /opt/app/app.jar /opt/app/backup/app.jar.$(date +%Y%m%d%H%M%S) || true
-            mv /opt/app/*.jar /opt/app/app.jar
+            if [ -f "/opt/app/app.jar" ]; then
+              mv /opt/app/app.jar /opt/app/backup/app.jar.$(date +%Y%m%d%H%M%S)
+            fi
+
+            LATEST_JAR=$(find /opt/app -maxdepth 1 -name "*.jar" -type f -printf '%T@ %p\n' | sort -rn | head -1 | cut -d' ' -f2-)
+
+            if [ -z "$LATEST_JAR" ]; then
+              echo "Error: No JAR file found for deployment"
+              exit 1
+            fi
+
+            mv "$LATEST_JAR" /opt/app/app.jar
 
             sudo fuser -k 8080/tcp || true
             
