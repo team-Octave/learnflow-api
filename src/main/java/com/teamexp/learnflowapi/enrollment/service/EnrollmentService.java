@@ -22,7 +22,10 @@ import com.teamexp.learnflowapi.lecture.model.LectureStatistic;
 import com.teamexp.learnflowapi.lecture.model.LectureStatus;
 import com.teamexp.learnflowapi.lecture.repository.LectureRepository;
 import com.teamexp.learnflowapi.lecture.repository.LectureStatisticRepository;
+import jakarta.persistence.OptimisticLockException;
 import jakarta.persistence.Tuple;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.dao.EmptyResultDataAccessException;
 import org.springframework.stereotype.Service;
@@ -39,6 +42,8 @@ import java.util.stream.Collectors;
 @Service
 @Transactional
 public class EnrollmentService {
+
+    private static final Logger log = LoggerFactory.getLogger(EnrollmentService.class);
 
     private final EnrollmentRepository enrollmentRepository;
     private final CompletedLessonRepository completedLessonRepository;
@@ -276,18 +281,41 @@ public class EnrollmentService {
 
     // 통계 업데이트 헬퍼 메서드
     // Lecture 생성 시 LectureStatistic이 함께 생성되므로 항상 존재해야 함
+    // 낙관적 잠금 충돌 시 재시도 로직 포함
     private void updateEnrollmentCount(Long lectureId, boolean isAdd) {
-        LectureStatistic statistic = lectureStatisticRepository.findById(lectureId)
-            .orElseThrow(LectureNotFoundException::new);
+        int maxRetries = 3;
+        int retryCount = 0;
 
-        // 통계 업데이트
-        if (isAdd) {
-            statistic.addEnrollment();
-        } else {
-            statistic.removeEnrollment();
+        while (retryCount < maxRetries) {
+            try {
+                LectureStatistic statistic = lectureStatisticRepository.findById(lectureId)
+                    .orElseThrow(LectureNotFoundException::new);
+
+                // 통계 업데이트
+                if (isAdd) {
+                    statistic.addEnrollment();
+                } else {
+                    statistic.removeEnrollment();
+                }
+
+                lectureStatisticRepository.save(statistic);
+                return; // 성공 시 종료
+            } catch (OptimisticLockException e) {
+                retryCount++;
+                if (retryCount >= maxRetries) {
+                    log.error("Failed to update LectureStatistic enrollment count after {} retries for lectureId: {}", 
+                        maxRetries, lectureId, e);
+                    throw e;
+                }
+                // 짧은 대기 후 재시도
+                try {
+                    Thread.sleep(50L * retryCount); // 50ms, 100ms, 150ms
+                } catch (InterruptedException ie) {
+                    Thread.currentThread().interrupt();
+                    throw new RuntimeException(ie);
+                }
+            }
         }
-
-        lectureStatisticRepository.save(statistic);
     }
 
     private List<Long> parseCommaSeparatedIds(String idsString) {

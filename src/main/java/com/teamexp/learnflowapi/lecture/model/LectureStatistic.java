@@ -11,6 +11,7 @@ import jakarta.persistence.MapsId;
 import jakarta.persistence.OneToOne;
 import jakarta.persistence.PostLoad;
 import jakarta.persistence.Table;
+import jakarta.persistence.Version;
 import org.springframework.data.annotation.LastModifiedDate;
 import org.springframework.data.jpa.domain.support.AuditingEntityListener;
 
@@ -50,6 +51,10 @@ public class LectureStatistic {
     @LastModifiedDate
     @Column(name = "updated_at", columnDefinition = "TIMESTAMP", nullable = false)
     private Instant updatedAt;
+
+    @Version
+    @Column(name = "version")
+    private Long version;
 
     protected LectureStatistic() {
     }
