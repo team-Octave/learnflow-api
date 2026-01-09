@@ -42,4 +42,6 @@ public interface LectureRepository  {
     void delete(Lecture lecture);
 
     boolean existsById(Long id);
+
+    void saveAndFlush(Lecture lecture);
 }
