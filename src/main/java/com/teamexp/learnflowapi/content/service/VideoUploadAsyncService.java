@@ -5,6 +5,8 @@ import com.teamexp.learnflowapi.content.model.ContentMedia;
 import com.teamexp.learnflowapi.content.repository.ContentMediaRepository;
 import lombok.RequiredArgsConstructor;
 import org.bytedeco.javacv.FFmpegFrameGrabber;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.scheduling.annotation.Async;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -19,6 +21,7 @@ public class VideoUploadAsyncService {
 
     private final ContentMediaRepository contentMediaRepository;
     private final GcpFileUploadService gcpFileUploadService;
+    private static final Logger log = LoggerFactory.getLogger(VideoUploadAsyncService.class);
 
     @Async("videoUploadExecutor")
     @Transactional
@@ -41,11 +44,13 @@ public class VideoUploadAsyncService {
             // ContentMedia 업데이트(fileKey, duration)
             media.changeFile(fileKey, durationSec);
         } catch (Exception e) {
-            throw new RuntimeException("비디오 업로드 중 오류가 발생했습니다.", e);
+            log.error("[Async-VideoUpload] 업로드 실패 mediaId={}, error={}",
+                    contentMediaId, e.getMessage(), e);
         } finally {
-            // 임시파일 삭제
             if (localFile != null && localFile.exists()) {
-                localFile.delete();
+                if (!localFile.delete()) {
+                    log.warn("임시 파일 삭제 실패: {}", localFile.getAbsolutePath());
+                }
             }
         }
     }
