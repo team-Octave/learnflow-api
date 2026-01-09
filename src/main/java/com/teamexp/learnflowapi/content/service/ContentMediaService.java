@@ -31,7 +31,6 @@ public class ContentMediaService {
             throws IOException {
 
         MultipartFile file = request.file();
-        Long lessonId = request.lessonId();
 
         // 업로드 파일 검증
         validateFile(file);
@@ -39,6 +38,9 @@ public class ContentMediaService {
         // lesson Id로 먼저 ContentMedia 생성
         ContentMedia media = ContentMedia.createContentMedia(request.lessonId(), null,null);
         contentMediaRepository.save(media);
+
+        // db에 바로 반영해서 비동기에서 조회 했을 시 찾을 수 있도록 함
+        contentMediaRepository.flush();
 
         // 비동기 업로드 작업
         videoUploadAsyncService.uploadVideoFileAsync(media.getId(), file);
