@@ -75,14 +75,14 @@ public class Lecture {
     private Instant createdAt;
 
     @LastModifiedDate
-    @Column(nullable = false)
+    @Column // 추후 nullablefalse로
     private Instant updatedAt;
 
     @Enumerated(EnumType.STRING)
     @Column(nullable = false)
     private LectureStatus status;
 
-    @Column(name="delete_flag", nullable = false, columnDefinition = "boolean default false")
+    @Column(name="delete_flag", columnDefinition = "boolean default false") // 추후 nullable 다시 false로 
     private boolean deleteFlag;
 
     @Column(name = "deleted_at")
