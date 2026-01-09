@@ -43,5 +43,5 @@ public interface LectureRepository  {
 
     boolean existsById(Long id);
 
-    void saveAndFlush(Lecture lecture);
+    void flush();
 }

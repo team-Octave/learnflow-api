@@ -340,7 +340,8 @@ public class LectureService {
         );
         chapter.addLesson(lesson);
 
-        lectureRepository.saveAndFlush(lecture);
+        lectureRepository.save(lecture);
+        lectureRepository.flush();
 
         if (lesson.getLessonType() == LessonType.QUIZ) {
             List<Quiz> quizzes = request.quizQuestions().stream()
