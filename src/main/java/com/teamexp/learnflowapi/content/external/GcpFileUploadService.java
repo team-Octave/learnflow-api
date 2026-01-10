@@ -52,10 +52,11 @@ public class GcpFileUploadService {
 
         // GCS에 저장할 objectName 생성 (디렉토리 + UUID 조합 등)
         String objectName = directory + UUID.randomUUID() + ".mp4";
-
         BlobInfo blobInfo = BlobInfo.newBuilder(bucketName, objectName).build();
 
-        storage.create(blobInfo, Files.readAllBytes(file.toPath()));
+        try (InputStream inputStream = Files.newInputStream(file.toPath())) {
+            storage.createFrom(blobInfo, inputStream);
+        }
 
         return objectName; // 이게 DB에 넣을 fileKey
     }

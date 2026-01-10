@@ -25,16 +25,18 @@ public class VideoUploadAsyncService {
 
     @Async("videoUploadExecutor")
     @Transactional
-    public void uploadVideoFileAsync(Long contentMediaId, MultipartFile file) throws IOException {
+    public void uploadVideoFileAsync(Long contentMediaId, MultipartFile file) {
 
         // db에서 ContentMedia 조회
         ContentMedia media = contentMediaRepository.findById(contentMediaId).orElseThrow(() ->
                 new IllegalArgumentException("ContentMedia를 찾을 수 없습니다. ID: " + contentMediaId));
 
         // MultipartFile을 임시파일로 저장
-        File localFile = convertToTempFile(file);
+        File localFile = null;
 
         try {
+            localFile = convertToTempFile(file);
+
             // FFmpegFrameGrabber으로 duration 계산
             Integer durationSec = getDurationSeconds(localFile);
 
@@ -42,8 +44,9 @@ public class VideoUploadAsyncService {
             String fileKey = gcpFileUploadService.uploadFile(localFile,"videos/");
 
             // ContentMedia 업데이트(fileKey, duration)
-            media.changeFile(fileKey, durationSec);
+            media.completeUpload(fileKey, durationSec);
         } catch (Exception e) {
+            media.failUpload();
             log.error("[Async-VideoUpload] 업로드 실패 mediaId={}, error={}",
                     contentMediaId, e.getMessage(), e);
         } finally {
@@ -54,6 +57,7 @@ public class VideoUploadAsyncService {
             }
         }
     }
+
     private File convertToTempFile(MultipartFile multipartFile) throws IOException {
         File tempFile = File.createTempFile("upload-", ".mp4");
         multipartFile.transferTo(tempFile);

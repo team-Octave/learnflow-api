@@ -36,7 +36,7 @@ public class ContentMediaService {
         validateFile(file);
 
         // lesson Id로 먼저 ContentMedia 생성
-        ContentMedia media = ContentMedia.createContentMedia(request.lessonId(), null,null);
+        ContentMedia media = ContentMedia.createPending(request.lessonId());
         contentMediaRepository.save(media);
 
         // db에 바로 반영해서 비동기에서 조회 했을 시 찾을 수 있도록 함
