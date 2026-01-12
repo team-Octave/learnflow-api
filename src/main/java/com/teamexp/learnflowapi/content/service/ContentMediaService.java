@@ -11,7 +11,6 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.core.task.TaskRejectedException;
 import org.springframework.stereotype.Service;
-import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.multipart.MultipartFile;
 
 @Service
@@ -31,46 +30,43 @@ public class ContentMediaService {
     private static final String ALLOWED_MIME = "video/mp4";
     private static final long MAX_FILE_SIZE = 1024L * 1024L * 1024L;
 
-    @Transactional
     public Long requestVideoUpload(UploadVideoRequest request) throws IOException {
 
         MultipartFile file = request.file();
+        Long lessonId = request.lessonId();
 
         // 업로드 파일 검증
         validateFile(file);
 
         // multipartFile -> 임시 파일로 복사하기
         File tempFile = File.createTempFile("upload-", ".mp4");
-        ContentMedia media = null;
+
+        ContentMedia media = ContentMedia.createPending(lessonId);
+        contentMediaRepository.save(media);
 
         try {
             file.transferTo(tempFile);
-            // lesson Id로 먼저 ContentMedia 생성
-            media = ContentMedia.createPending(request.lessonId());
-            contentMediaRepository.save(media);
-
 
             // 비동기 업로드 작업
             videoUploadAsyncService.uploadVideoFileAsync(media.getId(), tempFile);
 
             return media.getId();
+
         }catch(TaskRejectedException ex) {
             // 큐/ 스레드풀 꽉 차서 비동기 작업 실행 안된 경우
-
-            if (media != null) {
-                // 고아 PENDING 방지
-                media.failUpload();
-            }
+            media.failUpload();   // 상태 = FAILED
+            contentMediaRepository.save(media);
 
             // temp 파일 삭제
             if (tempFile.exists()) {
                 tempFile.delete();
             }
 
-            log.error("[VideoUpload] 비동기 작업 제출 실패 - mediaId={}, error={}",
-                    (media != null ? media.getId() : null), ex.getMessage(), ex);
+            log.error("[VideoUpload] 큐 거절 - mediaId={}, error={}",
+                    media.getId(), ex.getMessage(), ex);
 
             throw ex;
+
         } catch (Exception ex) {
             if (tempFile.exists()) {
                 tempFile.delete();

@@ -30,20 +30,43 @@ public class VideoUploadAsyncService {
         ContentMedia media = contentMediaRepository.findById(contentMediaId).orElseThrow(() ->
                 new IllegalArgumentException("ContentMedia를 찾을 수 없습니다. ID: " + contentMediaId));
 
+        final int maxRetryAttempts = 3;
 
         try {
-            // FFmpegFrameGrabber으로 duration 계산
-            Integer durationSec = getDurationSeconds(localFile);
+            int attempt = 1;
+            while (true) {
+                try {
+                    // FFmpegFrameGrabber으로 duration 계산
+                    Integer durationSec = getDurationSeconds(localFile);
 
-            // GCS 업로드
-            String fileKey = gcpFileUploadService.uploadFile(localFile,"videos/");
+                    // GCS 업로드
+                    String fileKey = gcpFileUploadService.uploadFile(localFile, "videos/");
 
-            // ContentMedia 업데이트(fileKey, duration)
-            media.completeUpload(fileKey, durationSec);
-        } catch (Exception e) {
-            media.failUpload();
-            log.error("[Async-VideoUpload] 업로드 실패 mediaId={}, error={}",
-                    contentMediaId, e.getMessage(), e);
+                    // ContentMedia 업데이트(fileKey, duration)
+                    media.completeUpload(fileKey, durationSec);
+                    return;
+                } catch (Exception e) {
+                    if (attempt >= maxRetryAttempts) {
+                        media.failUpload();
+                        log.error("[Async-VideoUpload] 업로드 완전 실패 - mediaId={}, attempts={}, error={}",
+                                contentMediaId, attempt, e.getMessage(), e);
+                        return;
+                    } else {
+                        log.warn("[Async-VideoUpload] 업로드 실패, 재시도 예정 - mediaId={}, attempt={}, error={}",
+                                contentMediaId, attempt, e.getMessage());
+                        attempt++;
+
+                        try {
+                            Thread.sleep(1000L * attempt); // 간단한 backoff (1초, 2초, 3초…)
+                        } catch (InterruptedException ie) {
+                            Thread.currentThread().interrupt();
+                            media.failUpload();
+                            log.error("[Async-VideoUpload] 재시도 대기 중 - mediaId={}", contentMediaId, ie);
+                            return;
+                        }
+                    }
+                }
+            }
         } finally {
             if (localFile != null && localFile.exists()) {
                 if (!localFile.delete()) {
