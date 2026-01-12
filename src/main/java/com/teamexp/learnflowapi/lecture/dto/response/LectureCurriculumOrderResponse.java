@@ -16,7 +16,6 @@ public record LectureCurriculumOrderResponse(
     public record LessonResponse(
         Long lessonId,
         Integer order
-        // Quiz 는 이미 바인딩 되어서 의미없다?
     ) {}
 
     public static LectureCurriculumOrderResponse from(Long lectureId, List<ChapterResponse> chapters) {

@@ -21,6 +21,8 @@ public interface LectureRepository  {
 
     Optional<Lecture> findByIdWithChaptersAndLessons(Long id);
 
+    Optional<Lecture> findByIdWithChaptersAndLessonsAndQuizzes(Long id);
+
     List<Lecture> findByInstructorId(String instructorId);
 
     Page<Lecture> findByInstructorId(String instructorId, Pageable pageable);
@@ -43,5 +45,4 @@ public interface LectureRepository  {
 
     boolean existsById(Long id);
 
-    void flush();
 }

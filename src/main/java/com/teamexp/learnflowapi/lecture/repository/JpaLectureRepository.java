@@ -30,6 +30,15 @@ public interface JpaLectureRepository extends JpaRepository<Lecture, Long>, Lect
     Optional<Lecture> findByIdWithChaptersAndLessons(@Param("id") Long id);
 
     @Override
+    @Query("SELECT DISTINCT l FROM Lecture l " +
+        "LEFT JOIN FETCH l.chapters c " +
+        "LEFT JOIN FETCH c.lessons ls " +
+        "LEFT JOIN FETCH ls.quizzes " +
+        "LEFT JOIN FETCH l.statistic " +
+        "WHERE l.id = :id AND l.deleteFlag = false")
+    Optional<Lecture> findByIdWithChaptersAndLessonsAndQuizzes(@Param("id") Long id);
+
+    @Override
     List<Lecture> findByInstructorId(String instructorId);
 
     @Override
@@ -43,6 +52,9 @@ public interface JpaLectureRepository extends JpaRepository<Lecture, Long>, Lect
 
     @Override
     List<Lecture> findByCategoryIdAndStatus(Integer categoryId, LectureStatus status);
+
+    @Override
+    List<Lecture> findByCategoryIdAndStatusAndDeleteFlagFalse(Integer categoryId, LectureStatus status);
 
     @EntityGraph("Lecture.withStatistic")
     @Override

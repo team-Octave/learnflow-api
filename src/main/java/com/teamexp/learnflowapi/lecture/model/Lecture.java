@@ -16,6 +16,7 @@ import org.springframework.data.jpa.domain.support.AuditingEntityListener;
 import java.time.Instant;
 import java.util.Collections;
 import java.util.LinkedHashSet;
+import java.util.Objects;
 import java.util.Set;
 
 @Entity
@@ -71,11 +72,11 @@ public class Lecture {
     private LectureLevel level;
 
     @CreatedDate
-    @Column(nullable = false)
+    @Column(name = "created_at",nullable = false)
     private Instant createdAt;
 
     @LastModifiedDate
-    @Column // 추후 nullablefalse로
+    @Column(name = "updated_at") // 추후 nullablefalse로
     private Instant updatedAt;
 
     @Enumerated(EnumType.STRING)
@@ -147,7 +148,7 @@ public class Lecture {
 
     public Chapter findByChapterId(Long chapterId) {
         return chapters.stream()
-            .filter(c -> c.getId().equals(chapterId))
+            .filter(c -> Objects.equals(c.getId(), chapterId)) // chapterId가 null인 경우 처리
             .findFirst()
             .orElseThrow(ChapterNotFoundException::new);
     }

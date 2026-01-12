@@ -234,7 +234,7 @@ public class LectureService {
                         ))
                         .toList();
 
-                    lesson.bindQuizzes(quizList);
+                    quizList.forEach(lesson::addQuiz);
                     quizRepository.saveAll(quizList);
                 }
             }
@@ -249,8 +249,8 @@ public class LectureService {
                     .map(lesson -> {
                         if (lesson.getLessonType() == LessonType.QUIZ) {
                             List<LectureFullCreateResponse.LessonResponse.QuizQuestionResponse> quizQuestions =
-                                (lesson.unpackingQuizzes() == null ? List.<Quiz>of() : lesson.unpackingQuizzes())
-                                    .stream()
+                                lesson.getQuizzes().stream()
+                                    .sorted(Comparator.comparing(Quiz::getOrderIndex))
                                     .map(quizQuestion -> new LectureFullCreateResponse.LessonResponse.QuizQuestionResponse(
                                         quizQuestion.getId(),
                                         quizQuestion.getQuestion(),
@@ -350,19 +350,16 @@ public class LectureService {
         chapter.addLesson(lesson);
 
         if (lesson.getLessonType() == LessonType.QUIZ) {
-            List<Quiz> quizzes = request.quizQuestions()
-                .stream()
-                .map(q -> Quiz.createQuiz(
+            request.quizQuestions().forEach(q ->
+                lesson.addQuiz(Quiz.createQuiz(
                     q.questionOrder(),
                     q.question(),
                     q.correct()
                 ))
-                .toList();
-            lesson.bindQuizzes(quizzes);
+            );
         }
 
         lectureRepository.save(lecture);
-        lectureRepository.flush(); // 기존코드는 bc를 강제로 나눈 문제때문에 flush로 id save 를 강제화했는데, 지금은 굳이...?필요한가?
 
         return toLessonResponse(lesson);
     }
@@ -391,7 +388,6 @@ public class LectureService {
         }
 
         lectureRepository.save(lecture);
-        lectureRepository.flush();
 
         return toLessonResponse(lesson);
     }
@@ -464,9 +460,6 @@ public class LectureService {
 
         Chapter chapter = findChapterContainingLesson(lecture, lessonId);
         Lesson lesson = chapter.findByLessonId(lessonId);
-
-        List<Quiz> quizzes = quizRepository.findByLessonIdOrderByOrderIndexAsc(lessonId);
-        lesson.bindQuizzes(quizzes);
 
         return toLessonResponse(lesson);
     }
@@ -625,8 +618,8 @@ public class LectureService {
     private LessonResponse toLessonResponse(Lesson lesson) {
         if (lesson.getLessonType() == LessonType.QUIZ) {
             List<LessonResponse.QuizQuestionResponse> quizQuestions =
-                (lesson.unpackingQuizzes() == null ? List.<Quiz>of() : lesson.unpackingQuizzes())
-                    .stream()
+                lesson.getQuizzes().stream()
+                    .sorted(Comparator.comparing(Quiz::getOrderIndex))
                     .map(q -> new LessonResponse.QuizQuestionResponse(
                         q.getId(),
                         q.getQuestion(),
@@ -669,6 +662,7 @@ public class LectureService {
 
     // Only Admin can call this method
     // check admin at controller
+    @Transactional
     public void allowPublishLecture(Long lectureId) {
         Lecture lecture = findLectureWithChaptersAndLessons(lectureId);
 
@@ -677,6 +671,7 @@ public class LectureService {
 
     // Only Admin can call this method
     // check admin at controller
+    @Transactional
     public void notAllowPublishLecture(Long lectureId) {
         Lecture lecture = findLectureWithChaptersAndLessons(lectureId);
 
@@ -735,7 +730,9 @@ public class LectureService {
     // 강의 단건 조회
     @Transactional(readOnly = true)
     public LectureResponse getLecture(Long lectureId) {
-        Lecture lecture = findLectureWithChaptersAndLessons(lectureId);
+        Lecture lecture = lectureRepository.findByIdWithChaptersAndLessonsAndQuizzes(lectureId)
+            .orElseThrow(LectureNotFoundException::new);
+        validateNotDeleted(lecture);
 
         LectureStatistic statistic = lecture.getStatistic();
 
@@ -751,27 +748,6 @@ public class LectureService {
         String instructorNickname = userRepository.findById(lecture.getInstructorId())
             .map(user -> user.getNickname())
             .orElse("Unknown Instructor");
-
-        List<Long> quizLessonIds = lecture.getChapters().stream()
-            .flatMap(chapter -> chapter.getLessons().stream())
-            .filter(lesson -> lesson.getLessonType() == LessonType.QUIZ)
-            .map(Lesson::getId)
-            .filter(Objects::nonNull)
-            .distinct()
-            .toList();
-
-        if (!quizLessonIds.isEmpty()) {
-            Map<Long, List<Quiz>> quizzesByLessonId = quizRepository
-                .findByLessonIdInOrderByLessonIdAscOrderIndexAsc(quizLessonIds)
-                .stream()
-                .collect(Collectors.groupingBy(q -> q.getLesson().getId()));
-
-            lecture.getChapters().forEach(chapter -> chapter.getLessons().forEach(lesson -> {
-                if (lesson.getLessonType() == LessonType.QUIZ) {
-                    lesson.bindQuizzes(quizzesByLessonId.getOrDefault(lesson.getId(), List.of()));
-                }
-            }));
-        }
 
         return LectureResponse.fromWithStatics(lecture, statistic, instructorNickname);
     }

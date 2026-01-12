@@ -3,9 +3,7 @@ package com.teamexp.learnflowapi.lecture.model;
 import jakarta.persistence.*;
 import lombok.Getter;
 
-import java.util.Comparator;
 import java.util.LinkedHashSet;
-import java.util.List;
 import java.util.Set;
 
 @Entity
@@ -80,28 +78,6 @@ public class Lesson {
     public void addQuiz(Quiz quiz) {
         this.quizzes.add(quiz);
         quiz.setLesson(this);
-    }
-
-    /**
-     * Replace quizzes under this lesson while keeping JPA relationship consistent.
-     *
-     * <p>NOTE: With orphanRemoval=true, removing from collection will delete orphan rows on flush.
-     */
-    public void bindQuizzes(List<Quiz> quizzes) {
-        this.quizzes.clear();
-        if (quizzes == null || quizzes.isEmpty()) {
-            return;
-        }
-        quizzes.forEach(this::addQuiz);
-    }
-
-    /**
-     * Safe read-only view of quizzes ordered by {@code orderIndex ASC}.
-     */
-    public List<Quiz> unpackingQuizzes() {
-        return this.quizzes.stream()
-            .sorted(Comparator.comparing(Quiz::getOrderIndex))
-            .toList();
     }
 
     public void removeQuizById(Long quizId) {

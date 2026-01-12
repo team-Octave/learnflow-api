@@ -283,10 +283,10 @@ public class EnrollmentService {
     // Lecture 생성 시 LectureStatistic이 함께 생성되므로 항상 존재해야 함
     // 낙관적 잠금 충돌 시 재시도 로직 포함
     private void updateEnrollmentCount(Long lectureId, boolean isAdd) {
-        int maxRetries = 3;
+        final int MAX_RETRIES = 3;
         int retryCount = 0;
 
-        while (retryCount < maxRetries) {
+        while (retryCount < MAX_RETRIES) {
             try {
                 LectureStatistic statistic = lectureStatisticRepository.findById(lectureId)
                     .orElseThrow(LectureNotFoundException::new);
@@ -302,9 +302,9 @@ public class EnrollmentService {
                 return; // 성공 시 종료
             } catch (OptimisticLockException e) {
                 retryCount++;
-                if (retryCount >= maxRetries) {
+                if (retryCount >= MAX_RETRIES) {
                     log.error("Failed to update LectureStatistic enrollment count after {} retries for lectureId: {}", 
-                        maxRetries, lectureId, e);
+                        MAX_RETRIES, lectureId, e);
                     throw e;
                 }
                 // 짧은 대기 후 재시도

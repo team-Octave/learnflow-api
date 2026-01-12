@@ -1,14 +1,11 @@
 package com.teamexp.learnflowapi.lecture.service;
 
-import org.springframework.stereotype.Component;
 
 import com.teamexp.learnflowapi.lecture.exception.LectureInstructorUnauthorizedException;
 import com.teamexp.learnflowapi.lecture.model.Lecture;
 import org.springframework.stereotype.Service;
 
 
-
-@Component
 @Service
 public class LectureAccessValidator {
 
