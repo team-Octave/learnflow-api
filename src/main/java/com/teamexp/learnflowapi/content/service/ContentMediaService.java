@@ -7,7 +7,11 @@ import com.teamexp.learnflowapi.content.repository.ContentMediaRepository;
 import java.io.File;
 import java.io.IOException;
 import lombok.RequiredArgsConstructor;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+import org.springframework.core.task.TaskRejectedException;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.multipart.MultipartFile;
 
 @Service
@@ -16,6 +20,7 @@ public class ContentMediaService {
 
     private final ContentMediaRepository contentMediaRepository;
     private final VideoUploadAsyncService videoUploadAsyncService;
+    private static final Logger log = LoggerFactory.getLogger(ContentMediaService.class);
 
     /*
      * 1. 영상 파일 형식 .mp4
@@ -26,8 +31,8 @@ public class ContentMediaService {
     private static final String ALLOWED_MIME = "video/mp4";
     private static final long MAX_FILE_SIZE = 1024L * 1024L * 1024L;
 
-    public Long requestVideoUpload(UploadVideoRequest request)
-            throws IOException {
+    @Transactional
+    public Long requestVideoUpload(UploadVideoRequest request) throws IOException {
 
         MultipartFile file = request.file();
 
@@ -36,31 +41,38 @@ public class ContentMediaService {
 
         // multipartFile -> 임시 파일로 복사하기
         File tempFile = File.createTempFile("upload-", ".mp4");
-        boolean asyncStarted = false;
+        file.transferTo(tempFile);
+
+        // lesson Id로 먼저 ContentMedia 생성
+        ContentMedia media = ContentMedia.createPending(request.lessonId());
+        contentMediaRepository.save(media);
+
         try {
-            file.transferTo(tempFile.toPath());
-
-
-            // lesson Id로 먼저 ContentMedia 생성
-            ContentMedia media = ContentMedia.createPending(request.lessonId());
-            contentMediaRepository.save(media);
-
             // 비동기 업로드 작업
             videoUploadAsyncService.uploadVideoFileAsync(media.getId(), tempFile);
-            asyncStarted = true;
 
-            return media.getId();
-        } finally {
-            // 비동기 작업이 시작되었으면 임시 파일 삭제는 비동기 작업에서 처리
-            if (!asyncStarted && tempFile.exists()) {
-                if (!tempFile.delete()) {
-                    tempFile.deleteOnExit();
+        }catch(TaskRejectedException ex){
+                // 🔥 큐/스레드풀 꽉 차서 비동기 작업 조차 못 들어간 경우
+
+                // 상태를 FAILED로 바꿈 → 고아 PENDING 방지
+                media.failUpload();
+
+                // temp 파일 삭제 (비동기 실행이 안 됐으니까 우리가 직접 삭제)
+                if (tempFile.exists()) {
+                    tempFile.delete();
                 }
+
+                // 로깅
+                log.error("[VideoUpload] 업로드 작업 제출 실패 - mediaId={}, error={}",
+                        media.getId(), ex.getMessage(), ex);
+
+                throw ex;
+
             }
-        }
+        return media.getId();
     }
 
-    private void validateFile(MultipartFile file){
+        private void validateFile(MultipartFile file){
         if (file == null || file.isEmpty()) {
             throw new IllegalArgumentException("업로드할 파일이 없습니다.");
         }

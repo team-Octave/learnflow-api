@@ -6,6 +6,7 @@ import org.springframework.scheduling.annotation.EnableAsync;
 import org.springframework.scheduling.concurrent.ThreadPoolTaskExecutor;
 
 import java.util.concurrent.Executor;
+import java.util.concurrent.ThreadPoolExecutor;
 
 @Configuration
 @EnableAsync
@@ -20,6 +21,9 @@ public class AsyncConfig {
         executor.setThreadNamePrefix("video-upload-");
         executor.setAllowCoreThreadTimeOut(true);  // idle 시 스레드 정리
         executor.setKeepAliveSeconds(30);
+        // CallerRunsPolicy : 큐가 꽉차면
+        executor.setRejectedExecutionHandler(new ThreadPoolExecutor.CallerRunsPolicy());
+
         executor.initialize();
         return executor;
     }
