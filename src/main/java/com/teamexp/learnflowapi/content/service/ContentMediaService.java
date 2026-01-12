@@ -36,7 +36,7 @@ public class ContentMediaService {
 
         // multipartFile -> 임시 파일로 복사하기
         File tempFile = File.createTempFile("upload-", ".mp4");
-        boolean asyncSratred = false;
+        boolean asyncStarted = false;
         try {
             file.transferTo(tempFile.toPath());
 
@@ -47,12 +47,12 @@ public class ContentMediaService {
 
             // 비동기 업로드 작업
             videoUploadAsyncService.uploadVideoFileAsync(media.getId(), tempFile);
-            asyncSratred = true;
+            asyncStarted = true;
 
             return media.getId();
         } finally {
             // 비동기 작업이 시작되었으면 임시 파일 삭제는 비동기 작업에서 처리
-            if (!asyncSratred && tempFile.exists()) {
+            if (!asyncStarted && tempFile.exists()) {
                 if (!tempFile.delete()) {
                     tempFile.deleteOnExit();
                 }
