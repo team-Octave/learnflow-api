@@ -21,8 +21,6 @@ public class AsyncConfig {
         executor.setThreadNamePrefix("video-upload-");
         executor.setAllowCoreThreadTimeOut(true);  // idle 시 스레드 정리
         executor.setKeepAliveSeconds(30);
-        // CallerRunsPolicy : 큐가 꽉차면
-        executor.setRejectedExecutionHandler(new ThreadPoolExecutor.CallerRunsPolicy());
 
         executor.initialize();
         return executor;

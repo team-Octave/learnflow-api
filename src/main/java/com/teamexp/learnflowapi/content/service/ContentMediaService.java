@@ -41,35 +41,46 @@ public class ContentMediaService {
 
         // multipartFile -> 임시 파일로 복사하기
         File tempFile = File.createTempFile("upload-", ".mp4");
-        file.transferTo(tempFile);
-
-        // lesson Id로 먼저 ContentMedia 생성
-        ContentMedia media = ContentMedia.createPending(request.lessonId());
-        contentMediaRepository.save(media);
+        ContentMedia media = null;
 
         try {
+            file.transferTo(tempFile);
+            // lesson Id로 먼저 ContentMedia 생성
+            media = ContentMedia.createPending(request.lessonId());
+            contentMediaRepository.save(media);
+
+
             // 비동기 업로드 작업
             videoUploadAsyncService.uploadVideoFileAsync(media.getId(), tempFile);
 
-        }catch(TaskRejectedException ex){
-                // 🔥 큐/스레드풀 꽉 차서 비동기 작업 조차 못 들어간 경우
+            return media.getId();
+        }catch(TaskRejectedException ex) {
+            // 큐/ 스레드풀 꽉 차서 비동기 작업 실행 안된 경우
 
-                // 상태를 FAILED로 바꿈 → 고아 PENDING 방지
+            if (media != null) {
+                // 고아 PENDING 방지
                 media.failUpload();
-
-                // temp 파일 삭제 (비동기 실행이 안 됐으니까 우리가 직접 삭제)
-                if (tempFile.exists()) {
-                    tempFile.delete();
-                }
-
-                // 로깅
-                log.error("[VideoUpload] 업로드 작업 제출 실패 - mediaId={}, error={}",
-                        media.getId(), ex.getMessage(), ex);
-
-                throw ex;
-
             }
-        return media.getId();
+
+            // temp 파일 삭제
+            if (tempFile.exists()) {
+                tempFile.delete();
+            }
+
+            log.error("[VideoUpload] 비동기 작업 제출 실패 - mediaId={}, error={}",
+                    (media != null ? media.getId() : null), ex.getMessage(), ex);
+
+            throw ex;
+        } catch (Exception ex) {
+            if (tempFile.exists()) {
+                tempFile.delete();
+            }
+
+            log.error("[VideoUpload] 업로드 전 단계에서 예외 발생 - lessonId={}, error={}",
+                    request.lessonId(), ex.getMessage(), ex);
+
+            throw ex;
+        }
     }
 
         private void validateFile(MultipartFile file){
