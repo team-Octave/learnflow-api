@@ -68,6 +68,10 @@ public class ContentMediaService {
             throw ex;
 
         } catch (Exception ex) {
+            // 다른 예외 상황의 경우
+            media.failUpload();   // 상태 = FAILED
+            contentMediaRepository.save(media);
+
             if (tempFile.exists()) {
                 tempFile.delete();
             }
