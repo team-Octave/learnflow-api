@@ -1,4 +1,4 @@
-name: LearnFlow API CD (Phase 1: Integrated Perfect Version)
+name: LearnFlow API CD
 
 on:
   push:
