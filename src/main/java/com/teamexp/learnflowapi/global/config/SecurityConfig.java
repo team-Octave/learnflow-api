@@ -55,9 +55,13 @@ public class SecurityConfig {
                         .requestMatchers(HttpMethod.DELETE, "/api/v1/reviews/**").hasRole("MEMBER") // 리뷰 삭제
                         .requestMatchers(HttpMethod.POST, "/api/v1/reviews/**").hasRole("MEMBER")  // 리뷰 생성
                         .requestMatchers("/api/v1/enrollment/**", "/api/v1/contents/**").hasRole("MEMBER") // content, enrollment 모든 API
+                        .requestMatchers(HttpMethod.DELETE, "/api/v1/users/me").hasRole("MEMBER") // 회원 탈퇴
+                        .requestMatchers(HttpMethod.GET, "/api/v1/users/me").hasRole("MEMBER") // 내 정보 조회
 
                         // 3. Permit All (조회 및 공용 API)
-                        .requestMatchers("/actuator/health", "/api/v1/auth/**", "/api/v1/users/**").permitAll()
+                        .requestMatchers("/actuator/health", "/api/v1/auth/**").permitAll()
+                        .requestMatchers(HttpMethod.POST, "/api/v1/users").permitAll()
+                        .requestMatchers(HttpMethod.GET, "/api/v1/users/check").permitAll()
                         .requestMatchers(HttpMethod.GET, "/api/v1/lectures/**").permitAll()           // 모든 GET 조회 허용
                         .requestMatchers(HttpMethod.GET, "/api/v1/reviews/**").permitAll()           // 모든 GET 조회 허용
                         .requestMatchers(HttpMethod.GET, "/api/v1/reviews/lectures/**").permitAll()
