@@ -47,7 +47,7 @@ jobs:
           username: deployer
           key: ${{ secrets.SSH_PRIVATE_KEY }}
           script: |
-            cd /opt/app 
+            cd /opt/app || { echo "Error: Failed to cd to /opt/app"; exit 1; } 
             
             # [사용자 로직] Graceful Shutdown: 앱을 안전하게 종료
             PID=$(sudo lsof -ti:8080 || true)
