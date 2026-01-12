@@ -1,7 +1,6 @@
 package com.teamexp.learnflowapi.lecture.dto.request;
 
-import com.teamexp.learnflowapi.content.dto.QuizUpdateListRequest;
-
+import jakarta.validation.Valid;
 import jakarta.validation.constraints.Size;
 
 /**
@@ -14,6 +13,7 @@ public record LessonUpdateRequest(
     String lessonTitle,
     Boolean isFreePreview,
     String videoUrl,
+    @Valid
     QuizUpdateListRequest quizQuestions
 ) {
 

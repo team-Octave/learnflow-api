@@ -1,10 +1,12 @@
 package com.teamexp.learnflowapi.lecture.model;
 
-import com.teamexp.learnflowapi.content.model.Quiz;
 import jakarta.persistence.*;
 import lombok.Getter;
 
+import java.util.Comparator;
+import java.util.LinkedHashSet;
 import java.util.List;
+import java.util.Set;
 
 @Entity
 @Getter
@@ -35,16 +37,9 @@ public class Lesson {
     @Column(name="video_url")
     private String videoUrl;
 
-    @Transient
-    private List<Quiz> quizzes;
-
-    public void bindQuizzes(List<Quiz> quizzes) {
-        this.quizzes = quizzes;
-    }
-
-    public List<Quiz> unpackingQuizzes() {
-        return this.quizzes;
-    }
+    @OneToMany(mappedBy = "lesson", fetch = FetchType.LAZY, cascade = CascadeType.ALL, orphanRemoval = true)
+    @OrderBy("orderIndex ASC")
+    private Set<Quiz> quizzes = new LinkedHashSet<>();
 
 //    @Column(name="next_lesson_id")
 //    private Long nextLessonId;
@@ -80,5 +75,39 @@ public class Lesson {
 
     void setChapter(Chapter chapter) {
         this.chapter = chapter;
+    }
+
+    public void addQuiz(Quiz quiz) {
+        this.quizzes.add(quiz);
+        quiz.setLesson(this);
+    }
+
+    /**
+     * Replace quizzes under this lesson while keeping JPA relationship consistent.
+     *
+     * <p>NOTE: With orphanRemoval=true, removing from collection will delete orphan rows on flush.
+     */
+    public void bindQuizzes(List<Quiz> quizzes) {
+        this.quizzes.clear();
+        if (quizzes == null || quizzes.isEmpty()) {
+            return;
+        }
+        quizzes.forEach(this::addQuiz);
+    }
+
+    /**
+     * Safe read-only view of quizzes ordered by {@code orderIndex ASC}.
+     */
+    public List<Quiz> unpackingQuizzes() {
+        return this.quizzes.stream()
+            .sorted(Comparator.comparing(Quiz::getOrderIndex))
+            .toList();
+    }
+
+    public void removeQuizById(Long quizId) {
+        if (quizId == null) {
+            return;
+        }
+        this.quizzes.removeIf(q -> quizId.equals(q.getId()));
     }
 }

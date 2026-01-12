@@ -3,6 +3,7 @@ package com.teamexp.learnflowapi.lecture.dto.request;
 import java.util.List;
 
 import com.teamexp.learnflowapi.lecture.model.LessonType;
+import jakarta.validation.Valid;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotNull;
 import jakarta.validation.constraints.Size;
@@ -19,6 +20,8 @@ public record LessonCreateRequest(
 
     String videoUrl, // videoUrl is nullable if lessonType is QUIZ
 
+    @Valid
+    @Size(max = 10, message = "퀴즈는 최대 10개까지 가능합니다.")
     List<QuizQuestion> quizQuestions // quizQuestions is nullable if lessonType is VIDEO
     ) {
         public record QuizQuestion(

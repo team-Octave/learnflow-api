@@ -26,6 +26,8 @@ public enum ErrorCode {
     LECTURE_LEVEL_INVALID(HttpStatus.BAD_REQUEST, "유효하지 않은 강의 레벨입니다."), // to class as LectureLevelInvalid
     LECTURE_STATUS_INVALID(HttpStatus.BAD_REQUEST, "유효하지 않은 강의 상태입니다."), // to class as LectureStatusInvalid
     LESSON_TYPE_INVALID(HttpStatus.BAD_REQUEST, "유효하지 않은 레슨 타입입니다."), // to class as LessonTypeInvalid
+    LESSON_QUIZ_COUNT_INVALID(HttpStatus.BAD_REQUEST, "QUIZ 레슨은 퀴즈 1~10개가 필요하고, VIDEO 레슨에는 퀴즈를 포함할 수 없습니다."),
+    LESSON_VIDEO_URL_INVALID(HttpStatus.BAD_REQUEST, "VIDEO 레슨은 videoUrl이 필수이며, QUIZ 레슨은 videoUrl을 가질 수 없습니다."),
     LECTURE_INSTRUCTOR_UNAUTHORIZED(HttpStatus.FORBIDDEN, "해당 강의의 생성자만 수정할 수 있습니다."), // to class as LectureInstructorUnauthorizedException
     CHAPTER_NOT_FOUND_IN_LECTURE(HttpStatus.NOT_FOUND, "해당 강의에 존재하지 않는 챕터입니다."), // to class as ChapterNotFoundException
     LESSON_NOT_FOUND_IN_CHAPTER(HttpStatus.NOT_FOUND, "해당 챕터에 존재하지 않는 레슨입니다."), // to class as LessonNotFoundException

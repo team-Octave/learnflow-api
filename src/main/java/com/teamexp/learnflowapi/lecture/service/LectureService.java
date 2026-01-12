@@ -1,9 +1,8 @@
 package com.teamexp.learnflowapi.lecture.service;
 
-import com.teamexp.learnflowapi.content.model.Quiz;
-import com.teamexp.learnflowapi.content.repository.QuizRepository;
+import com.teamexp.learnflowapi.lecture.model.Quiz;
+import com.teamexp.learnflowapi.lecture.repository.QuizRepository;
 import com.teamexp.learnflowapi.content.repository.ThumbnailRepository;
-import com.teamexp.learnflowapi.content.service.QuizService;
 import com.teamexp.learnflowapi.lecture.dto.request.ChapterCreateRequest;
 import com.teamexp.learnflowapi.lecture.dto.request.ChapterUpdateRequest;
 import com.teamexp.learnflowapi.lecture.dto.request.CurriculumBindRequest;
@@ -12,6 +11,8 @@ import com.teamexp.learnflowapi.lecture.dto.request.LectureCreateRequestV2;
 import com.teamexp.learnflowapi.lecture.dto.request.LectureFullCreateRequest;
 import com.teamexp.learnflowapi.lecture.dto.request.LessonCreateRequest;
 import com.teamexp.learnflowapi.lecture.dto.request.LessonUpdateRequest;
+import com.teamexp.learnflowapi.lecture.dto.request.QuizUpdateListRequest;
+import com.teamexp.learnflowapi.lecture.dto.request.QuizUpdateRequest;
 import com.teamexp.learnflowapi.lecture.dto.response.ChapterResponse;
 import com.teamexp.learnflowapi.lecture.dto.response.LectureFullCreateResponse;
 import com.teamexp.learnflowapi.lecture.dto.response.LectureResponse;
@@ -19,8 +20,13 @@ import com.teamexp.learnflowapi.lecture.dto.response.LessonResponse;
 import com.teamexp.learnflowapi.lecture.dto.response.PublishedResponse;
 import com.teamexp.learnflowapi.lecture.exception.LectureAlreadyPublishedException;
 import com.teamexp.learnflowapi.lecture.exception.LectureDeleteBlockedException;
+import com.teamexp.learnflowapi.lecture.exception.LessonQuizCountInvalidException;
 import com.teamexp.learnflowapi.lecture.exception.LessonNotFoundException;
+import com.teamexp.learnflowapi.lecture.exception.LessonTypeInvalidException;
+import com.teamexp.learnflowapi.lecture.exception.LessonVideoUrlInvalidException;
 import com.teamexp.learnflowapi.lecture.exception.LectureNotFoundException;
+import com.teamexp.learnflowapi.lecture.exception.QuizLessonMismatchException;
+import com.teamexp.learnflowapi.lecture.exception.QuizNotFoundException;
 import com.teamexp.learnflowapi.lecture.model.*;
 import com.teamexp.learnflowapi.lecture.repository.LectureRepository;
 import com.teamexp.learnflowapi.lecture.repository.LectureStatisticRepository;
@@ -33,7 +39,11 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.util.Comparator;
+import java.util.HashSet;
 import java.util.List;
+import java.util.Map;
+import java.util.Objects;
+import java.util.Set;
 import java.util.stream.Collectors;
 import java.util.stream.IntStream;
 
@@ -63,12 +73,11 @@ public class LectureService {
 
     // Service or Validator
     private final LectureAccessValidator lectureAccessValidator;
-    private final QuizService quizService;
     
     // TODO [Phase 1-1]: SecurityEventLogger 의존성 주입 예정
     // private final SecurityEventLogger securityEventLogger;
 
-    public LectureService(LectureRepository lectureRepository, LectureStatisticRepository lectureStatisticRepository, ThumbnailRepository thumbnailRepository, UserRepository userRepository, QuizRepository quizRepository, LectureAccessValidator lectureAccessValidator, QuizService quizService) {
+    public LectureService(LectureRepository lectureRepository, LectureStatisticRepository lectureStatisticRepository, ThumbnailRepository thumbnailRepository, UserRepository userRepository, QuizRepository quizRepository, LectureAccessValidator lectureAccessValidator) {
         this.lectureRepository = lectureRepository;
         this.lectureStatisticRepository = lectureStatisticRepository;
         this.thumbnailRepository = thumbnailRepository;
@@ -76,7 +85,6 @@ public class LectureService {
         this.quizRepository = quizRepository;
 
         this.lectureAccessValidator = lectureAccessValidator;
-        this.quizService = quizService;
     }
 
     @Deprecated
@@ -220,15 +228,14 @@ public class LectureService {
                 if (lesson.getLessonType() == LessonType.QUIZ && lessonRequest.quizQuestions() != null) {
                     List<Quiz> quizList = lessonRequest.quizQuestions().stream()
                         .map(quizQuestion -> Quiz.createQuiz(
-                            lesson.getId(),
                             quizQuestion.questionOrder(),
                             quizQuestion.question(),
                             quizQuestion.correct()
                         ))
                         .toList();
 
-                    quizRepository.saveAll(quizList);
                     lesson.bindQuizzes(quizList);
+                    quizRepository.saveAll(quizList);
                 }
             }
         }
@@ -330,31 +337,32 @@ public class LectureService {
     public LessonResponse addLessonV2(Long lectureId, Long chapterId, LessonCreateRequest request, String instructorId) {
         Lecture lecture = findEditableLectureWithChaptersAndLessons(lectureId, instructorId);
 
+        validateLessonCreateRequest(request);
+
         Chapter chapter = lecture.findByChapterId(chapterId);
         Lesson lesson = Lesson.createLesson(
             request.lessonType(),
             request.lessonTitle(),
             chapter.getLessons().size(),
             request.isFreePreview(),
-            request.videoUrl()
+            (request.lessonType() == LessonType.QUIZ ? null : request.videoUrl())
         );
         chapter.addLesson(lesson);
 
-        lectureRepository.save(lecture);
-        lectureRepository.flush();
-
         if (lesson.getLessonType() == LessonType.QUIZ) {
-            List<Quiz> quizzes = request.quizQuestions().stream()
+            List<Quiz> quizzes = request.quizQuestions()
+                .stream()
                 .map(q -> Quiz.createQuiz(
-                    lesson.getId(),
                     q.questionOrder(),
                     q.question(),
                     q.correct()
                 ))
                 .toList();
-            quizRepository.saveAll(quizzes);
             lesson.bindQuizzes(quizzes);
         }
+
+        lectureRepository.save(lecture);
+        lectureRepository.flush(); // 기존코드는 bc를 강제로 나눈 문제때문에 flush로 id save 를 강제화했는데, 지금은 굳이...?필요한가?
 
         return toLessonResponse(lesson);
     }
@@ -372,16 +380,18 @@ public class LectureService {
             lesson.updateFreePreview(request.isFreePreview());
         }
         if (request.videoUrl() != null) {
+            validateLessonVideoUrlUpdate(lesson, request.videoUrl());
             lesson.updateVideoUrl(request.videoUrl());
         }
 
-        lectureRepository.save(lecture);
+        if (request.quizQuestions() != null) {
+            validateLessonQuizQuestionsUpdate(lesson, request.quizQuestions());
+            upsertLessonQuizzes(lesson, request.quizQuestions());
+            validateQuizCountInvariant(lesson);
+        }
 
-        // 해당 요청에서 받은 퀴즈 목록에서, Id 가 존재하는 퀴즈는 이미 저장된 퀴즈니 업데이트하고, 존재하지 않는 퀴즈는 새로 생성한다.
-        // need change update return type to Quiz
-        
-        List<Quiz> savedQuizzes = quizService.saveOrUpdateQuizzes(lesson.getId(), request.quizQuestions());
-        lesson.bindQuizzes(savedQuizzes);
+        lectureRepository.save(lecture);
+        lectureRepository.flush();
 
         return toLessonResponse(lesson);
     }
@@ -491,6 +501,125 @@ public class LectureService {
             .filter(chapter -> chapter.getLessons().stream().anyMatch(lesson -> lesson.getId().equals(lessonId)))
             .findFirst()
             .orElseThrow(LessonNotFoundException::new);
+    }
+
+    private void validateLessonCreateRequest(LessonCreateRequest request) {
+        if (request == null || request.lessonType() == null) {
+            throw new LessonTypeInvalidException();
+        }
+
+        if (request.lessonType() == LessonType.QUIZ) {
+            // QUIZ: videoUrl must be null/blank
+            if (request.videoUrl() != null && !request.videoUrl().isBlank()) {
+                throw new LessonVideoUrlInvalidException();
+            }
+            int quizCount = request.quizQuestions() == null ? 0 : request.quizQuestions().size();
+            if (quizCount < 1 || quizCount > 10) {
+                throw new LessonQuizCountInvalidException();
+            }
+            return;
+        }
+
+        // VIDEO
+        if (request.videoUrl() == null || request.videoUrl().isBlank()) {
+            throw new LessonVideoUrlInvalidException();
+        }
+        if (request.quizQuestions() != null && !request.quizQuestions().isEmpty()) {
+            throw new LessonQuizCountInvalidException();
+        }
+    }
+
+    private void validateLessonVideoUrlUpdate(Lesson lesson, String videoUrl) {
+        if (lesson == null || lesson.getLessonType() == null) {
+            throw new LessonTypeInvalidException();
+        }
+
+        if (lesson.getLessonType() == LessonType.QUIZ) {
+            // QUIZ: videoUrl update is not allowed
+            throw new LessonVideoUrlInvalidException();
+        }
+
+        // VIDEO: videoUrl must be non-blank when provided
+        if (videoUrl == null || videoUrl.isBlank()) {
+            throw new LessonVideoUrlInvalidException();
+        }
+    }
+
+    private void validateLessonQuizQuestionsUpdate(Lesson lesson, QuizUpdateListRequest request) {
+        if (lesson == null || lesson.getLessonType() == null) {
+            throw new LessonTypeInvalidException();
+        }
+        if (lesson.getLessonType() != LessonType.QUIZ) {
+            // VIDEO: quiz payload is not allowed
+            throw new LessonQuizCountInvalidException();
+        }
+        int count = request == null || request.quizzes() == null ? 0 : request.quizzes().size();
+        if (count < 1 || count > 10) {
+            throw new LessonQuizCountInvalidException();
+        }
+    }
+
+    private void validateQuizCountInvariant(Lesson lesson) {
+        if (lesson == null || lesson.getLessonType() == null) {
+            return;
+        }
+        if (lesson.getLessonType() != LessonType.QUIZ) {
+            return;
+        }
+        int count = lesson.getQuizzes() == null ? 0 : lesson.getQuizzes().size();
+        if (count < 1 || count > 10) {
+            throw new LessonQuizCountInvalidException();
+        }
+    }
+
+    private void upsertLessonQuizzes(Lesson lesson, QuizUpdateListRequest request) {
+        if (request == null || request.quizzes() == null) {
+            return;
+        }
+
+        List<QuizUpdateRequest> items = request.quizzes();
+        List<Long> requestedIds = items.stream()
+            .map(QuizUpdateRequest::id) // 아이디가 있다 == 기존 퀴즈 수정
+            .filter(Objects::nonNull)
+            .distinct()
+            .toList();
+
+        if (!requestedIds.isEmpty()) {
+            List<Quiz> byIds = quizRepository.findAllById(requestedIds);
+            if (byIds.size() != requestedIds.size()) { // 서비스에 존재하지않는 퀴즈가 존재하는 경우
+                throw new QuizNotFoundException();
+            }
+            boolean hasMismatch = byIds.stream() // 현재 할당되어있어야할 레슨에 해당하지 않는 퀴즈가 존재
+                .anyMatch(q ->
+                    q.getLesson() == null
+                        || q.getLesson().getId() == null
+                        || !q.getLesson().getId().equals(lesson.getId())
+                );
+            if (hasMismatch) {
+                throw new QuizLessonMismatchException();
+            }
+        }
+
+        Set<Long> keepIds = new HashSet<>(requestedIds); // 기존 퀴즈에서 삭제된 퀴즈 id 목록
+        lesson.getQuizzes().removeIf(q -> q.getId() != null && !keepIds.contains(q.getId()));
+
+        Map<Long, Quiz> existingById = lesson.getQuizzes().stream()
+            .filter(q -> q.getId() != null)
+            .collect(Collectors.toMap(Quiz::getId, q -> q));
+
+        for (QuizUpdateRequest item : items) { // n번 수행하는데, 생성의 요청이 n번이면 이건 n+1 이슈인가? 
+            if (item.id() == null) { // 새 퀴즈 생성
+                Quiz newQuiz = Quiz.createQuiz(item.orderIndex(), item.question(), item.correct());
+                lesson.addQuiz(newQuiz);
+                continue;
+            }
+
+            Quiz quiz = existingById.get(item.id()); // 기존 퀴즈 업데이트
+            if (quiz == null) {
+                throw new QuizNotFoundException();
+            }
+            quiz.update(item.orderIndex(), item.question(), item.correct());
+        }
     }
 
     private LessonResponse toLessonResponse(Lesson lesson) {
@@ -612,6 +741,7 @@ public class LectureService {
 
 
         // @Deprecated // TODO: 모든 lecture의 thumbnailUrl 역정규화 완료 후 제거
+        // 사실 read 에 이런 setter가 있으면 안되지만, 내부 데이터의 변경에서 사용하는 개념이라 여기에 둠
         if (lecture.getThumbnailUrl() == null && lecture.getThumbnailId() != null) {
             String thumbnailUrl = thumbnailRepository.findFileUrlById(lecture.getThumbnailId());
             lecture.setThumbnailUrl(thumbnailUrl);
@@ -622,14 +752,26 @@ public class LectureService {
             .map(user -> user.getNickname())
             .orElse("Unknown Instructor");
 
-        lecture.getChapters().forEach(chapter -> {
-            chapter.getLessons().forEach(lesson -> {
+        List<Long> quizLessonIds = lecture.getChapters().stream()
+            .flatMap(chapter -> chapter.getLessons().stream())
+            .filter(lesson -> lesson.getLessonType() == LessonType.QUIZ)
+            .map(Lesson::getId)
+            .filter(Objects::nonNull)
+            .distinct()
+            .toList();
+
+        if (!quizLessonIds.isEmpty()) {
+            Map<Long, List<Quiz>> quizzesByLessonId = quizRepository
+                .findByLessonIdInOrderByLessonIdAscOrderIndexAsc(quizLessonIds)
+                .stream()
+                .collect(Collectors.groupingBy(q -> q.getLesson().getId()));
+
+            lecture.getChapters().forEach(chapter -> chapter.getLessons().forEach(lesson -> {
                 if (lesson.getLessonType() == LessonType.QUIZ) {
-                        List<Quiz> quizzes = quizRepository.findByLessonIdOrderByOrderIndexAsc(lesson.getId());
-                        lesson.bindQuizzes(quizzes);
-                    }
-            });
-        });
+                    lesson.bindQuizzes(quizzesByLessonId.getOrDefault(lesson.getId(), List.of()));
+                }
+            }));
+        }
 
         return LectureResponse.fromWithStatics(lecture, statistic, instructorNickname);
     }
