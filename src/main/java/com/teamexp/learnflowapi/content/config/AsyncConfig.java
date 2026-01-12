@@ -14,10 +14,12 @@ public class AsyncConfig {
     @Bean(name = "videoUploadExecutor")
     public Executor videoUploadExecutor() {
         ThreadPoolTaskExecutor executor = new ThreadPoolTaskExecutor();
-        executor.setCorePoolSize(2);
-        executor.setMaxPoolSize(4);
-        executor.setQueueCapacity(10);
+        executor.setCorePoolSize(1);
+        executor.setMaxPoolSize(2);
+        executor.setQueueCapacity(20);
         executor.setThreadNamePrefix("video-upload-");
+        executor.setAllowCoreThreadTimeOut(true);  // idle 시 스레드 정리
+        executor.setKeepAliveSeconds(30);
         executor.initialize();
         return executor;
     }

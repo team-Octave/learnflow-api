@@ -35,7 +35,7 @@ public class ContentMedia {
     /*
      * 로컬 파일 시스템의 file_path랑 역할은 비슷하지만, S3에서는 key라는 용어를 사용
      * */
-    @Column(name = "file_key", nullable = true)
+    @Column(name = "file_key")
     private String fileKey;
 
 
@@ -43,7 +43,7 @@ public class ContentMedia {
     private Integer durationSec;
 
     @Enumerated(EnumType.STRING)
-    @Column(name = "status", nullable = true)
+    @Column(name = "status", nullable = false)
     private MediaStatus status;
 
     @CreatedDate

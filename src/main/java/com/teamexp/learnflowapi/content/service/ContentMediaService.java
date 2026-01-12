@@ -4,10 +4,10 @@ import com.teamexp.learnflowapi.content.dto.UploadVideoRequest;
 import com.teamexp.learnflowapi.content.model.ContentMedia;
 import com.teamexp.learnflowapi.content.repository.ContentMediaRepository;
 
+import java.io.File;
 import java.io.IOException;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
-import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.multipart.MultipartFile;
 
 @Service
@@ -26,7 +26,6 @@ public class ContentMediaService {
     private static final String ALLOWED_MIME = "video/mp4";
     private static final long MAX_FILE_SIZE = 1024L * 1024L * 1024L;
 
-    @Transactional
     public Long requestVideoUpload(UploadVideoRequest request)
             throws IOException {
 
@@ -35,15 +34,23 @@ public class ContentMediaService {
         // 업로드 파일 검증
         validateFile(file);
 
+        // multipartFile -> 임시 파일로 복사하기
+        File tempFile = File.createTempFile("upload-", "MP4");
+        try{
+            file.transferTo(tempFile.toPath());
+        } catch(IOException e){
+            if (tempFile.exists()){
+                tempFile.delete();
+            }
+            throw e;
+        }
+
         // lesson Id로 먼저 ContentMedia 생성
         ContentMedia media = ContentMedia.createPending(request.lessonId());
         contentMediaRepository.save(media);
 
-        // db에 바로 반영해서 비동기에서 조회 했을 시 찾을 수 있도록 함
-        contentMediaRepository.flush();
-
         // 비동기 업로드 작업
-        videoUploadAsyncService.uploadVideoFileAsync(media.getId(), file);
+        videoUploadAsyncService.uploadVideoFileAsync(media.getId(), tempFile);
 
         return media.getId();
     }
