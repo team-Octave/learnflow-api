@@ -84,7 +84,10 @@ jobs:
             sudo mv "$LATEST_JAR" app.jar
 
             # [사용자 로직] 앱 실행 (dev 프로필 적용)
-            nohup java -jar app.jar --spring.profiles.active=dev > app.log 2>&1 &
+            nohup java -jar app.jar \
+              --spring.profiles.active=dev \
+              --management.endpoints.web.exposure.include=health,info,prometheus \
+              > app.log 2>&1 &
 
             # [사용자 로직] 정밀 Health Check
             echo "Waiting for application to start (Health Check)..."
@@ -108,4 +111,4 @@ jobs:
           SLACK_WEBHOOK: ${{ secrets.SLACK_WEBHOOK_URL }}
           SLACK_COLOR: ${{ job.status == 'success' && 'good' || 'danger' }}
           SLACK_TITLE: "LearnFlow API 배포 결과"
-          SLACK_MESSAGE: "상태: ${{ job.status }} 🚀"
+          SLACK_MESSAGE: "상태: ${{ job.status }} "
