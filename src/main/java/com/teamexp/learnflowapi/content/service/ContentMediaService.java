@@ -107,6 +107,7 @@ public class ContentMediaService {
 
             // status를 PENDING으로 초기화
             media.resetToPending();
+            contentMediaRepository.save(media);
 
             // 비동기 업로드 작업
             videoUploadAsyncService.uploadVideoFileAsync(media.getId(), tempFile);
@@ -114,6 +115,7 @@ public class ContentMediaService {
             return media.getId();
         } catch (Exception e) {
             media.failUpload();   // 상태 = FAILED
+            contentMediaRepository.save(media);
             if (tempFile.exists()) {
                 tempFile.delete();
             }
