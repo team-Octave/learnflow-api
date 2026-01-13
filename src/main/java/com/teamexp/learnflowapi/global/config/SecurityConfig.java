@@ -43,7 +43,7 @@ public class SecurityConfig {
                         session.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
                 .exceptionHandling(exception -> exception.authenticationEntryPoint(jwtAuthenticationEntryPoint))
                 .authorizeHttpRequests(auth -> auth
-                        .requestMatchers("/actuator/health").permitAll()
+                        .requestMatchers("/actuator/**").permitAll()
                         .requestMatchers(HttpMethod.POST, "/api/v1/users").permitAll()          // 회원가입
                         .requestMatchers("/api/v1/users/check").permitAll()    // 닉네임 체크
                         .requestMatchers("/api/v1/auth/login").permitAll()    // 로그인
