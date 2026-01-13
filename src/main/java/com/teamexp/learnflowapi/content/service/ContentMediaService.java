@@ -1,16 +1,16 @@
 package com.teamexp.learnflowapi.content.service;
 
 import com.teamexp.learnflowapi.content.dto.UploadVideoRequest;
-import com.teamexp.learnflowapi.content.external.GcpFileUploadService;
 import com.teamexp.learnflowapi.content.model.ContentMedia;
 import com.teamexp.learnflowapi.content.repository.ContentMediaRepository;
 
 import java.io.File;
 import java.io.IOException;
 import lombok.RequiredArgsConstructor;
-import org.bytedeco.javacv.FFmpegFrameGrabber;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+import org.springframework.core.task.TaskRejectedException;
 import org.springframework.stereotype.Service;
-import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.multipart.MultipartFile;
 
 @Service
@@ -18,7 +18,8 @@ import org.springframework.web.multipart.MultipartFile;
 public class ContentMediaService {
 
     private final ContentMediaRepository contentMediaRepository;
-    private final GcpFileUploadService gcpFileUploadService;
+    private final VideoUploadAsyncService videoUploadAsyncService;
+    private static final Logger log = LoggerFactory.getLogger(ContentMediaService.class);
 
     /*
      * 1. 영상 파일 형식 .mp4
@@ -29,17 +30,7 @@ public class ContentMediaService {
     private static final String ALLOWED_MIME = "video/mp4";
     private static final long MAX_FILE_SIZE = 1024L * 1024L * 1024L;
 
-    /**
-     * 영상 업로드 처리 전체 흐름
-     * 1) 파일 검증
-     * 2) 업로드용 key 생성
-     * 3) GCP 업로드 수행
-     * 4) 영상 길이(duration) 추출
-     * 5) DB 반영 (기존 있으면 update, 없으면 insert)
-     */
-    @Transactional
-    public void createVideoUploadUrl(UploadVideoRequest request)
-            throws IOException {
+    public Long requestVideoUpload(UploadVideoRequest request) throws IOException {
 
         MultipartFile file = request.file();
         Long lessonId = request.lessonId();
@@ -47,69 +38,52 @@ public class ContentMediaService {
         // 업로드 파일 검증
         validateFile(file);
 
-        // 저장될 파일 key 생성
-        String extension = ".mp4";
-        String videoFileName = "videos/lesson-" + lessonId + "-" + java.util.UUID.randomUUID() + extension;
+        // multipartFile -> 임시 파일로 복사하기
+        File tempFile = File.createTempFile("upload-", ".mp4");
 
-        // 업로드된 영상 길이 추출
-        Integer durationSec = extractDuration(file);
-
-        // 업로드만
-        gcpFileUploadService.uploadFile(videoFileName,file);
-
-        // DB 저장 (기존 존재 시 업데이트 or 없으면 신규 생성)
-        ContentMedia foundContentMedia = contentMediaRepository.findByLessonId(lessonId)
-                .orElse(null);
-
-        if (foundContentMedia != null) {
-            // 기존 영상 있으면 -> 파일, 길이 업데이트
-            foundContentMedia.changeFile(videoFileName, durationSec);
-        } else {
-            // 없으면 신규 영상 저장
-            ContentMedia created = ContentMedia.createContentMedia(
-                    lessonId, videoFileName, durationSec
-            );
-            contentMediaRepository.save(created);
-        }
-    }
-
-    /**
-     * FFmpegFrameGrabber 사용하여 영상 duration(초 단위) 추출
-     * - MultipartFile → 임시 파일 변환 후 분석
-     * - 마이크로초 기반 duration 값을 초 단위로 환산
-     */
-    private Integer extractDuration(MultipartFile file) {
-        File tempFile = null;
+        ContentMedia media = ContentMedia.createPending(lessonId);
+        contentMediaRepository.save(media);
 
         try {
-            // MultipartFile → 임시 파일 저장
-            tempFile = File.createTempFile("upload-", ".mp4");
             file.transferTo(tempFile);
 
-            // FFmpegFrameGrabber로 영상 메타데이터 분석
-            try (FFmpegFrameGrabber grabber = new FFmpegFrameGrabber(tempFile)) {
-                grabber.start();
+            // 비동기 업로드 작업
+            videoUploadAsyncService.uploadVideoFileAsync(media.getId(), tempFile);
 
-                long durationMicro = grabber.getLengthInTime(); // 마이크로초
-                double secondsDouble = durationMicro / 1_000_000.0;
+            return media.getId();
 
-                long seconds = (long) Math.ceil(secondsDouble); // 올림 처리해서 초 단위 계산
+        }catch(TaskRejectedException ex) {
+            // 큐/ 스레드풀 꽉 차서 비동기 작업 실행 안된 경우
+            media.failUpload();   // 상태 = FAILED
+            contentMediaRepository.save(media);
 
-                grabber.stop();
-                return (int) seconds;
-
-            }
-        } catch (Exception e) {
-            throw new RuntimeException("영상 길이 분석 실패", e);
-        } finally {
-            if (tempFile != null && tempFile.exists()) {
+            // temp 파일 삭제
+            if (tempFile.exists()) {
                 tempFile.delete();
             }
 
+            log.error("[VideoUpload] 큐 거절 - mediaId={}, error={}",
+                    media.getId(), ex.getMessage(), ex);
+
+            throw ex;
+
+        } catch (Exception ex) {
+            // 다른 예외 상황의 경우
+            media.failUpload();   // 상태 = FAILED
+            contentMediaRepository.save(media);
+
+            if (tempFile.exists()) {
+                tempFile.delete();
+            }
+
+            log.error("[VideoUpload] 업로드 전 단계에서 예외 발생 - lessonId={}, error={}",
+                    request.lessonId(), ex.getMessage(), ex);
+
+            throw ex;
         }
     }
 
-    private void validateFile(MultipartFile file){
+        private void validateFile(MultipartFile file){
         if (file == null || file.isEmpty()) {
             throw new IllegalArgumentException("업로드할 파일이 없습니다.");
         }

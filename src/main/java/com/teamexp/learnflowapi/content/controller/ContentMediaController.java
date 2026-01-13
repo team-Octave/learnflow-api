@@ -29,11 +29,13 @@ public class ContentMediaController {
             @ModelAttribute UploadVideoRequest uploadVideoRequest
     ) throws IOException {
 
-            contentMediaService.createVideoUploadUrl(uploadVideoRequest);
+            Long mediaId = contentMediaService.requestVideoUpload(uploadVideoRequest);
 
-        return ResponseEntity
-                .status(HttpStatus.OK)
-                .body(null);
+            ContentUploadResponse data = new ContentUploadResponse(mediaId);
+
+            return ResponseEntity
+                .status(HttpStatus.ACCEPTED)
+                .body(BaseResponse.ok(data));
     }
 }
 

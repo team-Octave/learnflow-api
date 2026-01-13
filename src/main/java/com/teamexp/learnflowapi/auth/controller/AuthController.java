@@ -6,8 +6,10 @@ import com.teamexp.learnflowapi.auth.controller.dto.ReissuanceResponse;
 import com.teamexp.learnflowapi.auth.service.AuthService;
 import com.teamexp.learnflowapi.global.response.BaseResponse;
 import jakarta.validation.Valid;
+import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.web.bind.annotation.CookieValue;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestHeader;
@@ -28,18 +30,33 @@ public class AuthController {
     public ResponseEntity<BaseResponse<LoginResponse>> login(@Valid @RequestBody LoginRequest request) {
         LoginResponse response = authService.login(request);
 
-        return ResponseEntity.ok(BaseResponse.ok(response));
+        return ResponseEntity
+            .status(HttpStatus.OK)
+            .body(BaseResponse.ok(response));
     }
 
     @PostMapping("/reissue")
-    public ResponseEntity<BaseResponse<ReissuanceResponse>> reissueToken(@RequestHeader(name = "Authorization") String tokenHeader) {
+    public ResponseEntity<BaseResponse<ReissuanceResponse>> reissueToken(@CookieValue(name = "refresh_token") String refreshToken) {
 
-        ReissuanceResponse response = authService.reissueToken(tokenHeader);
+        ReissuanceResponse response = authService.reissueToken(refreshToken);
 
         return ResponseEntity
             .status(HttpStatus.OK)
             .body(BaseResponse.ok(response));
     }
+
+    @PostMapping("/logout")
+    public ResponseEntity<BaseResponse<Void>> logout(
+        @CookieValue(name = "refresh_token") String refreshToken
+    ) {
+        authService.logout(refreshToken);
+
+        return ResponseEntity
+            .status(HttpStatus.OK)
+            .body(BaseResponse.ok(null));
+    }
+
+
 
 
 }
