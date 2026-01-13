@@ -31,6 +31,8 @@ public interface LectureRepository  {
 
     List<Lecture> findByStatus(LectureStatus status);
 
+    Page<Lecture> findByStatus(LectureStatus status, Pageable pageable);
+
     List<Lecture> findByCategoryId(Integer categoryId);
 
     List<Lecture> findByCategoryIdAndStatus(Integer categoryId, LectureStatus status);

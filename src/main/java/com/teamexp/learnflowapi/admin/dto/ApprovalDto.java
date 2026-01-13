@@ -1,9 +1,9 @@
-package com.teamexp.learnflowapi.admin.controller.dto;
+package com.teamexp.learnflowapi.admin.dto;
 
 import java.time.Instant;
 
 public record ApprovalDto(
-    long approvalId,
+
     long lectureId,
     String thumbnailUrl,
     String lectureTitle,

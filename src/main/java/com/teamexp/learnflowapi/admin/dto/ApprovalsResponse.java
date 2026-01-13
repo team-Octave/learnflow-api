@@ -1,4 +1,4 @@
-package com.teamexp.learnflowapi.admin.controller.dto;
+package com.teamexp.learnflowapi.admin.dto;
 
 import java.util.List;
 
