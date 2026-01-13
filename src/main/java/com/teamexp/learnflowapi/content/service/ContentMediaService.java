@@ -85,7 +85,6 @@ public class ContentMediaService {
         }
     }
 
-    @Transactional
     public Long retryVideoUpload(Long lessonId, MultipartFile file) throws IOException {
 
         // 기존 ContentMedia 조회
