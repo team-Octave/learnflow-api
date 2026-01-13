@@ -8,6 +8,7 @@ import com.teamexp.learnflowapi.lecture.repository.LectureRepository;
 import com.teamexp.learnflowapi.user.model.User;
 import com.teamexp.learnflowapi.user.repository.UserRepository;
 import com.teamexp.learnflowapi.user.service.UserService;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
@@ -20,6 +21,9 @@ import java.util.stream.Collectors;
 @Transactional(readOnly = true)
 public class ApprovalService {
 
+
+    @Value("${spring.application.default-thumbnail}")
+    private String defaultThumbnailUrl;
     // TODO : 여기서 approvals 테이블을 관리하는 repository를 사용하는게 맞는것 같음.
     private final LectureRepository lectureRepository;
     private final UserRepository userRepository;
@@ -30,7 +34,8 @@ public class ApprovalService {
     }
 
     public ApprovalsResponse getApprovals(Pageable pageable) {
-        // TODO : 이부분에 Submit으로 변경해야함.
+
+        // TODO : 추후 LectureAdminRepository로 변경
         Page<Lecture> lectures = lectureRepository.findByStatus(LectureStatus.SUBMITTED, pageable);
 
 
@@ -43,8 +48,8 @@ public class ApprovalService {
         Map<String, String> nicknameMap = userRepository.findAllById(instructorIds).stream()
                 .collect(Collectors.toMap(
                         User::getUserId,
-                        User::getNickname,
-                        (existing, replacement) ->existing
+                        user -> user.getNickname() != null ? user.getNickname() : "알 수 없음",
+                        (existing, replacement) -> existing
                 ));
         // DTO Mapping
         List<ApprovalDto> approvals = lectures.getContent().stream()
@@ -53,9 +58,14 @@ public class ApprovalService {
                 if (lecture.getInstructorId() != null) {
                     instructorName = nicknameMap.getOrDefault(lecture.getInstructorId(), "알 수 없음");
                 }
+
+                String finalThumbnailUrl = (lecture.getThumbnailUrl() != null && !lecture.getThumbnailUrl().isBlank())
+                        ? lecture.getThumbnailUrl()
+                        : defaultThumbnailUrl;
+
                 return new ApprovalDto(
                         lecture.getId(),
-                        lecture.getThumbnailUrl() != null ? lecture.getThumbnailUrl() : "",
+                        finalThumbnailUrl,
                         lecture.getTitle(),
                         instructorName,
                         lecture.getUpdatedAt(),
@@ -65,7 +75,7 @@ public class ApprovalService {
                 .toList();
 
             return new ApprovalsResponse(
-                    (int) lectures.getTotalElements(),
+                    lectures.getTotalElements(),
                     lectures.getNumber(),
                     lectures.getSize(),
                     approvals
