@@ -76,5 +76,14 @@ public class ContentMedia {
     public void failUpload() {
         this.status = MediaStatus.FAILED;
     }
+
+    /** 업로드 실패 후 재시도전 상태 초기화
+     * */
+    public void resetToPending() {
+        this.status = MediaStatus.PENDING;
+        this.fileKey = null;
+        this.durationSec = null;
+    }
+
 }
 
