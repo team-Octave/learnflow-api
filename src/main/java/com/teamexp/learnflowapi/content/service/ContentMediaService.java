@@ -95,6 +95,10 @@ public class ContentMediaService {
             throw new IllegalStateException("재시도는 FAILED 상태의 미디어에 대해서만 가능합니다.");
         }
 
+        // status를 PENDING으로 초기화
+        media.resetToPending();
+        contentMediaRepository.save(media);
+
         // 파일 검증
         validateFile(file);
 
@@ -104,9 +108,6 @@ public class ContentMediaService {
         try {
             file.transferTo(tempFile);
 
-            // status를 PENDING으로 초기화
-            media.resetToPending();
-            contentMediaRepository.save(media);
 
             // 비동기 업로드 작업
             videoUploadAsyncService.uploadVideoFileAsync(media.getId(), tempFile);
