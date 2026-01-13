@@ -28,7 +28,7 @@ public record LectureResponse(
     String thumbnailUrl
 ) {
     // Full detail including chapters and lessons info  with counts
-    public static LectureResponse from(Lecture lecture, String thumbnailUrl, String instructorDisplayName) {
+    public static LectureResponse from(Lecture lecture, String instructorDisplayName) {
         return new LectureResponse(
             lecture.getId(),
             lecture.getTitle(),
@@ -47,12 +47,12 @@ public record LectureResponse(
                 .collect(Collectors.toList()),
             null,
             null,
-            thumbnailUrl
+            lecture.getThumbnailUrl()
         );
     }
 
     // TODO : 임시 코드
-    public static LectureResponse fromWithStatics(Lecture lecture, LectureStatistic statistic, String thumbnailUrl, String instructorDisplayName) {
+    public static LectureResponse fromWithStatics(Lecture lecture, LectureStatistic statistic, String instructorDisplayName) {
         Double ratingAvg = 0.0;
         Long enrollmentCnt = 0L;
 
@@ -79,12 +79,12 @@ public record LectureResponse(
                 .collect(Collectors.toList()),
             ratingAvg,
             enrollmentCnt,
-            thumbnailUrl
+            lecture.getThumbnailUrl()
         );
     }
 
     // Full detail including chapters and lessons info  without counts
-    public static LectureResponse simpleFrom(Lecture lecture, String instructorDisplayName, String thumbnailUrl) {
+    public static LectureResponse simpleFrom(Lecture lecture, String instructorDisplayName) {
         return new LectureResponse(
             lecture.getId(),
             lecture.getTitle(),
@@ -101,12 +101,12 @@ public record LectureResponse(
             null,
             null,
             null,
-            thumbnailUrl
+            lecture.getThumbnailUrl()
         );
     }
 
     // Simple response with statistics for list view
-    public static LectureResponse simpleFromWithStats(Lecture lecture, LectureStatistic statistic, String thumbnailUrl,String instructorDisplayName) {
+    public static LectureResponse simpleFromWithStats(Lecture lecture, LectureStatistic statistic, String instructorDisplayName) {
         Double ratingAvg = 0.0;
         Long enrollmentCnt = 0L;
         
@@ -131,7 +131,7 @@ public record LectureResponse(
             null,
             ratingAvg,
             enrollmentCnt,
-            thumbnailUrl
+            lecture.getThumbnailUrl()
         );
     }
 }

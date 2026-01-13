@@ -1,10 +1,9 @@
-package com.teamexp.learnflowapi.content.dto;
+package com.teamexp.learnflowapi.lecture.dto.request;
 
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotNull;
 
-public record QuizUpdateRequest(
-        Long id,
+public record QuizRequest(
         @NotNull
         Integer orderIndex,
         @NotBlank(message = "문제 내용은 비어있을 수 없습니다.")

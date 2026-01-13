@@ -23,6 +23,7 @@ import org.springframework.web.bind.annotation.RestController;
 import org.springframework.http.ResponseEntity;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
+import org.springframework.data.domain.Sort;
 import org.springframework.data.web.PageableDefault;
 
 @RestController
@@ -35,6 +36,7 @@ public class LectureController {
         this.lectureService = lectureService;
     }
 
+    @Deprecated // V2로 대체 예정
     @PostMapping
     public ResponseEntity<BaseResponse<LectureResponse>> createLecture(
         @Valid @RequestBody LectureCreateRequest lectureCreateRequest,
@@ -45,6 +47,7 @@ public class LectureController {
         return  ResponseEntity.status(HttpStatus.CREATED).body(BaseResponse.ok(lectureResponse));
     }
 
+    @Deprecated // addChapter + addLesson + BindCurriculum 등으로 V2에서 대체 예정
     @PostMapping("/{lectureId}/curriculum")
     public ResponseEntity<BaseResponse<LectureFullCreateResponse>> createLectureFullCurriculum(
         @PathVariable Long lectureId,
@@ -62,32 +65,6 @@ public class LectureController {
     }
 
 
-//    // request : Chapter / response : LectureResponse
-//    @PostMapping("/{lectureId}/chapters")
-//    public ResponseEntity<LectureResponse> addChapter(
-//        @Valid @RequestBody ChapterCreateRequest chapterCreateRequest,
-//        @PathVariable Long lectureId,
-//        @AuthenticationPrincipal CustomUserPrincipal customUser
-//        ) {
-//        LectureResponse lectureResponse = lectureService.addChapter(chapterCreateRequest, lectureId, customUser.getId());
-//
-//        return ResponseEntity.status(HttpStatus.CREATED).body(lectureResponse);
-//    }
-//
-//    // request : Lesson / response : LectureResponse
-//    // Lesson 생성 시, ChapterId를 queryParam로 받아야할지? body로 받아야할지?
-//    @PostMapping("/{lectureId}/chapters/{chapterId}/lessons")
-//    public ResponseEntity<LectureResponse> addLesson(
-//        @Valid @RequestBody LessonCreateRequest lessonCreateRequest,
-//        @PathVariable Long lectureId,
-//        @PathVariable Long chapterId,
-//        @AuthenticationPrincipal CustomUserPrincipal customUser
-//        ) {
-//        LectureResponse lectureResponse = lectureService.addLesson(lessonCreateRequest, lectureId, chapterId, customUser.getId());
-//
-//        return ResponseEntity.status(HttpStatus.CREATED).body(lectureResponse);
-//    }
-
     // 강의 출판 (강의 상태를 DRAFT -> PUBLISHED로 변경) & 멱등성 보장을 위해 PUT 메서드 사용
     @PutMapping("/{lectureId}/publish")
     public ResponseEntity<BaseResponse<PublishedResponse>> publishLecture(
@@ -99,22 +76,23 @@ public class LectureController {
         return ResponseEntity.status(HttpStatus.OK).body(BaseResponse.ok(publishedResponse));
     }
 
-    // 내 강의 조회
+    // 내 강의 조회 
+    // 강사의 강의 목록 조회 order by updatedAt 최신 순으로 하려면, Pageable에 정렬 정보 추가 필요
     @GetMapping("/my")
     public ResponseEntity<BaseResponse<Page<LectureResponse>>> getMyLectures(
         @AuthenticationPrincipal CustomUserPrincipal customUser,
-        @PageableDefault(size = 16) Pageable pageable
+        @PageableDefault(size = 16, sort = "updatedAt", direction = Sort.Direction.DESC) Pageable pageable
     ) {
         Page<LectureResponse> lectures = lectureService.getLecturesByInstructor(customUser.getId(), pageable);
         return ResponseEntity.status(HttpStatus.OK).body(BaseResponse.ok(lectures));
     }
 
-    // 강의 목록 조회
+    // 강의 목록 조회(?category=2&level=BEGINNER&sort=POPULAR)
     @GetMapping
     public ResponseEntity<BaseResponse<Page<LectureResponse>>> getAllLectures(
-        @RequestParam(required = false, defaultValue = "ALL") String category,
-        @RequestParam(required = false, defaultValue = "ALL") String level,
-        @RequestParam(required = false, defaultValue = "POPULAR") String sort,
+        @RequestParam(required = false, defaultValue = "ALL") String category, // case "ALL" means no filter, if not "ALL", then filter by categoryId as String 
+        @RequestParam(required = false, defaultValue = "ALL") String level, // case "ALL" means no filter, if not "ALL", then filter by level
+        @RequestParam(required = false, defaultValue = "POPULAR") String sort, // POPULAR, RATING, LATEST
         @PageableDefault(size = 16) Pageable pageable
     ) {
         Page<LectureResponse> lectures = lectureService.getAllLecturesWithFilters(category, level, sort, pageable);

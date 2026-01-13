@@ -1,6 +1,9 @@
 package com.teamexp.learnflowapi.lecture.dto.request;
 
+import java.util.List;
+
 import com.teamexp.learnflowapi.lecture.model.LessonType;
+import jakarta.validation.Valid;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotNull;
 import jakarta.validation.constraints.Size;
@@ -13,6 +16,24 @@ public record LessonCreateRequest(
     @NotNull(message = "레슨 타입은 필수입니다.")
     LessonType lessonType,
 
-    Boolean isFreePreview
-) {
+    Boolean isFreePreview,
+
+    String videoUrl, // videoUrl is nullable if lessonType is QUIZ
+
+    @Valid
+    @Size(max = 10, message = "퀴즈는 최대 10개까지 가능합니다.")
+    List<QuizQuestion> quizQuestions // quizQuestions is nullable if lessonType is VIDEO
+    ) {
+        public record QuizQuestion(
+            @NotBlank(message = "퀴즈 질문은 필수 입력 값입니다.")
+            String question,
+
+            @NotNull(message = "퀴즈 질문 순서는 필수 입력 값입니다.")
+            Integer questionOrder,
+
+            @NotNull(message = "정답 값은 필수 입력 값입니다.")
+            Boolean correct
+        ){
+        }
 }
+

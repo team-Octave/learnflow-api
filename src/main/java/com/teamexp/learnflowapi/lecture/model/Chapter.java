@@ -4,10 +4,8 @@ import com.teamexp.learnflowapi.lecture.exception.LessonNotFoundException;
 import jakarta.persistence.*;
 import lombok.Getter;
 
-import java.util.ArrayList;
 import java.util.Collections;
 import java.util.LinkedHashSet;
-import java.util.List;
 import java.util.Set;
 
 
@@ -45,6 +43,14 @@ public class Chapter {
         return new Chapter(chapterTitle,chapterOrder);
     }
 
+    public void updateTitle(String chapterTitle) {
+        this.chapterTitle = chapterTitle;
+    }
+
+    public void changeOrder(Integer chapterOrder) {
+        this.chapterOrder = chapterOrder;
+    }
+
     void setLecture(Lecture lecture) {
         this.lecture = lecture;
     }
@@ -52,6 +58,11 @@ public class Chapter {
     public void addLesson(Lesson lesson) {
         this.lessons.add(lesson);
         lesson.setChapter(this);
+    }
+
+    public void removeLesson(Long lessonId) {
+        Lesson lesson = findByLessonId(lessonId);
+        this.lessons.remove(lesson);
     }
 
     public Set<Lesson> getLessons() {

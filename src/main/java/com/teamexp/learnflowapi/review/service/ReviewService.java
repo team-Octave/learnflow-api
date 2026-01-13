@@ -12,6 +12,7 @@ import com.teamexp.learnflowapi.lecture.model.Lecture;
 import com.teamexp.learnflowapi.lecture.model.LectureStatistic;
 import com.teamexp.learnflowapi.lecture.repository.LectureRepository;
 import com.teamexp.learnflowapi.lecture.repository.LectureStatisticRepository;
+import jakarta.persistence.OptimisticLockException;
 import com.teamexp.learnflowapi.review.dto.ReviewRequest;
 import com.teamexp.learnflowapi.review.dto.ReviewResponse;
 import com.teamexp.learnflowapi.review.exception.NotEnoughProgressException;
@@ -23,6 +24,8 @@ import com.teamexp.learnflowapi.review.model.ReviewStatus;
 import com.teamexp.learnflowapi.review.repository.ReviewRepository;
 import com.teamexp.learnflowapi.user.model.User;
 import com.teamexp.learnflowapi.user.repository.UserRepository;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
@@ -36,6 +39,7 @@ import java.util.stream.Collectors;
 @Transactional(readOnly = true)
 public class ReviewService {
 
+    private static final Logger log = LoggerFactory.getLogger(ReviewService.class);
     private static final int MIN_COMPLETED_LESSON_COUNT = 3;
     private final ReviewRepository reviewRepository;
     private final LectureRepository lectureRepository;
@@ -180,17 +184,40 @@ public class ReviewService {
 
     // 통계 업데이트 헬퍼 메서드
     // Lecture 생성 시 LectureStatistic이 함께 생성되므로 항상 존재해야 함
+    // 낙관적 잠금 충돌 시 재시도 로직 포함3
     private void updateLectureStatistic(Long lectureId, Integer rating, boolean isAdd) {
-        LectureStatistic statistic = lectureStatisticRepository.findById(lectureId)
-            .orElseThrow(LectureNotFoundException::new);
+        final int MAX_RETRIES = 3;
+        int retryCount = 0;
 
-        // 통계 업데이트
-        if (isAdd) {
-            statistic.addRating(rating);
-        } else {
-            statistic.removeRating(rating);
+        while (retryCount < MAX_RETRIES) {
+            try {
+                LectureStatistic statistic = lectureStatisticRepository.findById(lectureId)
+                    .orElseThrow(LectureNotFoundException::new);
+
+                // 통계 업데이트
+                if (isAdd) {
+                    statistic.addRating(rating);
+                } else {
+                    statistic.removeRating(rating);
+                }
+
+                lectureStatisticRepository.save(statistic);
+                return; // 성공 시 종료
+            } catch (OptimisticLockException e) {
+                retryCount++;
+                if (retryCount >= MAX_RETRIES) {
+                    log.error("Failed to update LectureStatistic rating after {} retries for lectureId: {}", 
+                        MAX_RETRIES, lectureId, e);
+                    throw e;
+                }
+                // 짧은 대기 후 재시도
+                try {
+                    Thread.sleep(50L * retryCount); // 50ms, 100ms, 150ms
+                } catch (InterruptedException ie) {
+                    Thread.currentThread().interrupt();
+                    throw new RuntimeException(ie);
+                }
+            }
         }
-
-        lectureStatisticRepository.save(statistic);
     }
 }
