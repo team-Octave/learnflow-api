@@ -3,6 +3,8 @@ package com.teamexp.learnflowapi.content.model;
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
 import jakarta.persistence.EntityListeners;
+import jakarta.persistence.EnumType;
+import jakarta.persistence.Enumerated;
 import jakarta.persistence.GeneratedValue;
 import jakarta.persistence.GenerationType;
 import jakarta.persistence.Id;
@@ -33,12 +35,16 @@ public class ContentMedia {
     /*
      * 로컬 파일 시스템의 file_path랑 역할은 비슷하지만, S3에서는 key라는 용어를 사용
      * */
-    @Column(name = "file_key", nullable = false)
+    @Column(name = "file_key")
     private String fileKey;
 
 
     @Column(name = "duration_sec")
     private Integer durationSec;
+
+    @Enumerated(EnumType.STRING)
+    @Column(name = "status", nullable = false)
+    private MediaStatus status;
 
     @CreatedDate
     @Column(name = "created_at", columnDefinition = "TIMESTAMP", updatable = false, nullable = false)
@@ -50,19 +56,25 @@ public class ContentMedia {
 
     protected ContentMedia() {}
 
-    private ContentMedia(Long lessonId, String fileKey, Integer durationSec) {
+    private ContentMedia(Long lessonId) {
         this.lessonId = lessonId;
-        this.fileKey = fileKey;
-        this.durationSec = durationSec;
+        this.status = MediaStatus.PENDING;   // 생성 시 기본 상태
     }
 
-    public static ContentMedia createContentMedia(Long lessonId, String fileKey, Integer durationSec) {
-        return new ContentMedia(lessonId, fileKey, durationSec);
+    public static ContentMedia createPending(Long lessonId) {
+        return new ContentMedia(lessonId);
     }
 
-    public void changeFile(String fileKey, Integer durationSec) {
+    /** 업로드 성공 시 호출 */
+    public void completeUpload(String fileKey, Integer durationSec) {
         this.fileKey = fileKey;
         this.durationSec = durationSec;
+        this.status = MediaStatus.COMPLETED;
+    }
+
+    /** 업로드 실패 시 호출 */
+    public void failUpload() {
+        this.status = MediaStatus.FAILED;
     }
 }
 

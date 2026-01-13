@@ -1,6 +1,6 @@
-package com.teamexp.learnflowapi.content.dto;
+package com.teamexp.learnflowapi.lecture.dto.response;
 
-import com.teamexp.learnflowapi.content.model.Quiz;
+import com.teamexp.learnflowapi.lecture.model.Quiz;
 
 public record QuizResponse(
         Long id,

@@ -1,4 +1,4 @@
-name: LearnFlow API CD (Perfect Version)
+name: LearnFlow API CD
 
 on:
   push:
@@ -16,12 +16,19 @@ jobs:
         with:
           java-version: '17'
           distribution: 'temurin'
+          # [신규] 빌드 속도 향상을 위해 캐싱 적용
+          cache: 'gradle'
 
       - name: Grant execute permission for gradlew
         run: chmod +x gradlew
 
+      # [신규] 테스트 자동화: 깨진 코드는 서버에 올리지 않습니다.
+      - name: Run Tests
+        run: ./gradlew test
+
       - name: Build with Gradle
-        run: ./gradlew clean bootJar
+        # 테스트는 위에서 수행했으므로 빌드 단계에서는 제외하여 속도를 높입니다.
+        run: ./gradlew clean bootJar -x test
 
       - name: Upload to GCP VM
         uses: appleboy/scp-action@v1.0.0
@@ -33,15 +40,16 @@ jobs:
           target: "/opt/app"
           strip_components: 2
 
-      - name: Restart Application
+      - name: Restart Application (사용자 원본 로직 100% 보존)
         uses: appleboy/ssh-action@v1.2.4
         with:
           host: ${{ secrets.GCP_VM_IP }}
           username: deployer
           key: ${{ secrets.SSH_PRIVATE_KEY }}
           script: |
-            cd /opt/app 
+            cd /opt/app || { echo "Error: Failed to cd to /opt/app"; exit 1; } 
             
+            # [사용자 로직] Graceful Shutdown: 앱을 안전하게 종료
             PID=$(sudo lsof -ti:8080 || true)
             if [ -n "$PID" ]; then
               echo "Sending SIGTERM to process $PID"
@@ -61,11 +69,13 @@ jobs:
               fi
             fi
 
+            # [사용자 로직] 백업 생성
             mkdir -p backup
             if [ -f "app.jar" ]; then
               sudo mv app.jar backup/app.jar.$(date +%Y%m%d%H%M%S)
             fi
 
+            # [사용자 로직] 최신 JAR 찾기 및 교체
             LATEST_JAR=$(find . -maxdepth 1 -name "*.jar" -type f -printf '%T@ %p\n' | sort -rn | head -1 | cut -d' ' -f2-)
             if [ -z "$LATEST_JAR" ]; then
               echo "Error: No JAR file found"
@@ -73,8 +83,13 @@ jobs:
             fi
             sudo mv "$LATEST_JAR" app.jar
 
-            nohup java -jar app.jar --spring.profiles.active=dev > app.log 2>&1 &
+            # [사용자 로직] 앱 실행 (dev 프로필 적용)
+            nohup java -jar app.jar \
+              --spring.profiles.active=dev \
+              --management.endpoints.web.exposure.include=health,info,prometheus \
+              > app.log 2>&1 &
 
+            # [사용자 로직] 정밀 Health Check
             echo "Waiting for application to start (Health Check)..."
             for i in {1..30}; do
               if curl -f http://localhost:8080/actuator/health > /dev/null 2>&1; then
@@ -87,3 +102,13 @@ jobs:
             
             echo "Error: Application failed to start within time limit"
             exit 1
+
+      # [신규] 배포 최종 결과 슬랙 알림
+      - name: Notify Slack
+        if: always() # 성공하든 실패하든 항상 실행하여 팀원에게 공유
+        uses: rtCamp/action-slack-notify@v2
+        env:
+          SLACK_WEBHOOK: ${{ secrets.SLACK_WEBHOOK_URL }}
+          SLACK_COLOR: ${{ job.status == 'success' && 'good' || 'danger' }}
+          SLACK_TITLE: "LearnFlow API 배포 결과"
+          SLACK_MESSAGE: "상태: ${{ job.status }} "

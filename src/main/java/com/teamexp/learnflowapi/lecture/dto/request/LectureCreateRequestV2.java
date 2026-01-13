@@ -4,8 +4,7 @@ import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotNull;
 import jakarta.validation.constraints.Size;
 
-@Deprecated
-public record LectureCreateRequest(
+public record LectureCreateRequestV2(
     @NotBlank(message = "강의 제목은 필수 입력 값입니다.")
     @Size(message = "강의 제목은 100자 이내로 작성해주세요.", max = 100)
     String title,
@@ -18,7 +17,7 @@ public record LectureCreateRequest(
     @NotNull(message = "난이도는 필수 입력 값입니다.")
     String level,
 
-    // nullable in V1, but make it mandatory in V2
+    @NotBlank(message = "썸네일은 필수 입력 값입니다.")
     String thumbnailUrl
 ) {
 }

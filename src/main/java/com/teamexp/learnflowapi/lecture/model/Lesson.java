@@ -1,10 +1,10 @@
 package com.teamexp.learnflowapi.lecture.model;
 
-import com.teamexp.learnflowapi.content.model.Quiz;
 import jakarta.persistence.*;
 import lombok.Getter;
 
-import java.util.List;
+import java.util.LinkedHashSet;
+import java.util.Set;
 
 @Entity
 @Getter
@@ -35,16 +35,9 @@ public class Lesson {
     @Column(name="video_url")
     private String videoUrl;
 
-    @Transient
-    private List<Quiz> quizzes;
-
-    public void bindQuizzes(List<Quiz> quizzes) {
-        this.quizzes = quizzes;
-    }
-
-    public List<Quiz> unpackingQuizzes() {
-        return this.quizzes;
-    }
+    @OneToMany(mappedBy = "lesson", fetch = FetchType.LAZY, cascade = CascadeType.ALL, orphanRemoval = true)
+    @OrderBy("orderIndex ASC")
+    private Set<Quiz> quizzes = new LinkedHashSet<>();
 
 //    @Column(name="next_lesson_id")
 //    private Long nextLessonId;
@@ -62,7 +55,35 @@ public class Lesson {
         return new Lesson(lessonType, lessonTitle, lessonOrder, (isFreePreview != null ? isFreePreview : false), videoUrl);
     }
 
+    public void updateTitle(String lessonTitle) {
+        this.lessonTitle = lessonTitle;
+    }
+
+    public void updateFreePreview(Boolean isFreePreview) {
+        this.isFreePreview = (isFreePreview != null ? isFreePreview : false);
+    }
+
+    public void updateVideoUrl(String videoUrl) {
+        this.videoUrl = videoUrl;
+    }
+
+    public void changeOrder(Integer lessonOrder) {
+        this.lessonOrder = lessonOrder;
+    }
+
     void setChapter(Chapter chapter) {
         this.chapter = chapter;
+    }
+
+    public void addQuiz(Quiz quiz) {
+        this.quizzes.add(quiz);
+        quiz.setLesson(this);
+    }
+
+    public void removeQuizById(Long quizId) {
+        if (quizId == null) {
+            return;
+        }
+        this.quizzes.removeIf(q -> quizId.equals(q.getId()));
     }
 }

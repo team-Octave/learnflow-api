@@ -4,7 +4,9 @@ import com.teamexp.learnflowapi.lecture.exception.LectureStatusInvalidException;
 
 public enum LectureStatus {
     AVAILABLE("PUBLISHED"),
-    UNAVAILABLE("UNPUBLISHED");
+    UNAVAILABLE("UNPUBLISHED"),
+    SUBMITTED("SUBMITTED"),
+    REJECTED("REJECTED");
 
     private final String displayName;
 
@@ -24,4 +26,10 @@ public enum LectureStatus {
         }
         throw new LectureStatusInvalidException();
     }
+
+    public boolean isPublic() {
+        // 도메인 지식: 공개 상태 판별
+        return this == AVAILABLE;
+    }
+
 }

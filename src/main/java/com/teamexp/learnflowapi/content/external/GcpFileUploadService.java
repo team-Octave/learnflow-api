@@ -4,9 +4,13 @@ import com.google.auth.oauth2.GoogleCredentials;
 import com.google.cloud.storage.BlobInfo;
 import com.google.cloud.storage.Storage;
 import com.google.cloud.storage.StorageOptions;
+
+import java.io.File;
 import java.io.IOException;
 import java.io.InputStream;
 import java.net.URL;
+import java.nio.file.Files;
+import java.util.UUID;
 import java.util.concurrent.TimeUnit;
 
 import org.springframework.beans.factory.annotation.Value;
@@ -42,6 +46,21 @@ public class GcpFileUploadService {
 
         storage.create(blobInfo, file.getInputStream());
     }
+
+    public String uploadFile(File file, String directory) throws IOException {
+        Storage storage = createStorage();
+
+        // GCS에 저장할 objectName 생성 (디렉토리 + UUID 조합 등)
+        String objectName = directory + UUID.randomUUID() + ".mp4";
+        BlobInfo blobInfo = BlobInfo.newBuilder(bucketName, objectName).build();
+
+        try (InputStream inputStream = Files.newInputStream(file.toPath())) {
+            storage.createFrom(blobInfo, inputStream);
+        }
+
+        return objectName; // 이게 DB에 넣을 fileKey
+    }
+
 
     /**
      * 공개 리소스용 Public URL 생성

@@ -21,9 +21,13 @@ public interface LectureRepository  {
 
     Optional<Lecture> findByIdWithChaptersAndLessons(Long id);
 
+    Optional<Lecture> findByIdWithChaptersAndLessonsAndQuizzes(Long id);
+
     List<Lecture> findByInstructorId(String instructorId);
 
     Page<Lecture> findByInstructorId(String instructorId, Pageable pageable);
+
+    Page<Lecture> findByInstructorIdOrderByUpdatedAtDesc(String instructorId, Pageable pageable);
 
     List<Lecture> findByStatus(LectureStatus status);
 
@@ -31,9 +35,14 @@ public interface LectureRepository  {
 
     List<Lecture> findByCategoryIdAndStatus(Integer categoryId, LectureStatus status);
 
+    List<Lecture> findByCategoryIdAndStatusAndDeleteFlagFalse(Integer categoryId, LectureStatus status);
+
     Page<Lecture> findByFiltersWithStats(Integer categoryId, LectureLevel level, LectureStatus status, String sortBy, Pageable pageable);
+
+    Page<Lecture> findAllWithStatsForAdmin(String sortBy, Pageable pageable);
 
     void delete(Lecture lecture);
 
     boolean existsById(Long id);
+
 }
