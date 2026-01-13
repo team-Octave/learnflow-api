@@ -35,7 +35,7 @@ import java.util.stream.IntStream;
 public class LectureService {
 
     // TODO : 썸네일 업로드 오류 시, 저장 안되는 오류가 있음. 이를 방지하고자 기본 이미지 URL 설정
-    // @Value("${spring.application.default-thumbnail}")
+    @Value("${spring.application.default-thumbnail}")
     private String defaultThumbnailUrl;
 
     private final LectureRepository lectureRepository;
