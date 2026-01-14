@@ -1,8 +1,11 @@
 package com.teamexp.learnflowapi.content.dto;
 
+import jakarta.validation.constraints.NotBlank;
+import jakarta.validation.constraints.NotNull;
+
 public record UploadInitRequest(
-        String filename,
-        String contentType,
-        Long filesize
+        @NotBlank String filename,
+        @NotBlank String contentType,
+        @NotNull Long filesize
 ) {
 }

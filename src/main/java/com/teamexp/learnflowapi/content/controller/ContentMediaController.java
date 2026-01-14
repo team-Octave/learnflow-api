@@ -5,6 +5,7 @@ import com.teamexp.learnflowapi.content.dto.UploadInitResponse;
 import com.teamexp.learnflowapi.content.dto.UploadVideoRequest;
 import com.teamexp.learnflowapi.content.service.ContentMediaService;
 import com.teamexp.learnflowapi.global.response.BaseResponse;
+import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
@@ -30,10 +31,9 @@ public class ContentMediaController {
             consumes = MediaType.APPLICATION_JSON_VALUE)
     public ResponseEntity<BaseResponse<UploadInitResponse>> initUpload(
             @PathVariable Long lessonId,
-            @RequestBody UploadInitRequest request
+            @Valid @RequestBody UploadInitRequest request
     ){
         UploadInitResponse data = contentMediaService.initUpload(lessonId, request);
         return ResponseEntity.ok(BaseResponse.ok(data));
     }
-
 }

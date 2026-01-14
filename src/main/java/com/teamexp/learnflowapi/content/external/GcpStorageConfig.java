@@ -10,6 +10,7 @@ import org.springframework.core.io.DefaultResourceLoader;
 import org.springframework.core.io.Resource;
 
 import java.io.IOException;
+import java.io.InputStream;
 import java.util.List;
 
 @Configuration
@@ -27,13 +28,15 @@ public class GcpStorageConfig {
     public Storage gcpStorage() throws IOException {
         Resource resource = new DefaultResourceLoader().getResource(keyLocation);
 
-        GoogleCredentials credentials = GoogleCredentials
-                .fromStream(resource.getInputStream())
-                .createScoped(List.of("https://www.googleapis.com/auth/devstorage.read_write"));
+        try (InputStream is = resource.getInputStream()) {
+            GoogleCredentials credentials = GoogleCredentials
+                    .fromStream(is)
+                    .createScoped(List.of("https://www.googleapis.com/auth/devstorage.read_write"));
 
-        return StorageOptions.newBuilder()
-                .setCredentials(credentials)
-                .build()
-                .getService();
+            return StorageOptions.newBuilder()
+                    .setCredentials(credentials)
+                    .build()
+                    .getService();
+        }
     }
 }

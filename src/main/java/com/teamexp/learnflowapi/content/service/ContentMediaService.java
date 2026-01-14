@@ -38,12 +38,19 @@ public class ContentMediaService {
 
         validateInitRequest(uploadInitRequest);
 
+        // 레슨 id 중복 체크
+        contentMediaRepository.findByLessonId(lessonId)
+                .ifPresent(existing -> {
+                    throw new IllegalStateException("이미 해당 레슨에 영상이 존재합니다.");
+                });
+
         // GCP 업로드용 파일 key 생성
         String fileKey = buildFileKey(lessonId, uploadInitRequest.filename());
 
         // PENDING 상태로 DB insert
         ContentMedia media = ContentMedia.createPending(lessonId, fileKey);
         contentMediaRepository.save(media);
+
 
         // Signed URL 발급
         String uploadUrl = gcpSignedUrlService.createSignedUrl(
@@ -78,8 +85,8 @@ public class ContentMediaService {
             throw new IllegalArgumentException(ALLOWED_MIME + "만 업로드 가능합니다.");
         }
 
-        if (req.filesize() > MAX_FILE_SIZE) {
-            throw new IllegalArgumentException("파일 크기는 1GB 이하입니다.");
+        if (req.filesize() == null || req.filesize() <= 0 || req.filesize() > MAX_FILE_SIZE) {
+            throw new IllegalArgumentException("파일 크기는 0보다 크고 1GB 이하여야 합니다.");
         }
     }
 }
