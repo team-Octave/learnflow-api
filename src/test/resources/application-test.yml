@@ -1,52 +1,45 @@
-spring:
-  config:
-    activate:
-      on-profile: test
+  application:
+    name: learnflow-api
+    # LectureService.java의 @Value 경로에 맞춤
+    default-thumbnail: "https://storage.googleapis.com/learnflow-file-storage/thumbnails/lecture-default-Image.jpg"
 
-  # 1. H2 인메모리 DB 설정
   datasource:
     url: jdbc:h2:mem:testdb;MODE=MySQL;DB_CLOSE_DELAY=-1
     driver-class-name: org.h2.Driver
     username: sa
     password:
 
-  # 2. JPA 및 하이버네이트 설정
   jpa:
     hibernate:
       ddl-auto: create-drop
     database-platform: org.hibernate.dialect.H2Dialect
     show-sql: true
 
-  # 3. JWT 설정 (Placeholder 에러 방지용)
   jwt:
     secret: 'KgAzaD5aDg8Hx6vjcBDpX1XRjvJbeHF61jxOqDEJ2S8='
     access-expiration: 3600000
     refresh-expiration: 604800000
 
-  # 4. GCP 설정 (테스트 시 실제 연결 방지)
   cloud:
     gcp:
+      project-id: learnflow-test-project # 프로젝트 ID 명시
       storage:
         bucket-name: learnflow-test-bucket
-        json-key-location: classpath:dummy-key.json
+        # GcpFileUploadService에서 "classpath:"를 직접 붙이므로 파일명만 작성
+        json-key-location: dummy-key.json
       credentials:
-        location: classpath:dummy-key.json
+        location: dummy-key.json
 
-  # 5. 파일 업로드 설정
   servlet:
     multipart:
       enabled: true
       max-file-size: 10MB
       max-request-size: 10MB
 
-# 6. 비즈니스 로직에 필요한 추가 설정값
 app:
-  application:
-    default-thumbnail: "https://storage.googleapis.com/learnflow-file-storage/thumbnails/lecture-default-Image.jpg"
   cors:
     allowed-origins: http://localhost:3000
 
-# 7. 슬랙 알림 가짜 주소
 slack:
   webhook:
     url: http://localhost:8080/dummy
