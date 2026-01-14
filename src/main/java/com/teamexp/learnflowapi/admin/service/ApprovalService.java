@@ -1,11 +1,14 @@
 package com.teamexp.learnflowapi.admin.service;
 
+import com.teamexp.learnflowapi.admin.dto.ApprovalDetailResponse;
 import com.teamexp.learnflowapi.admin.dto.ApprovalDto;
 import com.teamexp.learnflowapi.admin.dto.ApprovalsResponse;
+import com.teamexp.learnflowapi.admin.exception.ApprovalNotFoundException;
+import com.teamexp.learnflowapi.admin.exception.LectureNotFoundException;
+import com.teamexp.learnflowapi.admin.model.Approval;
+import com.teamexp.learnflowapi.admin.repository.ApprovalRepository;
 import com.teamexp.learnflowapi.lecture.model.Lecture;
-import com.teamexp.learnflowapi.lecture.model.LectureStatus;
 import com.teamexp.learnflowapi.lecture.repository.LectureAdminRepository;
-import com.teamexp.learnflowapi.lecture.repository.LectureRepository;
 import com.teamexp.learnflowapi.user.model.User;
 import com.teamexp.learnflowapi.user.repository.UserRepository;
 
@@ -30,11 +33,13 @@ public class ApprovalService {
 
     private final UserRepository userRepository;
     private final LectureAdminRepository  lectureAdminRepository;
+    private final ApprovalRepository approvalRepository;
 
-    public ApprovalService(UserRepository userRepository,  LectureAdminRepository lectureAdminRepository) {
+    public ApprovalService(UserRepository userRepository,  LectureAdminRepository lectureAdminRepository, ApprovalRepository approvalRepository) {
 
         this.userRepository = userRepository;
         this.lectureAdminRepository = lectureAdminRepository;
+        this.approvalRepository = approvalRepository;
     }
 
     public ApprovalsResponse getApprovals(Pageable pageable) {
@@ -84,6 +89,42 @@ public class ApprovalService {
                     lectures.getSize(),
                     approvals
             );
+    }
+
+    /*
+    * lecture가 존재한다고 가정하에 매개변수로 받는다.
+    * */
+    @Transactional
+    public void createApproval(Long lectureId) {
+
+
+        // Approval 객체 생성
+        Approval newApproval = Approval.create(lectureId);
+
+        // DB에 저장
+        approvalRepository.save(newApproval);
+
+    }
+
+    // TODO : 현재는 LectureId이지만 추후에 ApprovalId로 변경해야 함.
+    public ApprovalDetailResponse getApproval(Long lectureId) {
+
+//        // Approval을 찾을 수 없음
+//        Approval foundApproval = approvalRepository.findById(approvalId).orElseThrow(
+//            ApprovalNotFoundException::new
+//        );
+//
+//        // lecture 정보 추출
+//        Long lectureId = foundApproval.getLectureId();
+        Lecture foundLecture = lectureAdminRepository.findByIdWithChaptersAndLessonsAndQuizzes(lectureId).orElseThrow(
+            LectureNotFoundException::new
+        );
+
+        // 강의 생성자 이름 추출
+        User foundUser = userRepository.findByUserIdAndDelFlagFalse(foundLecture.getInstructorId()).orElse(null);
+
+        // DTO 맵핑
+        return ApprovalDetailResponse.of(foundLecture, foundUser);
     }
 
 }
