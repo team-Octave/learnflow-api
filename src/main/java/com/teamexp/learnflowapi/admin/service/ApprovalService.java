@@ -2,6 +2,8 @@ package com.teamexp.learnflowapi.admin.service;
 
 import com.teamexp.learnflowapi.admin.dto.ApprovalDto;
 import com.teamexp.learnflowapi.admin.dto.ApprovalsResponse;
+import com.teamexp.learnflowapi.admin.model.Approval;
+import com.teamexp.learnflowapi.admin.repository.ApprovalRepository;
 import com.teamexp.learnflowapi.lecture.model.Lecture;
 import com.teamexp.learnflowapi.lecture.model.LectureStatus;
 import com.teamexp.learnflowapi.lecture.repository.LectureAdminRepository;
@@ -30,11 +32,13 @@ public class ApprovalService {
 
     private final UserRepository userRepository;
     private final LectureAdminRepository  lectureAdminRepository;
+    private final ApprovalRepository approvalRepository;
 
-    public ApprovalService(UserRepository userRepository,  LectureAdminRepository lectureAdminRepository) {
+    public ApprovalService(UserRepository userRepository,  LectureAdminRepository lectureAdminRepository, ApprovalRepository approvalRepository) {
 
         this.userRepository = userRepository;
         this.lectureAdminRepository = lectureAdminRepository;
+        this.approvalRepository = approvalRepository;
     }
 
     public ApprovalsResponse getApprovals(Pageable pageable) {
@@ -84,6 +88,20 @@ public class ApprovalService {
                     lectures.getSize(),
                     approvals
             );
+    }
+
+    /*
+    * lecture가 존재한다고 가정하에 매개변수로 받는다.
+    * */
+    public void createApproval(Long lectureId) {
+
+
+        // Approval 객체 생성
+        Approval newApproval = Approval.create(lectureId);
+
+        // DB에 저장
+        approvalRepository.save(newApproval);
+
     }
 
 }
