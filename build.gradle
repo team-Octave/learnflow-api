@@ -44,6 +44,19 @@ dependencies {
     implementation 'org.springframework.boot:spring-boot-starter-actuator'
     // FFmpegFrameGrabber 추가
     implementation("org.bytedeco:javacv-platform:1.5.9")
+
+    // [신규 추가] 1. 프로메테우스 연동 (지표 수집용)
+    runtimeOnly 'io.micrometer:micrometer-registry-prometheus'
+
+    // [신규 추가] 2. 집킨(Zipkin) 연동 (분산 트레이싱 - 요청 흐름 추적용)
+    implementation 'io.micrometer:micrometer-tracing-bridge-brave'
+    implementation 'io.zipkin.reporter2:zipkin-reporter-brave'
+
+    // [신규 추가] 3. 로키(Loki) 연동 (로그 수집용)
+    implementation 'com.github.loki4j:loki-logback-appender:1.4.1'
+    // 테스트 시 사용할 인메모리 DB H2 추가
+    runtimeOnly 'com.h2database:h2'
+
 }
 dependencyManagement {
     imports {

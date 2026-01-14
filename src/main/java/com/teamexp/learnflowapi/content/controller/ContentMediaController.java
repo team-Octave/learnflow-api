@@ -23,7 +23,7 @@ public class ContentMediaController {
 
     private final ContentMediaService contentMediaService;
 
-        @PostMapping(value = "/upload-video",
+    @PostMapping(value = "/upload-video",
             consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
     public ResponseEntity<BaseResponse<ContentUploadResponse>> uploadVideo(
             @ModelAttribute UploadVideoRequest uploadVideoRequest
@@ -37,5 +37,21 @@ public class ContentMediaController {
                 .status(HttpStatus.ACCEPTED)
                 .body(BaseResponse.ok(data));
     }
+
+    @PostMapping(value = "/upload-video/retry",
+    consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
+    public ResponseEntity<BaseResponse<ContentUploadResponse>> retryUploadVideo(
+            @ModelAttribute UploadVideoRequest uploadVideoRequest
+    ) throws IOException {
+
+        Long mediaId = contentMediaService.retryVideoUpload(uploadVideoRequest.lessonId(), uploadVideoRequest.file());
+
+        ContentUploadResponse data = new ContentUploadResponse(mediaId);
+
+        return ResponseEntity
+                .status(HttpStatus.ACCEPTED)
+                .body(BaseResponse.ok(data));
+    }
+
 }
 

@@ -2,6 +2,7 @@ package com.teamexp.learnflowapi.content.service;
 
 import com.teamexp.learnflowapi.content.dto.UploadVideoRequest;
 import com.teamexp.learnflowapi.content.model.ContentMedia;
+import com.teamexp.learnflowapi.content.model.MediaStatus;
 import com.teamexp.learnflowapi.content.repository.ContentMediaRepository;
 
 import java.io.File;
@@ -11,6 +12,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.core.task.TaskRejectedException;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.multipart.MultipartFile;
 
 @Service
@@ -83,7 +85,45 @@ public class ContentMediaService {
         }
     }
 
-        private void validateFile(MultipartFile file){
+    public Long retryVideoUpload(Long lessonId, MultipartFile file) throws IOException {
+
+        // 기존 ContentMedia 조회
+        ContentMedia media = contentMediaRepository.findByLessonId(lessonId)
+                .orElseThrow(() -> new IllegalArgumentException("해당 레슨에 영상이 없습니다. lessonId=" + lessonId));
+
+        if (media.getStatus() != MediaStatus.FAILED) {
+            throw new IllegalStateException("재시도는 FAILED 상태의 미디어에 대해서만 가능합니다.");
+        }
+
+        // status를 PENDING으로 초기화
+        media.resetToPending();
+        contentMediaRepository.save(media);
+
+        // 파일 검증
+        validateFile(file);
+
+        // multipartFile -> 임시 파일로 복사하기
+        File tempFile = File.createTempFile("upload-", ".mp4");
+
+        try {
+            file.transferTo(tempFile);
+
+
+            // 비동기 업로드 작업
+            videoUploadAsyncService.uploadVideoFileAsync(media.getId(), tempFile);
+
+            return media.getId();
+        } catch (Exception e) {
+            media.failUpload();   // 상태 = FAILED
+            contentMediaRepository.save(media);
+            if (tempFile.exists()) {
+                tempFile.delete();
+            }
+            throw e;
+        }
+    }
+
+    private void validateFile(MultipartFile file){
         if (file == null || file.isEmpty()) {
             throw new IllegalArgumentException("업로드할 파일이 없습니다.");
         }
