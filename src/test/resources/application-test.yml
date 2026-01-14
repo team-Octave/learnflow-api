@@ -1,9 +1,11 @@
+spring:
   application:
     name: learnflow-api
-    # LectureService.java의 @Value 경로에 맞춤
+    # LectureService.java의 @Value 경로 주입 설정
     default-thumbnail: "https://storage.googleapis.com/learnflow-file-storage/thumbnails/lecture-default-Image.jpg"
 
   datasource:
+    # GitHub Actions 환경을 위한 H2 메모리 DB 설정
     url: jdbc:h2:mem:testdb;MODE=MySQL;DB_CLOSE_DELAY=-1
     driver-class-name: org.h2.Driver
     username: sa
@@ -22,10 +24,10 @@
 
   cloud:
     gcp:
-      project-id: learnflow-test-project # 프로젝트 ID 명시
+      project-id: learnflow-test-project
       storage:
         bucket-name: learnflow-test-bucket
-        # GcpFileUploadService에서 "classpath:"를 직접 붙이므로 파일명만 작성
+        # GcpFileUploadService 코드와의 중복 방지를 위해 접두사 제외
         json-key-location: dummy-key.json
       credentials:
         location: dummy-key.json
