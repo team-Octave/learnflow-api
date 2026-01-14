@@ -45,7 +45,6 @@ public class SecurityConfig {
                 .authorizeHttpRequests(auth -> auth
                         // 1. ADMIN 전용 (가장 엄격)
                         .requestMatchers("/api/v1/admin/**").hasRole("ADMIN")
-                        .requestMatchers("/actuator/**").hasRole("ADMIN")
 
                         // 2. MEMBER 전용 (수정/삭제/생성 등 쓰기 작업 우선 배치) - TODO : 리팩토링 되면 수정해야 함.
                         .requestMatchers(HttpMethod.POST, "/api/v1/lectures/**").hasRole("MEMBER")   // 생성
