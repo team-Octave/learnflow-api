@@ -36,11 +36,12 @@ public class ApprovalController {
             .body(BaseResponse.ok(response));
     }
 
-    @GetMapping("/{approvalId}")
+    // TODO : approvalId를 추후에 변경해야함.
+    @GetMapping("/{lectureId}")
     public ResponseEntity<BaseResponse<ApprovalDetailResponse>> getApproval(
-        @Valid @PathVariable Long approvalId
+        @Valid @PathVariable Long lectureId
     ) {
-        ApprovalDetailResponse response = approvalService.getApproval(approvalId);
+        ApprovalDetailResponse response = approvalService.getApproval(lectureId);
         return ResponseEntity
             .status(HttpStatus.OK)
             .body(BaseResponse.ok(response));

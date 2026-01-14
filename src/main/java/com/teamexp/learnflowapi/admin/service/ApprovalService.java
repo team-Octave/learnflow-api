@@ -94,6 +94,7 @@ public class ApprovalService {
     /*
     * lecture가 존재한다고 가정하에 매개변수로 받는다.
     * */
+    @Transactional
     public void createApproval(Long lectureId) {
 
 
@@ -105,15 +106,16 @@ public class ApprovalService {
 
     }
 
-    public ApprovalDetailResponse getApproval(Long approvalId) {
+    // TODO : 현재는 LectureId이지만 추후에 ApprovalId로 변경해야 함.
+    public ApprovalDetailResponse getApproval(Long lectureId) {
 
-        // Approval을 찾을 수 없음
-        Approval foundApproval = approvalRepository.findById(approvalId).orElseThrow(
-            ApprovalNotFoundException::new
-        );
-
-        // lecture 정보 추출
-        Long lectureId = foundApproval.getLectureId();
+//        // Approval을 찾을 수 없음
+//        Approval foundApproval = approvalRepository.findById(approvalId).orElseThrow(
+//            ApprovalNotFoundException::new
+//        );
+//
+//        // lecture 정보 추출
+//        Long lectureId = foundApproval.getLectureId();
         Lecture foundLecture = lectureAdminRepository.findByIdWithChaptersAndLessonsAndQuizzes(lectureId).orElseThrow(
             LectureNotFoundException::new
         );
