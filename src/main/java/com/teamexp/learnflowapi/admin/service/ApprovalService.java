@@ -5,13 +5,10 @@ import com.teamexp.learnflowapi.admin.dto.ApprovalDto;
 import com.teamexp.learnflowapi.admin.dto.ApprovalsResponse;
 import com.teamexp.learnflowapi.admin.exception.ApprovalNotFoundException;
 import com.teamexp.learnflowapi.admin.exception.LectureNotFoundException;
-import com.teamexp.learnflowapi.admin.exception.UserNotFoundException;
 import com.teamexp.learnflowapi.admin.model.Approval;
 import com.teamexp.learnflowapi.admin.repository.ApprovalRepository;
 import com.teamexp.learnflowapi.lecture.model.Lecture;
-import com.teamexp.learnflowapi.lecture.model.LectureStatus;
 import com.teamexp.learnflowapi.lecture.repository.LectureAdminRepository;
-import com.teamexp.learnflowapi.lecture.repository.LectureRepository;
 import com.teamexp.learnflowapi.user.model.User;
 import com.teamexp.learnflowapi.user.repository.UserRepository;
 
