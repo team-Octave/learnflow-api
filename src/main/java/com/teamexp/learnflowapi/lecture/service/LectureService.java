@@ -660,24 +660,6 @@ public class LectureService {
         return PublishedResponse.from(lecture.getId(), lecture.getStatus());
     }
 
-    // Only Admin can call this method
-    // check admin at controller
-    @Transactional
-    public void allowPublishLecture(Long lectureId) {
-        Lecture lecture = findLectureWithChaptersAndLessons(lectureId);
-
-        lecture.allowPublish();
-    }
-
-    // Only Admin can call this method
-    // check admin at controller
-    @Transactional
-    public void notAllowPublishLecture(Long lectureId) {
-        Lecture lecture = findLectureWithChaptersAndLessons(lectureId);
-
-        lecture.notAllowPublish();
-    }
-
     // 강의 목록 조회 (필터링 및 페이지네이션)
     public Page<LectureResponse> getAllLecturesWithFilters(String category, String level, String sort, Pageable pageable) {
         // "ALL" 값 처리
