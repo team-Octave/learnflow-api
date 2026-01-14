@@ -51,4 +51,8 @@ public class Approval {
     public static Approval create(Long lectureId) {
         return new Approval(lectureId);
     }
+
+    public Long getLectureId() {
+        return lectureId;
+    }
 }
