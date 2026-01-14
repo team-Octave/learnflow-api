@@ -17,12 +17,12 @@ public interface JpaLectureAdminRepository extends JpaRepository<Lecture, Long>,
     @Override // Admin에서 조회할 강의 id 목록을 받아서 updatedAt이 오래된 강의 목록을 조회
     @Query("SELECT l FROM Lecture l " +
     "WHERE l.id IN :lectureIds AND l.deleteFlag = false AND l.status = 'SUBMITTED' " +
-    "ORDER BY l.updatedAt DESC NULLS LAST")
+    "ORDER BY l.updatedAt ASC NULLS LAST")
     Page<Lecture> findAllByIds(List<Long> lectureIds, Pageable pageable);
 
     @Override // Status가 SUBMITTED인 updatedAt이 오래된 강의 목록을 조회
     @Query("SELECT l FROM Lecture l WHERE l.status = 'SUBMITTED' AND l.deleteFlag = false " +
-    "ORDER BY l.updatedAt DESC NULLS LAST")
+    "ORDER BY l.updatedAt ASC NULLS LAST")
     Page<Lecture> findAllSubmittedLectures(Pageable pageable);
     
     @Override // findById - to change status from submitted to available or rejected
