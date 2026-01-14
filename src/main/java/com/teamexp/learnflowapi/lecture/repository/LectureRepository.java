@@ -13,6 +13,8 @@ public interface LectureRepository  {
 
     Lecture save(Lecture lecture);
 
+    Lecture saveAndFlush(Lecture lecture);
+
     Optional<Lecture> findById(Long id);
 
     List<Lecture> findAllById(Iterable<Long> ids);
