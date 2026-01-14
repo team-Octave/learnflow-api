@@ -1,7 +1,9 @@
 package com.teamexp.learnflowapi.admin.controller;
 
 import com.teamexp.learnflowapi.admin.dto.ApprovalDetailResponse;
+import com.teamexp.learnflowapi.admin.dto.ApprovalUpdateResponse;
 import com.teamexp.learnflowapi.admin.dto.ApprovalsResponse;
+import com.teamexp.learnflowapi.admin.dto.request.ApprovalUpdateRequest;
 import com.teamexp.learnflowapi.admin.service.ApprovalService;
 import com.teamexp.learnflowapi.global.response.BaseResponse;
 import jakarta.validation.Valid;
@@ -11,7 +13,9 @@ import org.springframework.data.web.PageableDefault;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.PatchMapping;
 import org.springframework.web.bind.annotation.PathVariable;
+import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
@@ -42,6 +46,18 @@ public class ApprovalController {
         @Valid @PathVariable Long lectureId
     ) {
         ApprovalDetailResponse response = approvalService.getApproval(lectureId);
+        return ResponseEntity
+            .status(HttpStatus.OK)
+            .body(BaseResponse.ok(response));
+    }
+
+    // TODO : approvalId로 추후에 변경해야함.
+    @PatchMapping("/{lectureId}")
+    public ResponseEntity<BaseResponse<ApprovalUpdateResponse>> updateApprovalStatus(
+        @Valid @PathVariable Long lectureId,
+        @RequestBody ApprovalUpdateRequest request
+    ) {
+        ApprovalUpdateResponse response = approvalService.updateApproval(lectureId, request);
         return ResponseEntity
             .status(HttpStatus.OK)
             .body(BaseResponse.ok(response));
