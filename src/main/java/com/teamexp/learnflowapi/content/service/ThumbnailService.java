@@ -92,14 +92,4 @@ public class ThumbnailService {
         }
     }
 
-    @Transactional(readOnly = true)
-    public ThumbnailResponse getThumbnail(Long lectureId) {
-        if (lectureId == null) {
-            throw new IllegalArgumentException("lectureId는 null일 수 없습니다.");
-        }
-        Thumbnail thumbnail = thumbnailRepository.findByLectureId(lectureId)
-                .orElseThrow(LectureThumbnailNotFoundException::new);
-
-        return new ThumbnailResponse(thumbnail.getLectureId(), thumbnail.getFileUrl());
-    }
 }
