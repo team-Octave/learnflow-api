@@ -26,8 +26,8 @@ public class ContentMediaController {
 
     private final ContentMediaService contentMediaService;
 
-    @PostMapping(value = "/{lessonId}/upload-video-init",
-            consumes = MediaType.APPLICATION_JSON_VALUE)
+    @PostMapping(value = "/upload-video-init",
+            consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
     public ResponseEntity<BaseResponse<UploadInitResponse>> initUpload(
             @PathVariable Long lessonId,
             @RequestBody UploadInitRequest request
@@ -35,6 +35,7 @@ public class ContentMediaController {
         UploadInitResponse data = contentMediaService.initUpload(lessonId, request);
         return ResponseEntity.ok(BaseResponse.ok(data));
     }
+
 
 }
 
