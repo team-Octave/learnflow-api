@@ -43,7 +43,7 @@ public class ApprovalController {
     // TODO : approvalId를 추후에 변경해야함.
     @GetMapping("/{lectureId}")
     public ResponseEntity<BaseResponse<ApprovalDetailResponse>> getApproval(
-        @Valid @PathVariable Long lectureId
+        @PathVariable Long lectureId
     ) {
         ApprovalDetailResponse response = approvalService.getApproval(lectureId);
         return ResponseEntity
@@ -54,8 +54,8 @@ public class ApprovalController {
     // TODO : approvalId로 추후에 변경해야함.
     @PatchMapping("/{lectureId}")
     public ResponseEntity<BaseResponse<ApprovalUpdateResponse>> updateApprovalStatus(
-        @Valid @PathVariable Long lectureId,
-        @RequestBody ApprovalUpdateRequest request
+        @PathVariable Long lectureId,
+        @Valid @RequestBody ApprovalUpdateRequest request
     ) {
         ApprovalUpdateResponse response = approvalService.updateApproval(lectureId, request);
         return ResponseEntity
