@@ -45,6 +45,7 @@ public class SecurityConfig {
                 .authorizeHttpRequests(auth -> auth
                         // 1. ADMIN 전용 (가장 엄격)
                         .requestMatchers("/api/v1/admin/**").hasRole("ADMIN")
+                        .requestMatchers("/actuator/**").hasRole("ADMIN")
 
                         // 2. MEMBER 전용 (수정/삭제/생성 등 쓰기 작업 우선 배치) - TODO : 리팩토링 되면 수정해야 함.
                         .requestMatchers(HttpMethod.POST, "/api/v1/lectures/**").hasRole("MEMBER")   // 생성
@@ -59,7 +60,8 @@ public class SecurityConfig {
                         .requestMatchers(HttpMethod.GET, "/api/v1/users/me").hasRole("MEMBER") // 내 정보 조회
 
                         // 3. Permit All (조회 및 공용 API)
-                        .requestMatchers("/actuator/health", "/api/v1/auth/**").permitAll()
+                        .requestMatchers("/actuator/health", "/actuator/prometheus", "/actuator/info").permitAll()
+                        .requestMatchers( "/api/v1/auth/**").permitAll()
                         .requestMatchers(HttpMethod.POST, "/api/v1/users").permitAll()
                         .requestMatchers(HttpMethod.GET, "/api/v1/users/check").permitAll()
                         .requestMatchers(HttpMethod.GET, "/api/v1/lectures/**").permitAll()           // 모든 GET 조회 허용
