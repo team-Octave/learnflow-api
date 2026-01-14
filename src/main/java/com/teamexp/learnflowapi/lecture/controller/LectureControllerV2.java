@@ -140,7 +140,7 @@ public class LectureControllerV2 {
         @PathVariable Long lessonId,
         @AuthenticationPrincipal CustomUserPrincipal customUser
     ) {
-        LessonResponse response = lessonService.getLesson(lectureId, lessonId, customUser.getId());
+        LessonResponse response = lessonService.getLesson(lectureId, lessonId);
         return ResponseEntity.status(HttpStatus.OK).body(BaseResponse.ok(response));
     }
 }

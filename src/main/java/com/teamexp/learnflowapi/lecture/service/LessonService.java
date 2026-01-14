@@ -125,7 +125,7 @@ public class LessonService {
         lectureRepository.save(lecture);
     }
 
-    public LessonResponse getLesson(Long lectureId, Long lessonId, String instructorId) {
+    public LessonResponse getLesson(Long lectureId, Long lessonId) {
         Lecture lecture = findLectureWithChaptersAndLessons(lectureId);
 
         Chapter chapter = findChapterContainingLesson(lecture, lessonId);
