@@ -59,7 +59,8 @@ public class SecurityConfig {
                         .requestMatchers(HttpMethod.GET, "/api/v1/users/me").hasRole("MEMBER") // 내 정보 조회
 
                         // 3. Permit All (조회 및 공용 API)
-                        .requestMatchers("/actuator/health", "/api/v1/auth/**").permitAll()
+                        .requestMatchers("/actuator/health", "/actuator/prometheus", "/actuator/info").permitAll()
+                        .requestMatchers( "/api/v1/auth/**").permitAll()
                         .requestMatchers(HttpMethod.POST, "/api/v1/users").permitAll()
                         .requestMatchers(HttpMethod.GET, "/api/v1/users/check").permitAll()
                         .requestMatchers(HttpMethod.GET, "/api/v1/lectures/**").permitAll()           // 모든 GET 조회 허용

@@ -25,12 +25,13 @@ spring:
   cloud:
     gcp:
       project-id: learnflow-test-project
-      storage:
-        bucket-name: learnflow-test-bucket
-        # GcpFileUploadService 코드와의 중복 방지를 위해 접두사 제외
-        json-key-location: dummy-key.json
       credentials:
-        location: dummy-key.json
+        enabled: false  # 테스트 시 자동 인증을 시도하지 않도록 설정
+      storage:
+        enabled: false  # 테스트 시 자동 스토리지 설정을 활성화하지 않음
+        bucket-name: learnflow-test-bucket
+        # GcpFileUploadService 코드와의 중복 방지를 위해 접두사 제외 및 오타 수정
+        json-key-location: dummy-key.json
 
   servlet:
     multipart:
