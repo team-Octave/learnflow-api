@@ -1,16 +1,18 @@
 package com.teamexp.learnflowapi.content.controller;
 
 import com.teamexp.learnflowapi.content.dto.ThumbnailResponse;
-import com.teamexp.learnflowapi.content.dto.ThumbnailRequest;
 import com.teamexp.learnflowapi.content.service.ThumbnailService;
 import com.teamexp.learnflowapi.global.response.BaseResponse;
 import jakarta.validation.Valid;
+import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.ModelAttribute;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
+import org.springframework.web.multipart.MultipartFile;
 
 import java.io.IOException;
 
@@ -27,10 +29,12 @@ public class ThumbnailController {
     @PostMapping(value = "/upload-thumbnail",
             consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
     public ResponseEntity<BaseResponse<ThumbnailResponse>> uploadThumbnail(
-            @ModelAttribute @Valid ThumbnailRequest thumbnailRequest) throws IOException {
+            @RequestParam("file") MultipartFile file) throws IOException {
 
-            ThumbnailResponse response = thumbnailService.uploadThumbnail(thumbnailRequest);
+        ThumbnailResponse data = thumbnailService.uploadThumbnail(file);
 
-            return ResponseEntity.ok(BaseResponse.ok(response));
+        return ResponseEntity
+                .status(HttpStatus.OK)
+                .body(BaseResponse.ok(data));
     }
 }

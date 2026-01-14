@@ -43,16 +43,30 @@ public class SecurityConfig {
                         session.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
                 .exceptionHandling(exception -> exception.authenticationEntryPoint(jwtAuthenticationEntryPoint))
                 .authorizeHttpRequests(auth -> auth
-                        .requestMatchers("/actuator/**").permitAll()
-                        .requestMatchers(HttpMethod.POST, "/api/v1/users").permitAll()          // 회원가입
-                        .requestMatchers("/api/v1/users/check").permitAll()    // 닉네임 체크
-                        .requestMatchers("/api/v1/auth/login").permitAll()    // 로그인
-                        .requestMatchers("/api/v1/auth/reissue").permitAll()   // 토큰 재발급
-                        .requestMatchers("/api/v1/auth/logout").permitAll() // 로그아웃
-                        .requestMatchers(HttpMethod.GET, "/api/v1/lectures/my").authenticated()
-                        .requestMatchers(HttpMethod.GET, "/api/v1/lectures").permitAll() // 강의 전체 조회
-                        .requestMatchers(HttpMethod.GET, "/api/v1/lectures/*").permitAll() // 강의 단건 조회
-                        .requestMatchers(HttpMethod.GET, "/api/v1/reviews/lectures/*").permitAll() // 강의별 리뷰 조회
+                        // 1. ADMIN 전용 (가장 엄격)
+                        .requestMatchers("/api/v1/admin/**").hasRole("ADMIN")
+
+                        // 2. MEMBER 전용 (수정/삭제/생성 등 쓰기 작업 우선 배치) - TODO : 리팩토링 되면 수정해야 함.
+                        .requestMatchers(HttpMethod.POST, "/api/v1/lectures/**").hasRole("MEMBER")   // 생성
+                        .requestMatchers(HttpMethod.PUT, "/api/v1/lectures/**").hasRole("MEMBER")    // 업데이트
+                        .requestMatchers(HttpMethod.DELETE, "/api/v1/lectures/**").hasRole("MEMBER") // 삭제
+                        .requestMatchers(HttpMethod.GET, "/api/v1/lectures/my").hasRole("MEMBER")    // 내 강의 조회
+                        .requestMatchers(HttpMethod.PUT, "/api/v1/reviews/**").hasRole("MEMBER")    // 리뷰 업데이트
+                        .requestMatchers(HttpMethod.DELETE, "/api/v1/reviews/**").hasRole("MEMBER") // 리뷰 삭제
+                        .requestMatchers(HttpMethod.POST, "/api/v1/reviews/**").hasRole("MEMBER")  // 리뷰 생성
+                        .requestMatchers("/api/v1/enrollment/**", "/api/v1/contents/**").hasRole("MEMBER") // content, enrollment 모든 API
+                        .requestMatchers(HttpMethod.DELETE, "/api/v1/users/me").hasRole("MEMBER") // 회원 탈퇴
+                        .requestMatchers(HttpMethod.GET, "/api/v1/users/me").hasRole("MEMBER") // 내 정보 조회
+
+                        // 3. Permit All (조회 및 공용 API)
+                        .requestMatchers("/actuator/health", "/api/v1/auth/**").permitAll()
+                        .requestMatchers(HttpMethod.POST, "/api/v1/users").permitAll()
+                        .requestMatchers(HttpMethod.GET, "/api/v1/users/check").permitAll()
+                        .requestMatchers(HttpMethod.GET, "/api/v1/lectures/**").permitAll()           // 모든 GET 조회 허용
+                        .requestMatchers(HttpMethod.GET, "/api/v1/reviews/**").permitAll()           // 모든 GET 조회 허용
+                        .requestMatchers(HttpMethod.GET, "/api/v1/reviews/lectures/**").permitAll()
+
+                        // 4. 나머지 모든 요청은 인증 필요
                         .anyRequest().authenticated()
                 )
                 .userDetailsService(userDetailsService);

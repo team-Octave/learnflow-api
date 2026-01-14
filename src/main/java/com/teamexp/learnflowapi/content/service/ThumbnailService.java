@@ -1,7 +1,6 @@
 package com.teamexp.learnflowapi.content.service;
 
 import com.teamexp.learnflowapi.content.dto.ThumbnailResponse;
-import com.teamexp.learnflowapi.content.dto.ThumbnailRequest;
 import com.teamexp.learnflowapi.content.exception.InvalidFileNameException;
 import com.teamexp.learnflowapi.content.exception.LectureThumbnailNotFoundException;
 import com.teamexp.learnflowapi.content.exception.ThumbnailFileSizeExceededException;
@@ -37,42 +36,32 @@ public class ThumbnailService {
     private static final long MAX_FILE_SIZE = 10L * 1024L * 1024L;
 
 
+    /**
+     * 썸네일 업로드
+     * Request : MultipartFile file
+     * Response: uploadUrl (GCP에 업로드된 썸네일 URL)
+     */
     @Transactional
-    public ThumbnailResponse uploadThumbnail(ThumbnailRequest request) throws IOException {
-
-        MultipartFile file = request.file();
-        Long lectureId = request.lectureId();
+    public ThumbnailResponse uploadThumbnail(MultipartFile file) throws IOException {
 
         // 업로드 파일 검증
         validateThumbnailFile(file);
 
         // GCP 업로드용 파일명 생성
         String originalFilename = file.getOriginalFilename();
+        String extension = originalFilename
+                .substring(originalFilename.lastIndexOf(".") + 1)
+                .toLowerCase();
 
-        String extension = originalFilename.substring(originalFilename.lastIndexOf(".") + 1).toLowerCase();
-        String thumbnailFileName = "thumbnails/lecture-" + lectureId + "-" + UUID.randomUUID() + "." + extension;
+        String fileKey = "thumbnails/" + UUID.randomUUID() + "." + extension;
 
         // GCP 업로드 수행
-        gcpFileUploadService.uploadFile(thumbnailFileName, file);
+        gcpFileUploadService.uploadFile(fileKey, file);
 
         // 공개 URL 생성
-        String publicUrl = gcpFileUploadService.createPublicUrl(thumbnailFileName);
+        String publicUrl = gcpFileUploadService.createPublicUrl(fileKey);
 
-        // DB 저장
-        Thumbnail foundthumbnail = thumbnailRepository.findByLectureId(lectureId)
-                .orElse(null);
-
-        if (foundthumbnail != null) {
-            // 기존 썸네일 있으면 -> 파일키 업데이트
-            foundthumbnail.changeFileKey(thumbnailFileName, publicUrl);
-        } else {
-            // 없으면 신규 썸네일 저장
-            Thumbnail created = Thumbnail.createThumbnail(
-                    lectureId, thumbnailFileName, publicUrl
-            );
-            thumbnailRepository.save(created);
-        }
-        return new ThumbnailResponse(lectureId, publicUrl);
+        return new ThumbnailResponse(publicUrl);
     }
 
     private void validateThumbnailFile(MultipartFile file){
@@ -103,14 +92,4 @@ public class ThumbnailService {
         }
     }
 
-    @Transactional(readOnly = true)
-    public ThumbnailResponse getThumbnail(Long lectureId) {
-        if (lectureId == null) {
-            throw new IllegalArgumentException("lectureId는 null일 수 없습니다.");
-        }
-        Thumbnail thumbnail = thumbnailRepository.findByLectureId(lectureId)
-                .orElseThrow(LectureThumbnailNotFoundException::new);
-
-        return new ThumbnailResponse(thumbnail.getLectureId(), thumbnail.getFileUrl());
-    }
 }
