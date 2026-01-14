@@ -4,10 +4,11 @@ import com.teamexp.learnflowapi.admin.dto.ApprovalDto;
 import com.teamexp.learnflowapi.admin.dto.ApprovalsResponse;
 import com.teamexp.learnflowapi.lecture.model.Lecture;
 import com.teamexp.learnflowapi.lecture.model.LectureStatus;
+import com.teamexp.learnflowapi.lecture.repository.LectureAdminRepository;
 import com.teamexp.learnflowapi.lecture.repository.LectureRepository;
 import com.teamexp.learnflowapi.user.model.User;
 import com.teamexp.learnflowapi.user.repository.UserRepository;
-import com.teamexp.learnflowapi.user.service.UserService;
+
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
@@ -24,19 +25,22 @@ public class ApprovalService {
 
     @Value("${spring.application.default-thumbnail}")
     private String defaultThumbnailUrl;
-    // TODO : 여기서 approvals 테이블을 관리하는 repository를 사용하는게 맞는것 같음.
-    private final LectureRepository lectureRepository;
-    private final UserRepository userRepository;
 
-    public ApprovalService(LectureRepository lectureRepository, UserRepository userRepository) {
-        this.lectureRepository = lectureRepository;
+    // TODO : 여기서 approvals 테이블을 관리하는 repository를 사용하는게 맞는것 같음.
+
+    private final UserRepository userRepository;
+    private final LectureAdminRepository  lectureAdminRepository;
+
+    public ApprovalService(UserRepository userRepository,  LectureAdminRepository lectureAdminRepository) {
+
         this.userRepository = userRepository;
+        this.lectureAdminRepository = lectureAdminRepository;
     }
 
     public ApprovalsResponse getApprovals(Pageable pageable) {
 
         // TODO : 추후 LectureAdminRepository로 변경
-        Page<Lecture> lectures = lectureRepository.findByStatus(LectureStatus.SUBMITTED, pageable);
+        Page<Lecture> lectures = lectureAdminRepository.findAllSubmittedLectures(pageable);
 
 
         List<String> instructorIds = lectures.getContent().stream()
