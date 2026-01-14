@@ -48,9 +48,6 @@ public interface JpaLectureRepository extends JpaRepository<Lecture, Long>, Lect
     List<Lecture> findByStatus(LectureStatus status);
 
     @Override
-    Page<Lecture> findByStatus(LectureStatus status, Pageable pageable);
-
-    @Override
     List<Lecture> findByCategoryId(Integer categoryId);
 
     @Override
