@@ -1,7 +1,9 @@
 package com.teamexp.learnflowapi.admin.model;
 
 import jakarta.persistence.Column;
+import jakarta.persistence.Embeddable;
 
+@Embeddable
 public class ApprovalRejectReason {
 
     @Column(name = "content_quality_low")
