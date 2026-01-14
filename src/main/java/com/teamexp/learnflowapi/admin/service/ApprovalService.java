@@ -1,7 +1,11 @@
 package com.teamexp.learnflowapi.admin.service;
 
+import com.teamexp.learnflowapi.admin.dto.ApprovalDetailResponse;
 import com.teamexp.learnflowapi.admin.dto.ApprovalDto;
 import com.teamexp.learnflowapi.admin.dto.ApprovalsResponse;
+import com.teamexp.learnflowapi.admin.exception.ApprovalNotFoundException;
+import com.teamexp.learnflowapi.admin.exception.LectureNotFoundException;
+import com.teamexp.learnflowapi.admin.exception.UserNotFoundException;
 import com.teamexp.learnflowapi.admin.model.Approval;
 import com.teamexp.learnflowapi.admin.repository.ApprovalRepository;
 import com.teamexp.learnflowapi.lecture.model.Lecture;
@@ -102,6 +106,26 @@ public class ApprovalService {
         // DB에 저장
         approvalRepository.save(newApproval);
 
+    }
+
+    public ApprovalDetailResponse getApproval(Long approvalId) {
+
+        // Approval을 찾을 수 없음
+        Approval foundApproval = approvalRepository.findById(approvalId).orElseThrow(
+            ApprovalNotFoundException::new
+        );
+
+        // lecture 정보 추출
+        Long lectureId = foundApproval.getLectureId();
+        Lecture foundLecture = lectureAdminRepository.findByIdWithChaptersAndLessonsAndQuizzes(lectureId).orElseThrow(
+            LectureNotFoundException::new
+        );
+
+        // 강의 생성자 이름 추출
+        User foundUser = userRepository.findByUserIdAndDelFlagFalse(foundLecture.getInstructorId()).orElse(null);
+
+        // DTO 맵핑
+        return ApprovalDetailResponse.of(foundLecture, foundUser);
     }
 
 }
