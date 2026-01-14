@@ -1,27 +1,28 @@
 package com.teamexp.learnflowapi.content.service;
 
-import com.teamexp.learnflowapi.content.dto.UploadVideoRequest;
+import com.teamexp.learnflowapi.content.dto.UploadInitRequest;
+import com.teamexp.learnflowapi.content.dto.UploadInitResponse;
+import com.teamexp.learnflowapi.content.external.GcpSignedUrlService;
 import com.teamexp.learnflowapi.content.model.ContentMedia;
-import com.teamexp.learnflowapi.content.model.MediaStatus;
 import com.teamexp.learnflowapi.content.repository.ContentMediaRepository;
-
-import java.io.File;
-import java.io.IOException;
-import lombok.RequiredArgsConstructor;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-import org.springframework.core.task.TaskRejectedException;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
-import org.springframework.web.multipart.MultipartFile;
 
 @Service
-@RequiredArgsConstructor
 public class ContentMediaService {
 
     private final ContentMediaRepository contentMediaRepository;
-    private final VideoUploadAsyncService videoUploadAsyncService;
-    private static final Logger log = LoggerFactory.getLogger(ContentMediaService.class);
+    private final GcpSignedUrlService gcpSignedUrlService;
+
+    public ContentMediaService(ContentMediaRepository contentMediaRepository,
+                               GcpSignedUrlService gcpSignedUrlService) {
+        this.contentMediaRepository = contentMediaRepository;
+        this.gcpSignedUrlService = gcpSignedUrlService;
+    }
+
+    @Value("${spring.cloud.gcp.storage.bucket-name}")
+    private String bucketName;
 
     /*
      * 1. 영상 파일 형식 .mp4
@@ -32,120 +33,53 @@ public class ContentMediaService {
     private static final String ALLOWED_MIME = "video/mp4";
     private static final long MAX_FILE_SIZE = 1024L * 1024L * 1024L;
 
-    public Long requestVideoUpload(UploadVideoRequest request) throws IOException {
+    @Transactional
+    public UploadInitResponse initUpload(Long lessonId, UploadInitRequest uploadInitRequest) {
 
-        MultipartFile file = request.file();
-        Long lessonId = request.lessonId();
+        validateInitRequest(uploadInitRequest);
 
-        // 업로드 파일 검증
-        validateFile(file);
+        // GCP 업로드용 파일 key 생성
+        String fileKey = buildFileKey(lessonId, uploadInitRequest.filename());
 
-        // multipartFile -> 임시 파일로 복사하기
-        File tempFile = File.createTempFile("upload-", ".mp4");
-
-        ContentMedia media = ContentMedia.createPending(lessonId);
+        // PENDING 상태로 DB insert
+        ContentMedia media = ContentMedia.createPending(lessonId, fileKey);
         contentMediaRepository.save(media);
 
-        try {
-            file.transferTo(tempFile);
+        // Signed URL 발급
+        String uploadUrl = gcpSignedUrlService.createSignedUrl(
+                fileKey,
+                uploadInitRequest.contentType(),
+                uploadInitRequest.filesize()
+        );
 
-            // 비동기 업로드 작업
-            videoUploadAsyncService.uploadVideoFileAsync(media.getId(), tempFile);
+        return new UploadInitResponse(
+                media.getId(),
+                uploadUrl,
+                fileKey,
+                bucketName
+        );
 
-            return media.getId();
-
-        }catch(TaskRejectedException ex) {
-            // 큐/ 스레드풀 꽉 차서 비동기 작업 실행 안된 경우
-            media.failUpload();   // 상태 = FAILED
-            contentMediaRepository.save(media);
-
-            // temp 파일 삭제
-            if (tempFile.exists()) {
-                tempFile.delete();
-            }
-
-            log.error("[VideoUpload] 큐 거절 - mediaId={}, error={}",
-                    media.getId(), ex.getMessage(), ex);
-
-            throw ex;
-
-        } catch (Exception ex) {
-            // 다른 예외 상황의 경우
-            media.failUpload();   // 상태 = FAILED
-            contentMediaRepository.save(media);
-
-            if (tempFile.exists()) {
-                tempFile.delete();
-            }
-
-            log.error("[VideoUpload] 업로드 전 단계에서 예외 발생 - lessonId={}, error={}",
-                    request.lessonId(), ex.getMessage(), ex);
-
-            throw ex;
-        }
+    }
+    private String buildFileKey(Long lessonId, String filename) {
+        return "lessons/%d/videos/%d_%s".formatted(
+                lessonId,
+                System.currentTimeMillis(),
+                filename
+        );
     }
 
-    public Long retryVideoUpload(Long lessonId, MultipartFile file) throws IOException {
+    private void validateInitRequest(UploadInitRequest req) {
 
-        // 기존 ContentMedia 조회
-        ContentMedia media = contentMediaRepository.findByLessonId(lessonId)
-                .orElseThrow(() -> new IllegalArgumentException("해당 레슨에 영상이 없습니다. lessonId=" + lessonId));
-
-        if (media.getStatus() != MediaStatus.FAILED) {
-            throw new IllegalStateException("재시도는 FAILED 상태의 미디어에 대해서만 가능합니다.");
+        if (req.filename() == null || !req.filename().toLowerCase().endsWith(ALLOWED_EXTENSION)) {
+            throw new IllegalArgumentException("mp4 확장자만 허용됩니다.");
         }
 
-        // status를 PENDING으로 초기화
-        media.resetToPending();
-        contentMediaRepository.save(media);
-
-        // 파일 검증
-        validateFile(file);
-
-        // multipartFile -> 임시 파일로 복사하기
-        File tempFile = File.createTempFile("upload-", ".mp4");
-
-        try {
-            file.transferTo(tempFile);
-
-
-            // 비동기 업로드 작업
-            videoUploadAsyncService.uploadVideoFileAsync(media.getId(), tempFile);
-
-            return media.getId();
-        } catch (Exception e) {
-            media.failUpload();   // 상태 = FAILED
-            contentMediaRepository.save(media);
-            if (tempFile.exists()) {
-                tempFile.delete();
-            }
-            throw e;
-        }
-    }
-
-    private void validateFile(MultipartFile file){
-        if (file == null || file.isEmpty()) {
-            throw new IllegalArgumentException("업로드할 파일이 없습니다.");
+        if (!"video/mp4".equalsIgnoreCase(req.contentType())) {
+            throw new IllegalArgumentException(ALLOWED_MIME + "만 업로드 가능합니다.");
         }
 
-        String originalFilename = file.getOriginalFilename();
-
-        if (originalFilename == null || !originalFilename.contains(".")) {
-            throw new IllegalArgumentException("유효하지 않은 파일명입니다. 확장자가 필요합니다.");
-        }
-
-        String extension = originalFilename.substring(originalFilename.lastIndexOf(".")).toLowerCase();
-
-        if (!extension.equals(ALLOWED_EXTENSION)) {
-            throw new IllegalArgumentException("지원하지 않는 파일 형식입니다. mp4만 업로드 가능합니다.");
-        }
-
-        if (!ALLOWED_MIME.equalsIgnoreCase(file.getContentType())) {
-            throw new IllegalArgumentException("지원하지 않는 MIME 타입입니다. video/mp4만 허용됩니다.");
-        }
-
-        if (file.getSize() > MAX_FILE_SIZE) {
-            throw new IllegalArgumentException("파일이 너무 큽니다. 최대 업로드 크기는 1GB입니다.");
+        if (req.filesize() > MAX_FILE_SIZE) {
+            throw new IllegalArgumentException("파일 크기는 1GB 이하입니다.");
         }
     }
 }
