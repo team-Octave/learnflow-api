@@ -14,6 +14,7 @@ public class GcpSignedUrlService {
 
     private final Storage storage;
     private final String bucketName;
+    private static final String FIXED_CONTENT_TYPE = "video/mp4";
 
     public GcpSignedUrlService(
             Storage storage,
@@ -27,7 +28,9 @@ public class GcpSignedUrlService {
      * 업로드용 Signed URL (프론트가 GCS로 직접 업로드)
      */
     public String createSignedUrl(String fileKey) {
+        String contentType = "video/mp4";
         BlobInfo blobInfo = BlobInfo.newBuilder(bucketName, fileKey)
+                .setContentType(FIXED_CONTENT_TYPE)
                 .build();
 
         URL url = storage.signUrl(
