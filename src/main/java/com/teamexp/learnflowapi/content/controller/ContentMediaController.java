@@ -27,13 +27,13 @@ public class ContentMediaController {
 
     private final ContentMediaService contentMediaService;
 
-    @PostMapping(value = "/{lessonId}/upload-video-init",
+    // 영상 업로드에 필요한 signed url 전달
+    @PostMapping(value = "/upload-video-init",
             consumes = MediaType.APPLICATION_JSON_VALUE)
     public ResponseEntity<BaseResponse<UploadInitResponse>> initUpload(
-            @PathVariable Long lessonId,
             @Valid @RequestBody UploadInitRequest request
     ){
-        UploadInitResponse data = contentMediaService.initUpload(lessonId, request);
+        UploadInitResponse data = contentMediaService.initUpload(request);
         return ResponseEntity.ok(BaseResponse.ok(data));
     }
 }

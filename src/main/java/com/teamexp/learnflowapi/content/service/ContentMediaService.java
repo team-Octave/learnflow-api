@@ -9,6 +9,8 @@ import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.util.UUID;
+
 @Service
 public class ContentMediaService {
 
@@ -34,21 +36,15 @@ public class ContentMediaService {
     private static final long MAX_FILE_SIZE = 1024L * 1024L * 1024L;
 
     @Transactional
-    public UploadInitResponse initUpload(Long lessonId, UploadInitRequest uploadInitRequest) {
+    public UploadInitResponse initUpload(UploadInitRequest uploadInitRequest) {
 
         validateInitRequest(uploadInitRequest);
 
-        // 레슨 id 중복 체크
-        contentMediaRepository.findByLessonId(lessonId)
-                .ifPresent(existing -> {
-                    throw new IllegalStateException("이미 해당 레슨에 영상이 존재합니다.");
-                });
-
         // GCP 업로드용 파일 key 생성
-        String fileKey = buildFileKey(lessonId, uploadInitRequest.filename());
+        String fileKey = buildFileKey(uploadInitRequest.filename());
 
         // PENDING 상태로 DB insert
-        ContentMedia media = ContentMedia.createPending(lessonId, fileKey);
+        ContentMedia media = ContentMedia.createPending(fileKey);
         contentMediaRepository.save(media);
 
 
@@ -67,11 +63,15 @@ public class ContentMediaService {
         );
 
     }
-    private String buildFileKey(Long lessonId, String filename) {
-        return "lessons/%d/videos/%d_%s".formatted(
-                lessonId,
-                System.currentTimeMillis(),
-                filename
+    private String buildFileKey(String filename) {
+
+        // 파일명에서 경로 구분자 제거 및 안전한 문자만 허용
+        String sanitizedFilename = filename.replaceAll("[^a-zA-Z0-9._-]", "_");
+
+        // 랜덤키 사용
+        return "videos/%s_%s".formatted(
+                UUID.randomUUID().toString(),
+                sanitizedFilename
         );
     }
 

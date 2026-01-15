@@ -29,7 +29,7 @@ public class ContentMedia {
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
-    @Column(name = "lesson_id", nullable = false)
+    @Column(name = "lesson_id")
     private Long lessonId;
 
     /*
@@ -38,6 +38,11 @@ public class ContentMedia {
     @Column(name = "file_key")
     private String fileKey;
 
+    @Column(name = "file_name")
+    private String fileName;
+
+    @Column(name = "file_size")
+    private Long fileSize;
 
     @Column(name = "duration_sec")
     private Integer durationSec;
@@ -56,9 +61,8 @@ public class ContentMedia {
 
     protected ContentMedia() {}
 
-    public static ContentMedia createPending(Long lessonId, String fileKey) {
+    public static ContentMedia createPending(String fileKey) {
         ContentMedia media = new ContentMedia();
-        media.lessonId = lessonId;
         media.fileKey = fileKey;
         media.status = MediaStatus.PENDING;
         return media;
