@@ -43,33 +43,36 @@ public class SecurityConfig {
                 session.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
             .exceptionHandling(exception -> exception.authenticationEntryPoint(jwtAuthenticationEntryPoint))
             .authorizeHttpRequests(auth -> auth
-                // [최적화] 1. 가장 넓은 범위의 허용(Permit All) 및 Actuator 설정을 최상단으로 이동
+                // 1. 최상단: 모니터링 및 인증 공용 API (인가 불필요)
                 .requestMatchers("/actuator/**").permitAll()
                 .requestMatchers("/api/v1/auth/**").permitAll()
                 .requestMatchers(HttpMethod.POST, "/api/v1/users").permitAll()
                 .requestMatchers(HttpMethod.GET, "/api/v1/users/check").permitAll()
+
+                // 2. [중요: CodeRabbit 피드백 반영]
+                // 구체적인 인증 필요 경로(GET .../my)를 넓은 범위의 permitAll 보다 먼저 배치해야 합니다.
+                .requestMatchers(HttpMethod.GET, "/api/v1/lectures/my").hasRole("MEMBER")
+                .requestMatchers(HttpMethod.GET, "/api/v1/users/me").hasAnyRole("MEMBER", "ADMIN")
+
+                // 3. ADMIN 전용
+                .requestMatchers("/api/v1/admin/**").hasRole("ADMIN")
+
+                // 4. MEMBER 전용 (쓰기/수정/삭제 작업)
+                .requestMatchers(HttpMethod.POST, "/api/v1/lectures/**").hasRole("MEMBER")
+                .requestMatchers(HttpMethod.PUT, "/api/v1/lectures/**").hasRole("MEMBER")
+                .requestMatchers(HttpMethod.DELETE, "/api/v1/lectures/**").hasRole("MEMBER")
+                .requestMatchers(HttpMethod.POST, "/api/v1/reviews/**").hasRole("MEMBER")
+                .requestMatchers(HttpMethod.PUT, "/api/v1/reviews/**").hasRole("MEMBER")
+                .requestMatchers(HttpMethod.DELETE, "/api/v1/reviews/**").hasRole("MEMBER")
+                .requestMatchers("/api/v1/enrollment/**", "/api/v1/contents/**").hasRole("MEMBER")
+                .requestMatchers(HttpMethod.DELETE, "/api/v1/users/me").hasRole("MEMBER")
+
+                // 5. 일반 조회 API (위의 '내 정보/내 강의'를 제외한 나머지 모든 GET 조회 허용)
                 .requestMatchers(HttpMethod.GET, "/api/v1/lectures/**").permitAll()
                 .requestMatchers(HttpMethod.GET, "/api/v1/reviews/**").permitAll()
                 .requestMatchers(HttpMethod.GET, "/api/v1/reviews/lectures/**").permitAll()
 
-                // 2. ADMIN 전용
-                .requestMatchers("/api/v1/admin/**").hasRole("ADMIN")
-
-                // 3. MEMBER 전용 (쓰기 작업)
-                .requestMatchers(HttpMethod.POST, "/api/v1/lectures/**").hasRole("MEMBER")
-                .requestMatchers(HttpMethod.PUT, "/api/v1/lectures/**").hasRole("MEMBER")
-                .requestMatchers(HttpMethod.DELETE, "/api/v1/lectures/**").hasRole("MEMBER")
-                .requestMatchers(HttpMethod.GET, "/api/v1/lectures/my").hasRole("MEMBER")
-                .requestMatchers(HttpMethod.PUT, "/api/v1/reviews/**").hasRole("MEMBER")
-                .requestMatchers(HttpMethod.DELETE, "/api/v1/reviews/**").hasRole("MEMBER")
-                .requestMatchers(HttpMethod.POST, "/api/v1/reviews/**").hasRole("MEMBER")
-                .requestMatchers("/api/v1/enrollment/**", "/api/v1/contents/**").hasRole("MEMBER")
-                .requestMatchers(HttpMethod.DELETE, "/api/v1/users/me").hasRole("MEMBER")
-
-                // 4. 공통 인증 필요 항목
-                .requestMatchers(HttpMethod.GET, "/api/v1/users/me").hasAnyRole("MEMBER", "ADMIN")
-
-                // 5. 나머지 모든 요청은 인증 필요
+                // 6. 나머지 모든 요청은 인증 필요
                 .anyRequest().authenticated()
             )
             .userDetailsService(userDetailsService);
