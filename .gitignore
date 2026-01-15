@@ -54,3 +54,6 @@ application-dev.yaml
 *.sh
 ### key stores ###
 *.json
+# Local logs
+logs/
+*.log
