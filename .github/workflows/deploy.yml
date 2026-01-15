@@ -11,13 +11,13 @@ jobs:
       - name: Checkout code
         uses: actions/checkout@v4
 
-      # [추가] GitHub Secrets를 사용하여 .gitignore된 설정 파일들을 생성합니다.
+      # 1. GitHub Secrets를 사용하여 .gitignore된 설정 파일들을 복원합니다.
       - name: Create Config Files from Secrets
         run: |
           mkdir -p src/main/resources
           echo "${{ secrets.APPLICATION_DEV_YML }}" > src/main/resources/application-dev.yml
           echo "${{ secrets.APPLICATION_LOCAL_YML }}" > src/main/resources/application-local.yml
-          echo "Configuration files restored."
+          echo "Configuration files restored successfully."
 
       - name: Set up JDK 17
         uses: actions/setup-java@v4
@@ -29,12 +29,15 @@ jobs:
       - name: Grant execute permission for gradlew
         run: chmod +x gradlew
 
+      # 2. 테스트 자동화: 설정 파일이 복원되었으므로 정상 수행됩니다.
       - name: Run Tests
         run: ./gradlew test
 
+      # 3. JAR 빌드 (테스트는 위에서 수행했으므로 빌드 단계에서는 제외)
       - name: Build with Gradle
         run: ./gradlew clean bootJar -x test
 
+      # 4. GCP VM으로 JAR 파일 전송
       - name: Upload to GCP VM
         uses: appleboy/scp-action@v1.0.0
         with:
@@ -45,7 +48,8 @@ jobs:
           target: "/opt/app"
           strip_components: 2
 
-      - name: Restart Application (사용자 원본 로직 유지)
+      # 5. 애플리케이션 재시작 (CodeRabbit 리뷰 반영 버전)
+      - name: Restart Application
         uses: appleboy/ssh-action@v1.2.4
         with:
           host: ${{ secrets.GCP_VM_IP }}
@@ -54,38 +58,63 @@ jobs:
           script: |
             cd /opt/app || { echo "Error: Failed to cd to /opt/app"; exit 1; } 
             
+            # [Graceful Shutdown] 기존 프로세스 종료
             PID=$(sudo lsof -ti:8080 || true)
             if [ -n "$PID" ]; then
+              echo "Sending SIGTERM to process $PID"
               sudo kill -15 $PID || true
+            
               for i in {1..30}; do
-                if ! sudo lsof -ti:8080 > /dev/null 2>&1; then break; fi
+                if ! sudo lsof -ti:8080 > /dev/null 2>&1; then
+                  echo "Process terminated gracefully"
+                  break
+                fi
                 sleep 1
               done
-              if sudo lsof -ti:8080 > /dev/null 2>&1; then sudo fuser -k 8080/tcp || true; fi
+
+              if sudo lsof -ti:8080 > /dev/null 2>&1; then
+                echo "Force killing process"
+                sudo fuser -k 8080/tcp || true
+              fi
             fi
 
+            # [Backup] 기존 JAR 백업
             mkdir -p backup
             if [ -f "app.jar" ]; then
               sudo mv app.jar backup/app.jar.$(date +%Y%m%d%H%M%S)
             fi
 
+            # [LATEST_JAR] 최신 JAR 찾기 및 교체 (CodeRabbit 리뷰 반영)
             LATEST_JAR=$(find . -maxdepth 1 -name "*.jar" -type f -printf '%T@ %p\n' | sort -rn | head -1 | cut -d' ' -f2-)
-            if [ -z "$LATEST_JAR" ]; then exit 1; fi
+            
+            if [ -z "$LATEST_JAR" ]; then
+              echo "Error: No JAR file found in /opt/app"
+              exit 1
+            fi
+
             sudo mv "$LATEST_JAR" app.jar
 
-            # 앱 실행 (dev 프로필 적용)
+            # [Run] 앱 실행 (dev 프로필 적용)
             nohup java -jar app.jar \
               --spring.profiles.active=dev \
               --management.endpoints.web.exposure.include=health,info,prometheus \
               > app.log 2>&1 &
 
-            echo "Waiting for health check..."
+            # [Health Check] 앱 기동 확인
+            echo "Waiting for application to start (Health Check)..."
             for i in {1..30}; do
-              if curl -f http://localhost:8080/actuator/health > /dev/null 2>&1; then exit 0; fi
+              if curl -f http://localhost:8080/actuator/health > /dev/null 2>&1; then
+                echo "Application started successfully"
+                exit 0
+              fi
+              echo "Still waiting... ($i/30)"
               sleep 4
             done
+            
+            echo "Error: Application failed to start within time limit"
             exit 1
 
+      # 6. 배포 결과 슬랙 알림
       - name: Notify Slack
         if: always()
         uses: rtCamp/action-slack-notify@v2
@@ -93,3 +122,4 @@ jobs:
           SLACK_WEBHOOK: ${{ secrets.SLACK_WEBHOOK_URL }}
           SLACK_COLOR: ${{ job.status == 'success' && 'good' || 'danger' }}
           SLACK_TITLE: "LearnFlow API 배포 결과"
+          SLACK_MESSAGE: "배포 상태: ${{ job.status }}"
