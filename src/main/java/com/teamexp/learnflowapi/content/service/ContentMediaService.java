@@ -1,10 +1,16 @@
 package com.teamexp.learnflowapi.content.service;
 
+import com.teamexp.learnflowapi.content.dto.UploadCompleteRequest;
+import com.teamexp.learnflowapi.content.dto.UploadCompleteResponse;
 import com.teamexp.learnflowapi.content.dto.UploadInitRequest;
 import com.teamexp.learnflowapi.content.dto.UploadInitResponse;
+import com.teamexp.learnflowapi.content.exception.FileNameEmptyException;
 import com.teamexp.learnflowapi.content.exception.InvalidVideoExtensionException;
+import com.teamexp.learnflowapi.content.exception.MediaAlreadyCompletedException;
+import com.teamexp.learnflowapi.content.exception.MediaNotFoundException;
 import com.teamexp.learnflowapi.content.external.GcpSignedUrlService;
 import com.teamexp.learnflowapi.content.model.ContentMedia;
+import com.teamexp.learnflowapi.content.model.MediaStatus;
 import com.teamexp.learnflowapi.content.repository.ContentMediaRepository;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
@@ -70,8 +76,31 @@ public class ContentMediaService {
         );
     }
 
+    @Transactional
+    public void completeUpload(UploadCompleteRequest uploadCompleteRequest) {
+
+        // mediaId로만 조회
+        ContentMedia media = contentMediaRepository.findById(uploadCompleteRequest.mediaId())
+                .orElseThrow(MediaNotFoundException::new);
+
+        // 상태 체크
+        if (media.getStatus() != MediaStatus.PENDING){
+            throw new MediaAlreadyCompletedException();
+        }
+
+        // 업로드 상태 업데이트
+        media.completeUpload(uploadCompleteRequest.durationSec());
+    }
+
     private void validateInitRequest(UploadInitRequest req) {
 
+        String filename = req.filename();
+        // 빈 문자열 체크
+        if (filename == null || filename.isBlank()) {
+            throw new FileNameEmptyException();
+        }
+
+        // 확장자 체크
         if (req.filename() == null || !req.filename().toLowerCase().endsWith(ALLOWED_EXTENSION)) {
             throw new InvalidVideoExtensionException();
         }
