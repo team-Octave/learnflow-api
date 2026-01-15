@@ -11,7 +11,7 @@
     <springProfile name="prod,dev">
         <appender name="LOKI" class="com.github.loki4j.logback.Loki4jAppender">
             <http>
-                <url>${logging.loki.url:-http://localhost:3100/loki/api/v1/push}</url>
+                <url>${logging.loki.url:-http://10.0.0.8:3100/loki/api/v1/push}</url>
                 <connectionTimeoutMs>15000</connectionTimeoutMs>
                 <requestTimeoutMs>10000</requestTimeoutMs>
             </http>
@@ -33,8 +33,11 @@
 
     <root level="INFO">
         <appender-ref ref="CONSOLE" />
-        <springProfile name="prod,dev">
-            <appender-ref ref="LOKI" />
-        </springProfile>
     </root>
+
+    <springProfile name="prod,dev">
+        <root level="INFO">
+            <appender-ref ref="LOKI" />
+        </root>
+    </springProfile>
 </configuration>
