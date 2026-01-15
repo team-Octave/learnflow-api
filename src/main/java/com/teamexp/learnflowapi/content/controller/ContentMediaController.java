@@ -1,5 +1,7 @@
 package com.teamexp.learnflowapi.content.controller;
 
+import com.teamexp.learnflowapi.content.dto.UploadCompleteRequest;
+import com.teamexp.learnflowapi.content.dto.UploadCompleteResponse;
 import com.teamexp.learnflowapi.content.dto.UploadInitRequest;
 import com.teamexp.learnflowapi.content.dto.UploadInitResponse;
 import com.teamexp.learnflowapi.content.dto.UploadVideoRequest;
@@ -34,6 +36,18 @@ public class ContentMediaController {
             @Valid @RequestBody UploadInitRequest request
     ){
         UploadInitResponse data = contentMediaService.initUpload(request);
+        return ResponseEntity.ok(BaseResponse.ok(data));
+    }
+
+
+    // 영상 업로드 성공 반환
+    @PostMapping(value = "/upload-video-completed")
+    public ResponseEntity<BaseResponse<UploadCompleteResponse>> completeUpload(
+            @Valid @RequestBody UploadCompleteRequest request
+    ){
+
+        contentMediaService.completeUpload(request);
+        UploadCompleteResponse data = new UploadCompleteResponse(true);
         return ResponseEntity.ok(BaseResponse.ok(data));
     }
 }
