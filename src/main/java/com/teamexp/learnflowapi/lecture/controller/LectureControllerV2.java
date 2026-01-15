@@ -20,12 +20,13 @@ import com.teamexp.learnflowapi.lecture.dto.request.ChapterUpdateRequest;
 import com.teamexp.learnflowapi.lecture.dto.request.CurriculumBindRequest;
 import com.teamexp.learnflowapi.lecture.dto.request.LectureCreateRequestV2;
 import com.teamexp.learnflowapi.lecture.dto.request.LessonCreateRequest;
-import com.teamexp.learnflowapi.lecture.dto.request.LessonQuizReplaceRequest;
 import com.teamexp.learnflowapi.lecture.dto.request.LessonUpdateRequest;
 import com.teamexp.learnflowapi.lecture.dto.response.ChapterResponse;
 import com.teamexp.learnflowapi.lecture.dto.response.LectureResponse;
 import com.teamexp.learnflowapi.lecture.dto.response.LessonResponse;
+import com.teamexp.learnflowapi.lecture.service.ChapterService;
 import com.teamexp.learnflowapi.lecture.service.LectureService;
+import com.teamexp.learnflowapi.lecture.service.LessonService;
 
 import jakarta.validation.Valid;
 
@@ -34,9 +35,17 @@ import jakarta.validation.Valid;
 public class LectureControllerV2 {
 
     private final LectureService lectureService;
+    private final ChapterService chapterService;
+    private final LessonService lessonService;
 
-    public LectureControllerV2(LectureService lectureService) {
+    public LectureControllerV2(
+        LectureService lectureService,
+        ChapterService chapterService,
+        LessonService lessonService
+    ) {
         this.lectureService = lectureService;
+        this.chapterService = chapterService;
+        this.lessonService = lessonService;
     }
 
     @PostMapping
@@ -57,7 +66,7 @@ public class LectureControllerV2 {
         @Valid @RequestBody ChapterCreateRequest request,
         @AuthenticationPrincipal CustomUserPrincipal customUser
     ) {
-        ChapterResponse response = lectureService.addChapterV2(lectureId, request, customUser.getId());
+        ChapterResponse response = chapterService.addChapter(lectureId, request, customUser.getId());
         return ResponseEntity.status(HttpStatus.CREATED).body(BaseResponse.ok(response));
     }
 
@@ -68,7 +77,7 @@ public class LectureControllerV2 {
         @Valid @RequestBody ChapterUpdateRequest request,
         @AuthenticationPrincipal CustomUserPrincipal customUser
     ) {
-        ChapterResponse response = lectureService.updateChapterV2(lectureId, chapterId, request, customUser.getId());
+        ChapterResponse response = chapterService.updateChapter(lectureId, chapterId, request, customUser.getId());
         return ResponseEntity.status(HttpStatus.OK).body(BaseResponse.ok(response));
     }
 
@@ -78,7 +87,7 @@ public class LectureControllerV2 {
         @PathVariable Long chapterId,
         @AuthenticationPrincipal CustomUserPrincipal customUser
     ) {
-        lectureService.deleteChapterV2(lectureId, chapterId, customUser.getId());
+        chapterService.deleteChapter(lectureId, chapterId, customUser.getId());
         return ResponseEntity.status(HttpStatus.OK).body(BaseResponse.ok(null));
     }
 
@@ -89,7 +98,7 @@ public class LectureControllerV2 {
         @Valid @RequestBody LessonCreateRequest request,
         @AuthenticationPrincipal CustomUserPrincipal customUser
     ) {
-        LessonResponse response = lectureService.addLessonV2(lectureId, chapterId, request, customUser.getId());
+        LessonResponse response = lessonService.addLesson(lectureId, chapterId, request, customUser.getId());
         return ResponseEntity.status(HttpStatus.CREATED).body(BaseResponse.ok(response));
     }
 
@@ -100,7 +109,7 @@ public class LectureControllerV2 {
         @RequestBody LessonUpdateRequest request,
         @AuthenticationPrincipal CustomUserPrincipal customUser
     ) {
-        LessonResponse response = lectureService.updateLessonV2(lectureId, lessonId, request, customUser.getId());
+        LessonResponse response = lessonService.updateLesson(lectureId, lessonId, request, customUser.getId());
         return ResponseEntity.status(HttpStatus.OK).body(BaseResponse.ok(response));
     }
 
@@ -110,20 +119,9 @@ public class LectureControllerV2 {
         @PathVariable Long lessonId,
         @AuthenticationPrincipal CustomUserPrincipal customUser
     ) {
-        lectureService.deleteLessonV2(lectureId, lessonId, customUser.getId());
+        lessonService.deleteLesson(lectureId, lessonId, customUser.getId());
         return ResponseEntity.status(HttpStatus.OK).body(BaseResponse.ok(null));
     }
-
-    // @PutMapping("/{lectureId}/lessons/{lessonId}/quiz")
-    // public ResponseEntity<BaseResponse<LessonResponse>> replaceLessonQuiz(
-    //     @PathVariable Long lectureId,
-    //     @PathVariable Long lessonId,
-    //     @Valid @RequestBody LessonQuizReplaceRequest request,
-    //     @AuthenticationPrincipal CustomUserPrincipal customUser
-    // ) {
-    //     LessonResponse response = lectureService.replaceLessonQuizV2(lectureId, lessonId, request, customUser.getId());
-    //     return ResponseEntity.status(HttpStatus.OK).body(BaseResponse.ok(response));
-    // }
 
     @PutMapping("/{lectureId}/curriculum/bind")
     public ResponseEntity<BaseResponse<Void>> bindCurriculum(
@@ -142,18 +140,7 @@ public class LectureControllerV2 {
         @PathVariable Long lessonId,
         @AuthenticationPrincipal CustomUserPrincipal customUser
     ) {
-        LessonResponse response = lectureService.getLessonV2(lectureId, lessonId, customUser.getId());
+        LessonResponse response = lessonService.getLesson(lectureId, lessonId);
         return ResponseEntity.status(HttpStatus.OK).body(BaseResponse.ok(response));
     }
-
-    // Get Lesson Response with Quiz Questions
-    // @GetMapping("/{lectureId}/lessons/{lessonId}/quiz")
-    // public ResponseEntity<BaseResponse<LessonResponse>> getLessonWithQuiz(
-    //     @PathVariable Long lectureId,
-    //     @PathVariable Long lessonId,
-    //     @AuthenticationPrincipal CustomUserPrincipal customUser
-    // ) {
-    //     LessonResponse response = lectureService.getLessonWithQuizV2(lectureId, lessonId, customUser.getId());
-    //     return ResponseEntity.status(HttpStatus.OK).body(BaseResponse.ok(response));
-    // }
 }
