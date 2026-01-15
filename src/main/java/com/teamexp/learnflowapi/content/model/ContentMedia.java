@@ -29,7 +29,7 @@ public class ContentMedia {
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
-    @Column(name = "lesson_id", nullable = false)
+    @Column(name = "lesson_id")
     private Long lessonId;
 
     /*
@@ -38,6 +38,8 @@ public class ContentMedia {
     @Column(name = "file_key")
     private String fileKey;
 
+    @Column(name = "file_name")
+    private String fileName;
 
     @Column(name = "duration_sec")
     private Integer durationSec;
@@ -56,34 +58,18 @@ public class ContentMedia {
 
     protected ContentMedia() {}
 
-    private ContentMedia(Long lessonId) {
-        this.lessonId = lessonId;
-        this.status = MediaStatus.PENDING;   // 생성 시 기본 상태
-    }
-
-    public static ContentMedia createPending(Long lessonId) {
-        return new ContentMedia(lessonId);
+    public static ContentMedia createPending(String fileKey, String fileName) {
+        ContentMedia media = new ContentMedia();
+        media.fileKey = fileKey;
+        media.fileName = fileName;
+        media.status = MediaStatus.PENDING;
+        return media;
     }
 
     /** 업로드 성공 시 호출 */
-    public void completeUpload(String fileKey, Integer durationSec) {
-        this.fileKey = fileKey;
+    public void completeUpload(Integer durationSec) {
         this.durationSec = durationSec;
         this.status = MediaStatus.COMPLETED;
     }
-
-    /** 업로드 실패 시 호출 */
-    public void failUpload() {
-        this.status = MediaStatus.FAILED;
-    }
-
-    /** 업로드 실패 후 재시도전 상태 초기화
-     * */
-    public void resetToPending() {
-        this.status = MediaStatus.PENDING;
-        this.fileKey = null;
-        this.durationSec = null;
-    }
-
 }
 

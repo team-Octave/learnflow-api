@@ -1,15 +1,19 @@
 package com.teamexp.learnflowapi.content.controller;
 
-import com.teamexp.learnflowapi.content.dto.ContentUploadResponse;
+import com.teamexp.learnflowapi.content.dto.UploadInitRequest;
+import com.teamexp.learnflowapi.content.dto.UploadInitResponse;
 import com.teamexp.learnflowapi.content.dto.UploadVideoRequest;
 import com.teamexp.learnflowapi.content.service.ContentMediaService;
 import com.teamexp.learnflowapi.global.response.BaseResponse;
+import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.ModelAttribute;
+import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
@@ -23,35 +27,13 @@ public class ContentMediaController {
 
     private final ContentMediaService contentMediaService;
 
-    @PostMapping(value = "/upload-video",
-            consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
-    public ResponseEntity<BaseResponse<ContentUploadResponse>> uploadVideo(
-            @ModelAttribute UploadVideoRequest uploadVideoRequest
-    ) throws IOException {
-
-            Long mediaId = contentMediaService.requestVideoUpload(uploadVideoRequest);
-
-            ContentUploadResponse data = new ContentUploadResponse(mediaId);
-
-            return ResponseEntity
-                .status(HttpStatus.ACCEPTED)
-                .body(BaseResponse.ok(data));
+    // 영상 업로드에 필요한 signed url 전달
+    @PostMapping(value = "/upload-video-init",
+            consumes = MediaType.APPLICATION_JSON_VALUE)
+    public ResponseEntity<BaseResponse<UploadInitResponse>> initUpload(
+            @Valid @RequestBody UploadInitRequest request
+    ){
+        UploadInitResponse data = contentMediaService.initUpload(request);
+        return ResponseEntity.ok(BaseResponse.ok(data));
     }
-
-    @PostMapping(value = "/upload-video/retry",
-    consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
-    public ResponseEntity<BaseResponse<ContentUploadResponse>> retryUploadVideo(
-            @ModelAttribute UploadVideoRequest uploadVideoRequest
-    ) throws IOException {
-
-        Long mediaId = contentMediaService.retryVideoUpload(uploadVideoRequest.lessonId(), uploadVideoRequest.file());
-
-        ContentUploadResponse data = new ContentUploadResponse(mediaId);
-
-        return ResponseEntity
-                .status(HttpStatus.ACCEPTED)
-                .body(BaseResponse.ok(data));
-    }
-
 }
-
