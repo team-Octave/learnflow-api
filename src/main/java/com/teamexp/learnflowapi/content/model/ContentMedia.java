@@ -41,9 +41,6 @@ public class ContentMedia {
     @Column(name = "file_name")
     private String fileName;
 
-    @Column(name = "file_size")
-    private Long fileSize;
-
     @Column(name = "duration_sec")
     private Integer durationSec;
 
@@ -61,9 +58,10 @@ public class ContentMedia {
 
     protected ContentMedia() {}
 
-    public static ContentMedia createPending(String fileKey) {
+    public static ContentMedia createPending(String fileKey, String fileName) {
         ContentMedia media = new ContentMedia();
         media.fileKey = fileKey;
+        media.fileName = fileName;
         media.status = MediaStatus.PENDING;
         return media;
     }

@@ -26,9 +26,8 @@ public class GcpSignedUrlService {
     /**
      * 업로드용 Signed URL (프론트가 GCS로 직접 업로드)
      */
-    public String createSignedUrl(String fileKey, String contentType, long fileSize) {
+    public String createSignedUrl(String fileKey) {
         BlobInfo blobInfo = BlobInfo.newBuilder(bucketName, fileKey)
-                .setContentType(contentType)
                 .build();
 
         URL url = storage.signUrl(
