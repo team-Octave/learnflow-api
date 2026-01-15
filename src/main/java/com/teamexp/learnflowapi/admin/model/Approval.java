@@ -12,6 +12,7 @@ import java.time.Instant;
 import org.springframework.data.annotation.CreatedDate;
 import org.springframework.data.annotation.LastModifiedDate;
 import org.springframework.data.jpa.domain.support.AuditingEntityListener;
+import java.util.List;
 
 @Entity
 @Table(name = "approvals")
@@ -48,11 +49,29 @@ public class Approval {
         this.lectureId = lectureId;
     }
 
+    /*
+    * 반려 사유를 여러개 받을 수 있도록 생성자 추가
+    * */
+    private Approval(Long lectureId, List<ApprovalRejectType> rejectTypes, String reason) {
+        this.lectureId = lectureId;
+        this.rejectCategory = ApprovalRejectReason.from(rejectTypes);
+        this.rejectReason = reason;
+    }
+
     public static Approval create(Long lectureId) {
         return new Approval(lectureId);
     }
 
+    // 반려 사유를 여러개 받아서 Approval 객체를 생성하는 팩토리메서드
+    public static Approval create(Long lectureId, List<ApprovalRejectType> rejectTypes, String reason) {
+        return new Approval(lectureId, rejectTypes, reason);
+    }
+
     public Long getLectureId() {
         return lectureId;
+    }
+
+    public Instant getUpdatedAt() {
+        return updatedAt;
     }
 }

@@ -2,13 +2,18 @@ package com.teamexp.learnflowapi.admin.service;
 
 import com.teamexp.learnflowapi.admin.dto.ApprovalDetailResponse;
 import com.teamexp.learnflowapi.admin.dto.ApprovalDto;
+import com.teamexp.learnflowapi.admin.dto.ApprovalUpdateResponse;
 import com.teamexp.learnflowapi.admin.dto.ApprovalsResponse;
+import com.teamexp.learnflowapi.admin.dto.request.ApprovalStatus;
+import com.teamexp.learnflowapi.admin.dto.request.ApprovalUpdateRequest;
 import com.teamexp.learnflowapi.admin.exception.ApprovalNotFoundException;
 import com.teamexp.learnflowapi.admin.exception.LectureNotFoundException;
 import com.teamexp.learnflowapi.admin.model.Approval;
+import com.teamexp.learnflowapi.admin.model.ApprovalRejectType;
 import com.teamexp.learnflowapi.admin.repository.ApprovalRepository;
 import com.teamexp.learnflowapi.lecture.model.Lecture;
 import com.teamexp.learnflowapi.lecture.repository.LectureAdminRepository;
+import com.teamexp.learnflowapi.lecture.service.LectureAdminService;
 import com.teamexp.learnflowapi.user.model.User;
 import com.teamexp.learnflowapi.user.repository.UserRepository;
 
@@ -33,13 +38,19 @@ public class ApprovalService {
 
     private final UserRepository userRepository;
     private final LectureAdminRepository  lectureAdminRepository;
+    private final LectureAdminService lectureAdminService;
     private final ApprovalRepository approvalRepository;
 
-    public ApprovalService(UserRepository userRepository,  LectureAdminRepository lectureAdminRepository, ApprovalRepository approvalRepository) {
+    public ApprovalService(
+        UserRepository userRepository,
+        LectureAdminRepository lectureAdminRepository,
+        ApprovalRepository approvalRepository,
+        LectureAdminService lectureAdminService) {
 
         this.userRepository = userRepository;
         this.lectureAdminRepository = lectureAdminRepository;
         this.approvalRepository = approvalRepository;
+        this.lectureAdminService = lectureAdminService;
     }
 
     public ApprovalsResponse getApprovals(Pageable pageable) {
@@ -96,11 +107,21 @@ public class ApprovalService {
     * */
     @Transactional
     public void createApproval(Long lectureId) {
-
-
         // Approval 객체 생성
         Approval newApproval = Approval.create(lectureId);
+        // DB에 저장
+        approvalRepository.save(newApproval);
 
+    }
+
+    /*
+    * create approval overload
+    * TODO : 해당 메서드는 추후에 필요 없을 것 같음.
+    * */
+    @Transactional
+    public void createApproval(Long lectureId, List<ApprovalRejectType> rejectedReasons, String reason) {
+        // Approval 객체 생성
+        Approval newApproval = Approval.create(lectureId, rejectedReasons, reason);
         // DB에 저장
         approvalRepository.save(newApproval);
 
@@ -125,6 +146,47 @@ public class ApprovalService {
 
         // DTO 맵핑
         return ApprovalDetailResponse.of(foundLecture, foundUser);
+    }
+
+    // TODO : 현재는 LectureId이지만 추후에 ApprovalId로 변경해야함.
+    @Transactional
+    public ApprovalUpdateResponse updateApproval(Long lectureId, ApprovalUpdateRequest request) {
+
+        // Lecture 조회 - Exception : 찾을 수 없는 경우 발생
+        Lecture foundedLecture = lectureAdminRepository.findById(lectureId).orElseThrow(
+            LectureNotFoundException::new
+        );
+
+        // approval 데이터 저장
+        ApprovalStatus approvalStatus = request.status();
+        Approval approval = Approval.create(
+            lectureId,
+            request.rejectCategories(),
+            request.reason()
+        );
+        approvalRepository.saveAndFlush(approval);
+
+        // Lecture의 상태 값 업데이트
+        String status = switch (approvalStatus) {
+            case APPROVED -> {
+                lectureAdminService.allowPublishLecture(lectureId);
+                yield "PUBLISHED";
+            }
+            case REJECTED -> {
+                lectureAdminService.notAllowPublishLecture(lectureId);
+                yield "REJECTED";
+            }
+        };
+
+
+        // ApprovalUpdateResponse DTO Mapping
+        return new ApprovalUpdateResponse(
+            lectureId,
+            status,
+            approval.getUpdatedAt()
+        );
+
+
     }
 
 }
