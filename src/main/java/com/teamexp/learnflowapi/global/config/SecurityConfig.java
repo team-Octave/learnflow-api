@@ -1,5 +1,6 @@
 package com.teamexp.learnflowapi.global.config;
 
+import com.teamexp.learnflowapi.global.common.filter.LogTraceFilter;
 import com.teamexp.learnflowapi.global.security.exception.JwtAuthenticationEntryPoint;
 import com.teamexp.learnflowapi.global.security.jwt.JwtAuthenticationFilter;
 import com.teamexp.learnflowapi.user.service.CustomUserDetailsService;
@@ -19,15 +20,16 @@ import org.springframework.security.web.authentication.UsernamePasswordAuthentic
 @Configuration
 @EnableWebSecurity
 public class SecurityConfig {
-
+    private final LogTraceFilter logTraceFilter;
     private final CustomUserDetailsService userDetailsService;
     private final PasswordConfig passwordConfig;
     private final JwtAuthenticationFilter jwtAuthenticationFilter;
     private final JwtAuthenticationEntryPoint jwtAuthenticationEntryPoint;
 
     @Autowired
-    public SecurityConfig(CustomUserDetailsService userDetailsService, PasswordConfig passwordConfig,
+    public SecurityConfig(LogTraceFilter logTraceFilter, CustomUserDetailsService userDetailsService, PasswordConfig passwordConfig,
                           JwtAuthenticationFilter jwtAuthenticationFilter, JwtAuthenticationEntryPoint jwtAuthenticationEntryPoint) {
+        this.logTraceFilter = logTraceFilter;
         this.userDetailsService = userDetailsService;
         this.passwordConfig = passwordConfig;
         this.jwtAuthenticationFilter = jwtAuthenticationFilter;
@@ -78,7 +80,9 @@ public class SecurityConfig {
             .userDetailsService(userDetailsService);
 
         // JWT 필터 추가
-        http.addFilterBefore(jwtAuthenticationFilter, UsernamePasswordAuthenticationFilter.class);
+        http
+            .addFilterBefore(logTraceFilter, UsernamePasswordAuthenticationFilter.class)
+            .addFilterBefore(jwtAuthenticationFilter, UsernamePasswordAuthenticationFilter.class);
 
         return http.build();
     }
