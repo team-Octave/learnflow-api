@@ -38,6 +38,7 @@ public enum ErrorCode {
 
     // Content 도메인 관련
     UPLOAD_NOT_EXIST(HttpStatus.BAD_REQUEST, "업로드할 파일이 없습니다."),
+    FILE_NAME_EMPTY(HttpStatus.BAD_REQUEST, "파일명이 비어있습니다."),
     INVALID_FILE_NAME(HttpStatus.BAD_REQUEST, "유효하지 않은 파일명입니다. 확장자가 필요합니다."),
     INVALID_VIDEO_EXTENSION(HttpStatus.BAD_REQUEST, "영상 파일은 mp4 확장자만 허용됩니다."),
     THUMBNAIL_UNSUPPORTED_EXTENSION(HttpStatus.BAD_REQUEST, "지원하지 않는 이미지 형식입니다. jpg, jpeg만 업로드 가능합니다."),
@@ -47,6 +48,8 @@ public enum ErrorCode {
     LECTURE_THUMBNAIL_NOT_FOUND(HttpStatus.NOT_FOUND, "해당 강의의 썸네일이 없습니다."),
     QUIZ_NOT_FOUND(HttpStatus.NOT_FOUND, "등록된 퀴즈를 찾을 수 없습니다."),
     QUIZ_LESSON_MISMATCH(HttpStatus.BAD_REQUEST, "다른 레슨의 퀴즈는 수정할 수 없습니다."),
+    MEDIA_NOT_FOUND(HttpStatus.NOT_FOUND, "요청한 영상 정보를 찾을 수 없습니다."),
+    MEDIA_ALREADY_COMPLETED(HttpStatus.BAD_REQUEST,"이미 업로드된 영상입니다."),
 
     // Enrollment 도메인 관련
     ENROLLMENT_ALREADY_EXISTS(HttpStatus.CONFLICT, "이미 수강신청이 완료된 강좌입니다."),
