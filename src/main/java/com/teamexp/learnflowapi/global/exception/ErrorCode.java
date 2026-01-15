@@ -50,6 +50,7 @@ public enum ErrorCode {
     QUIZ_LESSON_MISMATCH(HttpStatus.BAD_REQUEST, "다른 레슨의 퀴즈는 수정할 수 없습니다."),
     MEDIA_NOT_FOUND(HttpStatus.NOT_FOUND, "요청한 영상 정보를 찾을 수 없습니다."),
     MEDIA_ALREADY_COMPLETED(HttpStatus.BAD_REQUEST,"이미 업로드된 영상입니다."),
+    SIGNED_URL_CREATION_FAILED(HttpStatus.INTERNAL_SERVER_ERROR, "영상 재생 URL 생성 중 오류가 발생했습니다."),
 
     // Enrollment 도메인 관련
     ENROLLMENT_ALREADY_EXISTS(HttpStatus.CONFLICT, "이미 수강신청이 완료된 강좌입니다."),

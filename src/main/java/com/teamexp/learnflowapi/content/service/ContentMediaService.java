@@ -9,6 +9,7 @@ import com.teamexp.learnflowapi.content.exception.InvalidVideoExtensionException
 import com.teamexp.learnflowapi.content.exception.LessonVideoNotFoundException;
 import com.teamexp.learnflowapi.content.exception.MediaAlreadyCompletedException;
 import com.teamexp.learnflowapi.content.exception.MediaNotFoundException;
+import com.teamexp.learnflowapi.content.exception.SignedUrlCreationException;
 import com.teamexp.learnflowapi.content.external.GcpSignedUrlService;
 import com.teamexp.learnflowapi.content.model.ContentMedia;
 import com.teamexp.learnflowapi.content.model.MediaStatus;
@@ -102,7 +103,7 @@ public class ContentMediaService {
                     media.getDurationSec()
             );
         } catch (Exception e){
-            throw new IllegalArgumentException("영상 재생 URL 생성 중 오류가 발생했습니다.");
+            throw new SignedUrlCreationException();
         }
     }
 
