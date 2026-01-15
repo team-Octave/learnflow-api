@@ -28,17 +28,21 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
         this.userDetailsService = userDetailsService;
     }
 
+    /**
+     * 특정 경로는 필터 로직을 타지 않도록 설정 (Bypass)
+     */
+    @Override
+    protected boolean shouldNotFilter(HttpServletRequest request) throws ServletException {
+        String path = request.getRequestURI();
+        // Actuator(모니터링) 경로와 토큰 재발급 경로는 필터를 거치지 않음
+        return path.startsWith("/actuator") || path.equals("/api/v1/auth/reissue");
+    }
+
     @Override
     protected void doFilterInternal(HttpServletRequest request,
                                     HttpServletResponse response,
                                     FilterChain filterChain)
-            throws ServletException, IOException {
-
-        // refresh 토큰 요청은 인증 필터를 거치지 않음
-        if (request.getRequestURI().equals("/api/v1/auth/reissue")) {
-            filterChain.doFilter(request, response);
-            return;
-        }
+        throws ServletException, IOException {
 
         String authHeader = request.getHeader("Authorization");
 
@@ -47,31 +51,26 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
 
             try {
                 Claims claims = jwtTokenProvider.parseToken(token);
-                // String userId = claims.getSubject(); // TODO : userId가 필요하면 활성화
                 String email = claims.get("email", String.class);
 
-                // 이미 userId가 있지만, 여기서는 email을 username으로 사용 중
                 UserDetails userDetails = userDetailsService.loadUserByUsername(email);
 
                 UsernamePasswordAuthenticationToken authentication =
-                        new UsernamePasswordAuthenticationToken(
-                                userDetails,
-                                null,
-                                userDetails.getAuthorities()
-                        );
+                    new UsernamePasswordAuthenticationToken(
+                        userDetails,
+                        null,
+                        userDetails.getAuthorities()
+                    );
 
                 SecurityContextHolder.getContext().setAuthentication(authentication);
 
             } catch (ExpiredJwtException e) {
-                // 토큰이 만료된 경우: 그냥 인증 없이 흘려보내거나, 에러 응답 처리
                 request.setAttribute("jwt_exception", "TOKEN_EXPIRED");
                 throw e;
             } catch (JwtException e) {
-                // 토큰 검증 실패 시: 그냥 인증 없이 흘려보내거나, 에러 응답 처리
                 request.setAttribute("jwt_exception", "TOKEN_INVALID");
                 throw e;
             } catch (Exception e) {
-                // 기타 알 수 없는 예외
                 request.setAttribute("another_exception", "UNKNOWN_ERROR");
                 throw e;
             }
