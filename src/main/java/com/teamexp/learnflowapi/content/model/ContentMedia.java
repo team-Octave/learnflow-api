@@ -29,7 +29,7 @@ public class ContentMedia {
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
-    @Column(name = "lesson_id")
+    @Column(name = "lesson_id", nullable = true)
     private Long lessonId;
 
     /*

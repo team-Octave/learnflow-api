@@ -3,6 +3,7 @@ package com.teamexp.learnflowapi.content.external;
 import com.google.cloud.storage.BlobInfo;
 import com.google.cloud.storage.HttpMethod;
 import com.google.cloud.storage.Storage;
+import com.google.storage.v2.BucketName;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 
@@ -39,6 +40,30 @@ public class GcpSignedUrlService {
                 TimeUnit.MINUTES,
                 Storage.SignUrlOption.httpMethod(HttpMethod.PUT),
                 Storage.SignUrlOption.withContentType()
+        );
+
+        return url.toString();
+    }
+
+    /**
+     * 영상 재생용 Signed Url 생성
+     * */
+    public String streamingCreateSignedUrl(String fileKey, int durationSec) {
+
+        long ttlMintes = Math.round((durationSec *1.5) / 60);
+
+        if (ttlMintes < 30){
+            ttlMintes = 30;
+        }
+
+        BlobInfo blobInfo = BlobInfo.newBuilder(bucketName, fileKey).build();
+
+        URL url = storage.signUrl(
+                blobInfo,
+                ttlMintes,
+                TimeUnit.MINUTES,
+                Storage.SignUrlOption.httpMethod(HttpMethod.GET),
+                Storage.SignUrlOption.withV4Signature()
         );
 
         return url.toString();
