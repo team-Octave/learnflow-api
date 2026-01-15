@@ -57,6 +57,9 @@ public class SecurityConfig {
                         .requestMatchers("/api/v1/enrollment/**", "/api/v1/contents/**").hasRole("MEMBER")    // content, enrollment 모든 API
                         .requestMatchers(HttpMethod.DELETE, "/api/v1/users/me").hasRole("MEMBER")               // 회원 탈퇴
 
+                        // 3. ADMIN, MEMBER 전용
+                        .requestMatchers(HttpMethod.GET, "/api/v1/users/me").hasAnyRole("MEMBER", "ADMIN")     // 내 정보 조회
+
                         // 3. Permit All (조회 및 공용 API)
                         .requestMatchers("/actuator/health", "/actuator/prometheus", "/actuator/info").permitAll()
                         .requestMatchers( "/api/v1/auth/**").permitAll()
@@ -65,7 +68,6 @@ public class SecurityConfig {
                         .requestMatchers(HttpMethod.GET, "/api/v1/lectures/**").permitAll()             // 모든 GET 조회 허용
                         .requestMatchers(HttpMethod.GET, "/api/v1/reviews/**").permitAll()              // 모든 GET 조회 허용
                         .requestMatchers(HttpMethod.GET, "/api/v1/reviews/lectures/**").permitAll()
-                        .requestMatchers(HttpMethod.GET, "/api/v1/users/me").permitAll()                // 내 정보 조회
 
                         // 4. 나머지 모든 요청은 인증 필요
                         .anyRequest().authenticated()
