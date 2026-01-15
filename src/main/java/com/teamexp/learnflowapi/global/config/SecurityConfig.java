@@ -17,23 +17,37 @@ import org.springframework.security.config.http.SessionCreationPolicy;
 import org.springframework.security.web.SecurityFilterChain;
 import org.springframework.security.web.authentication.UsernamePasswordAuthenticationFilter;
 
+/**
+ * 애플리케이션 보안 설정을 담당하는 클래스입니다.
+ * 필터 체인 구성 및 권한 관리를 수행합니다.
+ */
 @Configuration
 @EnableWebSecurity
 public class SecurityConfig {
-    private final LogTraceFilter logTraceFilter;
+
     private final CustomUserDetailsService userDetailsService;
     private final PasswordConfig passwordConfig;
     private final JwtAuthenticationFilter jwtAuthenticationFilter;
     private final JwtAuthenticationEntryPoint jwtAuthenticationEntryPoint;
 
     @Autowired
-    public SecurityConfig(LogTraceFilter logTraceFilter, CustomUserDetailsService userDetailsService, PasswordConfig passwordConfig,
-                          JwtAuthenticationFilter jwtAuthenticationFilter, JwtAuthenticationEntryPoint jwtAuthenticationEntryPoint) {
-        this.logTraceFilter = logTraceFilter;
+    public SecurityConfig(CustomUserDetailsService userDetailsService,
+                          PasswordConfig passwordConfig,
+                          JwtAuthenticationFilter jwtAuthenticationFilter,
+                          JwtAuthenticationEntryPoint jwtAuthenticationEntryPoint) {
         this.userDetailsService = userDetailsService;
         this.passwordConfig = passwordConfig;
         this.jwtAuthenticationFilter = jwtAuthenticationFilter;
         this.jwtAuthenticationEntryPoint = jwtAuthenticationEntryPoint;
+    }
+
+    /**
+     * TraceID 발급 필터를 빈으로 등록합니다.
+     * 코드래빗 피드백: @Component와 addFilterBefore 중복 등록을 방지하기 위해 수동 등록합니다.
+     */
+    @Bean
+    public LogTraceFilter logTraceFilter() {
+        return new LogTraceFilter();
     }
 
     @Bean
@@ -45,18 +59,17 @@ public class SecurityConfig {
                 session.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
             .exceptionHandling(exception -> exception.authenticationEntryPoint(jwtAuthenticationEntryPoint))
             .authorizeHttpRequests(auth -> auth
-                // 1. 최상단: 모니터링 및 인증 공용 API (인가 불필요)
+                // 1. 최상단: 인가 불필요 경로
                 .requestMatchers("/actuator/**").permitAll()
                 .requestMatchers("/api/v1/auth/**").permitAll()
                 .requestMatchers(HttpMethod.POST, "/api/v1/users").permitAll()
                 .requestMatchers(HttpMethod.GET, "/api/v1/users/check").permitAll()
 
-                // 2. [중요: CodeRabbit 피드백 반영]
-                // 구체적인 인증 필요 경로(GET .../my)를 넓은 범위의 permitAll 보다 먼저 배치해야 합니다.
+                // 2. 구체적인 인증 필요 경로 (MEMBER 전용 조회)
                 .requestMatchers(HttpMethod.GET, "/api/v1/lectures/my").hasRole("MEMBER")
                 .requestMatchers(HttpMethod.GET, "/api/v1/users/me").hasAnyRole("MEMBER", "ADMIN")
 
-                // 3. ADMIN 전용
+                // 3. ADMIN 전용 경로
                 .requestMatchers("/api/v1/admin/**").hasRole("ADMIN")
 
                 // 4. MEMBER 전용 (쓰기/수정/삭제 작업)
@@ -69,7 +82,7 @@ public class SecurityConfig {
                 .requestMatchers("/api/v1/enrollment/**", "/api/v1/contents/**").hasRole("MEMBER")
                 .requestMatchers(HttpMethod.DELETE, "/api/v1/users/me").hasRole("MEMBER")
 
-                // 5. 일반 조회 API (위의 '내 정보/내 강의'를 제외한 나머지 모든 GET 조회 허용)
+                // 5. 일반 조회 API (누구나 가능)
                 .requestMatchers(HttpMethod.GET, "/api/v1/lectures/**").permitAll()
                 .requestMatchers(HttpMethod.GET, "/api/v1/reviews/**").permitAll()
                 .requestMatchers(HttpMethod.GET, "/api/v1/reviews/lectures/**").permitAll()
@@ -79,9 +92,9 @@ public class SecurityConfig {
             )
             .userDetailsService(userDetailsService);
 
-        // JWT 필터 추가
+        // 필터 순서: 로깅(TraceID) -> JWT 인증 -> 표준 인증 필터 순으로 실행
         http
-            .addFilterBefore(logTraceFilter, UsernamePasswordAuthenticationFilter.class)
+            .addFilterBefore(logTraceFilter(), UsernamePasswordAuthenticationFilter.class)
             .addFilterBefore(jwtAuthenticationFilter, UsernamePasswordAuthenticationFilter.class);
 
         return http.build();
