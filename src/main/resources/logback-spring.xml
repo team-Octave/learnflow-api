@@ -36,7 +36,7 @@
             </batch>
             <format>
                 <label>
-                    <pattern>app=learnflow-api,host=${HOSTNAME},level=%level,traceId=%X{traceId}</pattern>
+                    <pattern>app=learnflow-api,host=${HOSTNAME},level=%level</pattern>
                 </label>
                 <message>
                     <pattern>${FILE_LOG_PATTERN}</pattern>
