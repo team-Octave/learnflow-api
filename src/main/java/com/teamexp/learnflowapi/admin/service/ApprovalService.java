@@ -9,7 +9,7 @@ import com.teamexp.learnflowapi.admin.dto.request.ApprovalUpdateRequest;
 import com.teamexp.learnflowapi.admin.exception.ApprovalNotFoundException;
 import com.teamexp.learnflowapi.admin.exception.LectureNotFoundException;
 import com.teamexp.learnflowapi.admin.model.Approval;
-import com.teamexp.learnflowapi.admin.model.ApprovalRejectReason;
+import com.teamexp.learnflowapi.admin.model.ApprovalRejectType;
 import com.teamexp.learnflowapi.admin.repository.ApprovalRepository;
 import com.teamexp.learnflowapi.lecture.model.Lecture;
 import com.teamexp.learnflowapi.lecture.repository.LectureAdminRepository;
@@ -107,11 +107,8 @@ public class ApprovalService {
     * */
     @Transactional
     public void createApproval(Long lectureId) {
-
-
         // Approval 객체 생성
         Approval newApproval = Approval.create(lectureId);
-
         // DB에 저장
         approvalRepository.save(newApproval);
 
@@ -122,12 +119,9 @@ public class ApprovalService {
     * TODO : 해당 메서드는 추후에 필요 없을 것 같음.
     * */
     @Transactional
-    public void createApproval(Long lectureId, List<ApprovalRejectReason> rejectedReasons, String reason) {
-
-
+    public void createApproval(Long lectureId, List<ApprovalRejectType> rejectedReasons, String reason) {
         // Approval 객체 생성
-        Approval newApproval = Approval.create(lectureId);
-
+        Approval newApproval = Approval.create(lectureId, rejectedReasons, reason);
         // DB에 저장
         approvalRepository.save(newApproval);
 
