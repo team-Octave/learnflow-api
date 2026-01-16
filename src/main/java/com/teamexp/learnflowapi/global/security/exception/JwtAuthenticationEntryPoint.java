@@ -5,6 +5,7 @@ import com.teamexp.learnflowapi.global.response.BaseResponse;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
 import java.io.IOException;
+import org.slf4j.MDC; // 1. MDC 임포트 추가
 import org.springframework.http.HttpStatus;
 import org.springframework.security.core.AuthenticationException;
 import org.springframework.security.web.AuthenticationEntryPoint;
@@ -37,7 +38,10 @@ public class JwtAuthenticationEntryPoint implements AuthenticationEntryPoint {
         response.setStatus(HttpStatus.UNAUTHORIZED.value());
         response.setContentType("application/json; charset=UTF-8");
 
-        BaseResponse<?> body = BaseResponse.error(code, message);
+        // 2. MDC에서 traceId를 꺼내서 응답 바디에 넣어줍니다.
+        // LogTraceFilter가 Security 필터보다 앞에 있으므로 여기서도 ID를 꺼낼 수 있습니다.
+        BaseResponse<?> body = BaseResponse.error(code, message, MDC.get("traceId"));
+
         response.getWriter().write(new ObjectMapper().writeValueAsString(body));
     }
 }
