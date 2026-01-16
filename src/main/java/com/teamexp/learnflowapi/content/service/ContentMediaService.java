@@ -9,6 +9,7 @@ import com.teamexp.learnflowapi.content.exception.InvalidVideoExtensionException
 import com.teamexp.learnflowapi.content.exception.LessonVideoNotFoundException;
 import com.teamexp.learnflowapi.content.exception.MediaAlreadyCompletedException;
 import com.teamexp.learnflowapi.content.exception.MediaNotFoundException;
+import com.teamexp.learnflowapi.content.exception.MediaNotReadyException;
 import com.teamexp.learnflowapi.content.exception.SignedUrlCreationException;
 import com.teamexp.learnflowapi.content.external.GcpSignedUrlService;
 import com.teamexp.learnflowapi.content.model.ContentMedia;
@@ -91,6 +92,22 @@ public class ContentMediaService {
         media.completeUpload(uploadCompleteRequest.durationSec());
     }
 
+    @Transactional
+    public void bindMediaToLesson(Long lessonId, Long mediaId){
+
+        // Media id 조회
+        ContentMedia media = contentMediaRepository.findById(mediaId)
+                .orElseThrow(MediaNotFoundException::new);
+
+        // 업로드 상태 확인하기(업로드 성공 상태인지 확인)
+        if (media.getStatus() != MediaStatus.COMPLETED){
+            throw new MediaNotReadyException();
+        }
+
+        // mediaId와 lessonId와 바인딩
+        media.attachToLesson(lessonId);
+    }
+
     public String getStreamingUrl (Long lessonId){
         // 레슨 id조회
         ContentMedia media =contentMediaRepository.findByLessonId(lessonId)
@@ -98,7 +115,7 @@ public class ContentMediaService {
 
         // 강의 영상 상태 검증(COMPLETED인지)
         if (media.getStatus() != MediaStatus.COMPLETED){
-            throw new LessonVideoNotFoundException();
+            throw new MediaNotReadyException();
         }
 
         // - 정상 업로드 완료된 영상은 durationSec이 반드시 존재하고 1초 이상이어야 함
