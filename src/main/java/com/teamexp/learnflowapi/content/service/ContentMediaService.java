@@ -6,6 +6,7 @@ import com.teamexp.learnflowapi.content.dto.UploadInitRequest;
 import com.teamexp.learnflowapi.content.dto.UploadInitResponse;
 import com.teamexp.learnflowapi.content.exception.FileNameEmptyException;
 import com.teamexp.learnflowapi.content.exception.InvalidVideoExtensionException;
+import com.teamexp.learnflowapi.content.exception.LessonAlreadyBoundToMediaException;
 import com.teamexp.learnflowapi.content.exception.LessonVideoNotFoundException;
 import com.teamexp.learnflowapi.content.exception.MediaAlreadyCompletedException;
 import com.teamexp.learnflowapi.content.exception.MediaNotFoundException;
@@ -103,6 +104,13 @@ public class ContentMediaService {
         if (media.getStatus() != MediaStatus.COMPLETED){
             throw new MediaNotReadyException();
         }
+
+        // 해당 레슨에 이미 바인딩된 다른 MediaId가 있는지 체크
+        contentMediaRepository.findByLessonId(lessonId).ifPresent(existingMedia -> {
+            if (!existingMedia.getId().equals(mediaId)) {
+                throw new LessonAlreadyBoundToMediaException();
+            }
+        });
 
         // mediaId와 lessonId와 바인딩
         media.attachToLesson(lessonId);

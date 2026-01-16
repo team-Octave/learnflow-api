@@ -53,6 +53,7 @@ public enum ErrorCode {
     SIGNED_URL_CREATION_FAILED(HttpStatus.INTERNAL_SERVER_ERROR, "영상 재생 URL 생성 중 오류가 발생했습니다."),
     MEDIA_NOT_READY(HttpStatus.BAD_REQUEST, "영상 업로드가 아직 완료되지 않았습니다."),
     MEDIA_ALREADY_BOUND(HttpStatus.BAD_REQUEST, "이미 다른 레슨에 연결된 미디어입니다."),
+    LESSON_ALREADY_BOUND_TO_MEDIA(HttpStatus.BAD_REQUEST,"이미 레슨에 미디어가 있습니다"),
 
     // Enrollment 도메인 관련
     ENROLLMENT_ALREADY_EXISTS(HttpStatus.CONFLICT, "이미 수강신청이 완료된 강좌입니다."),
