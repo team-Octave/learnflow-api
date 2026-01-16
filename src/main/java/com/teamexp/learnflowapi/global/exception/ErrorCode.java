@@ -35,6 +35,8 @@ public enum ErrorCode {
     LECTURE_DELETE_BLOCKED(HttpStatus.CONFLICT, "게시된 강좌는 삭제할 수 없습니다."), // to class as LectureDeleteBlockedException
     LECTURE_DELETED(HttpStatus.GONE, "이미 삭제된 강의입니다."), // to class as LectureDeletedException
     LECTURE_NOT_DELETED(HttpStatus.BAD_REQUEST, "삭제되지 않은 강의입니다."), // to class as LectureNotDeletedException
+    LECTURE_CANNOT_UPDATE(HttpStatus.BAD_REQUEST, "강의를 수정할 수 없습니다."), // to class as LectureCannotUpdateException
+    LESSON_ACCESS_DENIED(HttpStatus.FORBIDDEN, "권한이 없습니다."), // to class as LessonAccessDeniedException
 
     // Content 도메인 관련
     UPLOAD_NOT_EXIST(HttpStatus.BAD_REQUEST, "업로드할 파일이 없습니다."),

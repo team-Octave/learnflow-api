@@ -1,7 +1,6 @@
 package com.teamexp.learnflowapi.enrollment.service;
 
 
-import com.teamexp.learnflowapi.content.model.Thumbnail;
 import com.teamexp.learnflowapi.content.repository.ThumbnailRepository;
 import com.teamexp.learnflowapi.enrollment.dto.CreateCompletedLessonRequest;
 import com.teamexp.learnflowapi.enrollment.dto.CreateEnrollmentRequest;
@@ -25,7 +24,6 @@ import com.teamexp.learnflowapi.lecture.model.*;
 import com.teamexp.learnflowapi.lecture.repository.LectureRepository;
 import com.teamexp.learnflowapi.lecture.repository.LectureStatisticRepository;
 import jakarta.persistence.OptimisticLockException;
-import jakarta.persistence.Tuple;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import com.teamexp.learnflowapi.review.model.Review;
@@ -50,6 +48,8 @@ public class EnrollmentService {
     private final CompletedLessonRepository completedLessonRepository;
     private final LectureRepository lectureRepository;
     private final LectureStatisticRepository lectureStatisticRepository;
+    @SuppressWarnings("unused")  // TODO: 모든 thumbnail 관련 코드 정리 후 제거
+    @Deprecated  // thumbnailUrl은 이제 Lecture.thumbnailUrl에서 직접 사용
     private final ThumbnailRepository thumbnailRepository;
     private final ReviewRepository reviewRepository;
 
@@ -140,8 +140,8 @@ public class EnrollmentService {
         Map<Long, Lecture> lectureMap = lectureRepository.findAllById(lectureIds).stream()
                 .collect(Collectors.toMap(Lecture::getId, Function.identity()));
 
-        Map<Long, String> thumbnailMap = thumbnailRepository.findAllByLectureIdIn(lectureIds).stream()
-                .collect(Collectors.toMap(Thumbnail::getLectureId, Thumbnail::getFileUrl));
+        // thumbnailUrl은 이제 Lecture.thumbnailUrl에서 직접 사용 (thumbnail 테이블 의존 제거)
+        // @Deprecated: thumbnailRepository.findAllByLectureIdIn(lectureIds) 사용 제거
 
         Map<Long, Review> reviewMap = reviewRepository.findByEnrollment_IdIn(enrollmentIds).stream()
                 .collect(Collectors.toMap(
@@ -174,7 +174,7 @@ public class EnrollmentService {
                             lecture.getId(),
                             enrollment.getId(),
                             review != null ? review.getId() : null,
-                            thumbnailMap.getOrDefault(lecture.getId(), null),
+                            lecture.getThumbnailUrl(),  // Lecture 엔티티에서 직접 thumbnailUrl 사용
                             lecture.getTitle(),
                             enrollment.getStatus(),
                             enrollment.getProgress(),

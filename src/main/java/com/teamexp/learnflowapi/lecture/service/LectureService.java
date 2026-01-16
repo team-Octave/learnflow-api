@@ -1,9 +1,12 @@
 package com.teamexp.learnflowapi.lecture.service;
 
+import com.teamexp.learnflowapi.admin.model.Approval;
+import com.teamexp.learnflowapi.admin.repository.ApprovalRepository;
 import com.teamexp.learnflowapi.lecture.model.Quiz;
 import com.teamexp.learnflowapi.lecture.repository.QuizRepository;
 import com.teamexp.learnflowapi.content.repository.ThumbnailRepository;
 import com.teamexp.learnflowapi.lecture.dto.request.CurriculumBindRequest;
+import com.teamexp.learnflowapi.lecture.dto.request.LectureBaseUpdateRequest;
 import com.teamexp.learnflowapi.lecture.dto.request.LectureCreateRequest;
 import com.teamexp.learnflowapi.lecture.dto.request.LectureCreateRequestV2;
 import com.teamexp.learnflowapi.lecture.dto.request.LectureFullCreateRequest;
@@ -11,6 +14,7 @@ import com.teamexp.learnflowapi.lecture.dto.response.LectureFullCreateResponse;
 import com.teamexp.learnflowapi.lecture.dto.response.LectureResponse;
 import com.teamexp.learnflowapi.lecture.dto.response.PublishedResponse;
 import com.teamexp.learnflowapi.lecture.exception.LectureAlreadyPublishedException;
+import com.teamexp.learnflowapi.lecture.exception.LectureCannotUpdateException;
 import com.teamexp.learnflowapi.lecture.exception.LectureDeleteBlockedException;
 import com.teamexp.learnflowapi.lecture.exception.LectureNotFoundException;
 import com.teamexp.learnflowapi.lecture.model.*;
@@ -22,10 +26,12 @@ import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Propagation;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.util.Comparator;
 import java.util.List;
+import java.util.Map;
 import java.util.stream.Collectors;
 import java.util.stream.IntStream;
 
@@ -55,18 +61,27 @@ public class LectureService {
 
     // Service or Validator
     private final LectureAccessValidator lectureAccessValidator;
+    private final ApprovalRepository approvalRepository;
     
     // TODO [Phase 1-1]: SecurityEventLogger 의존성 주입 예정
     // private final SecurityEventLogger securityEventLogger;
 
-    public LectureService(LectureRepository lectureRepository, LectureStatisticRepository lectureStatisticRepository, ThumbnailRepository thumbnailRepository, UserRepository userRepository, QuizRepository quizRepository, LectureAccessValidator lectureAccessValidator) {
+    public LectureService(
+        LectureRepository lectureRepository, 
+        LectureStatisticRepository lectureStatisticRepository, 
+        ThumbnailRepository thumbnailRepository, 
+        UserRepository userRepository, 
+        QuizRepository quizRepository, 
+        LectureAccessValidator lectureAccessValidator,
+        ApprovalRepository approvalRepository
+    ) {
         this.lectureRepository = lectureRepository;
         this.lectureStatisticRepository = lectureStatisticRepository;
         this.thumbnailRepository = thumbnailRepository;
         this.userRepository = userRepository;
         this.quizRepository = quizRepository;
-
         this.lectureAccessValidator = lectureAccessValidator;
+        this.approvalRepository = approvalRepository;
     }
 
     @Deprecated
@@ -251,13 +266,15 @@ public class LectureService {
                             );
                         }
 
+                        // NOTE: VIDEO 레슨의 signedUrl은 강의 상세/목록/커리큘럼 응답에서 내려주지 않음.
+                        // 재생 시점에 V2 레슨 단건 조회에서 signedUrl을 발급한다.
                         return LectureFullCreateResponse.LessonResponse.withoutQuiz(
                             lesson.getId(),
                             lesson.getLessonTitle(),
                             lesson.getLessonOrder(),
                             lesson.getLessonType().getDisplayName(),
                             lesson.getIsFreePreview(),
-                            lesson.getVideoUrl()
+                            null
                         );
                     })
                     .collect(Collectors.toList());
@@ -386,19 +403,38 @@ public class LectureService {
 
         // @Deprecated // TODO: 모든 lecture의 thumbnailUrl 역정규화 완료 후 제거
         // 사실 read 에 이런 setter가 있으면 안되지만, 내부 데이터의 변경에서 사용하는 개념이라 여기에 둠
-        if (lecture.getThumbnailUrl() == null && lecture.getThumbnailId() != null) {
+        if (lecture.getThumbnailUrl() == null) {
             String thumbnailUrl = thumbnailRepository.findFileUrlById(lecture.getThumbnailId());
-            lecture.setThumbnailUrl(thumbnailUrl);
+            if (thumbnailUrl != null) {
+                lecture.setThumbnailUrl(thumbnailUrl);
+                updateLectureThumbnailUrl(lectureId, thumbnailUrl);
+            } else {
+                lecture.setThumbnailUrl(defaultThumbnailUrl);
+            }
         }
 
         // TODO : Change Get Instructor Nickname response from Adapter API with userId
         String instructorNickname = userRepository.findById(lecture.getInstructorId())
             .map(user -> user.getNickname())
             .orElse("Unknown Instructor");
-
         return LectureResponse.fromWithStatics(lecture, statistic, instructorNickname);
     }
 
+    @Transactional(propagation = Propagation.REQUIRES_NEW)
+    public void updateLectureThumbnailUrl(Long lectureId, String thumbnailUrl) {
+        Lecture lecture = lectureRepository.findById(lectureId)
+            .orElse(null);
+        if (lecture == null) {
+            return;
+        }
+        lecture.updateThumbnailUrl(thumbnailUrl);
+        lectureRepository.save(lecture);
+    }
+
+    /**
+     * 강사의 강의 목록 조회 (반려 사유 포함)
+     * REJECTED 상태인 강의에는 최신 반려 카테고리/상세 사유가 포함됨
+     */
     public Page<LectureResponse> getLecturesByInstructor(String instructorId, Pageable pageable) {
         // Repository에서 페이지네이션된 강의 조회
         // - 정렬은 Lecture.updatedAt DESC로 강제 (통계 업데이트로 목록 순서가 흔들리지 않게)
@@ -409,6 +445,17 @@ public class LectureService {
         );
         Page<Lecture> lecturePage = lectureRepository.findByInstructorIdOrderByUpdatedAtDesc(instructorId, pageableWithoutSort);
 
+        // 반려 사유 배치 조회 (N+1 방지)
+        List<Long> rejectedLectureIds = lecturePage.getContent().stream()
+            .filter(lecture -> lecture.getStatus() == LectureStatus.REJECTED)
+            .map(Lecture::getId)
+            .collect(Collectors.toList());
+
+        Map<Long, Approval> approvalMap = rejectedLectureIds.isEmpty()
+            ? Map.of()
+            : approvalRepository.findLatestByLectureIds(rejectedLectureIds).stream()
+                .collect(Collectors.toMap(Approval::getLectureId, approval -> approval));
+
         // Page<LectureResponse>로 변환
         return lecturePage.map(lecture -> {
             LectureStatistic statistic = lecture.getStatistic();
@@ -416,7 +463,13 @@ public class LectureService {
                 .map(user -> user.getNickname())
                 .orElse("Unknown Instructor");
 
-            return LectureResponse.simpleFromWithStats(lecture, statistic, instructorNickname);
+            // REJECTED 상태인 경우만 반려 사유 포함
+            Approval latestApproval = null;
+            if (lecture.getStatus() == LectureStatus.REJECTED) {
+                latestApproval = approvalMap.get(lecture.getId());
+            }
+
+            return LectureResponse.simpleFromWithStats(lecture, statistic, instructorNickname, latestApproval);
         });
     }
 
@@ -429,11 +482,35 @@ public class LectureService {
                     String instructorNickname = userRepository.findById(lecture.getInstructorId())
                         .map(user -> user.getNickname())
                         .orElse("Unknown Instructor");
-
                     return LectureResponse.from(lecture, instructorNickname);
                 }
             )
             .collect(Collectors.toList());
+    }
+
+    @Transactional
+    public LectureResponse updateLecture(Long lectureId, LectureBaseUpdateRequest request, String instructorId) {
+        Lecture lecture = lectureRepository.findById(lectureId)
+            .orElseThrow(LectureNotFoundException::new);
+
+        validateNotDeleted(lecture);
+        lectureAccessValidator.validateOwnership(lecture, instructorId);
+        validateUpdatable(lecture);
+        
+        if (request.title() != null && !request.title().isBlank()) {
+            lecture.updateTitle(request.title());
+        }
+        if (request.description() != null && !request.description().isBlank()) {
+            lecture.updateDescription(request.description());
+        }
+        if (request.thumbnailUrl() != null && !request.thumbnailUrl().isBlank()) {
+            lecture.updateThumbnailUrl(request.thumbnailUrl());
+        }
+        Lecture savedLecture = lectureRepository.save(lecture);
+        String instructorNickname = userRepository.findById(savedLecture.getInstructorId())
+            .map(user -> user.getNickname())
+            .orElse("Unknown Instructor");
+        return LectureResponse.simpleFrom(savedLecture, instructorNickname);
     }
 
     // 강의 삭제
@@ -477,4 +554,11 @@ public class LectureService {
             throw new LectureNotFoundException();
         }
     }
+
+    private void validateUpdatable(Lecture lecture) {
+        if (lecture.getStatus() == LectureStatus.AVAILABLE || lecture.getStatus() == LectureStatus.SUBMITTED) {
+            throw new LectureCannotUpdateException();
+        }
+    }
+
 }

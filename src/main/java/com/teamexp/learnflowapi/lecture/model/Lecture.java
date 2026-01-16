@@ -1,5 +1,4 @@
 package com.teamexp.learnflowapi.lecture.model;
-
 import com.teamexp.learnflowapi.lecture.exception.ChapterNotFoundException;
 import com.teamexp.learnflowapi.lecture.exception.LectureAlreadyPublishedException;
 import com.teamexp.learnflowapi.lecture.exception.LectureCannotPublishedWithoutChapterException;
@@ -105,6 +104,7 @@ public class Lecture {
     @OneToOne(mappedBy = "lecture", cascade = CascadeType.ALL, fetch = FetchType.LAZY, optional = true)
     private LectureStatistic statistic;
 
+
     public LectureStatistic getStatistic() {
         return statistic;
     }
@@ -166,7 +166,7 @@ public class Lecture {
 
 
     private boolean canAvailable() {
-        return this.status == LectureStatus.UNAVAILABLE;
+        return this.status == LectureStatus.UNAVAILABLE || this.status == LectureStatus.REJECTED;
     }
     // Publish rule:
     // - only UNAVAILABLE lecture can be made AVAILABLE
@@ -248,6 +248,18 @@ public class Lecture {
     public int getTotalChapterCount() {
         return chapters.size();
 
+    }
+
+    public void updateTitle(String newTitle) {
+        this.title = newTitle;
+    }
+
+    public void updateDescription(String newDescription) {
+        this.description = newDescription;
+    }
+
+    public void updateThumbnailUrl(String newThumbnailUrl) {
+        this.thumbnailUrl = newThumbnailUrl;
     }
 
     // lecture/domain/policy/LecturePublishPolicy.java

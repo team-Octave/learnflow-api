@@ -18,6 +18,7 @@ import com.teamexp.learnflowapi.global.security.principal.CustomUserPrincipal;
 import com.teamexp.learnflowapi.lecture.dto.request.ChapterCreateRequest;
 import com.teamexp.learnflowapi.lecture.dto.request.ChapterUpdateRequest;
 import com.teamexp.learnflowapi.lecture.dto.request.CurriculumBindRequest;
+import com.teamexp.learnflowapi.lecture.dto.request.LectureBaseUpdateRequest;
 import com.teamexp.learnflowapi.lecture.dto.request.LectureCreateRequestV2;
 import com.teamexp.learnflowapi.lecture.dto.request.LessonCreateRequest;
 import com.teamexp.learnflowapi.lecture.dto.request.LessonUpdateRequest;
@@ -59,6 +60,17 @@ public class LectureControllerV2 {
     }
 
     // ===== Curriculum V2 (incremental) =====
+
+    // Lecture update about 기본정보
+    @PatchMapping("/{lectureId}")
+    public ResponseEntity<BaseResponse<LectureResponse>> updateLecture(
+        @PathVariable Long lectureId,
+        @Valid @RequestBody LectureBaseUpdateRequest request,
+        @AuthenticationPrincipal CustomUserPrincipal customUser
+    ) {
+        LectureResponse response = lectureService.updateLecture(lectureId, request, customUser.getId());
+        return ResponseEntity.status(HttpStatus.OK).body(BaseResponse.ok(response));
+    }
 
     @PostMapping("/{lectureId}/chapters")
     public ResponseEntity<BaseResponse<ChapterResponse>> addChapter(
@@ -133,14 +145,14 @@ public class LectureControllerV2 {
         return ResponseEntity.status(HttpStatus.OK).body(BaseResponse.ok(null));
     }
 
-    // Get Lesson Response without Quiz Questions
+    // Get Lesson (VIDEO: videoUrl은 signedUrl로 반환)
     @GetMapping("/{lectureId}/lessons/{lessonId}")
     public ResponseEntity<BaseResponse<LessonResponse>> getLesson(
         @PathVariable Long lectureId,
         @PathVariable Long lessonId,
         @AuthenticationPrincipal CustomUserPrincipal customUser
     ) {
-        LessonResponse response = lessonService.getLesson(lectureId, lessonId);
+        LessonResponse response = lessonService.getLesson(lectureId, lessonId, customUser.getId());
         return ResponseEntity.status(HttpStatus.OK).body(BaseResponse.ok(response));
     }
 }
