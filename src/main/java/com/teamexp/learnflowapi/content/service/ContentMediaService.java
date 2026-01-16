@@ -16,6 +16,7 @@ import com.teamexp.learnflowapi.content.external.GcpSignedUrlService;
 import com.teamexp.learnflowapi.content.model.ContentMedia;
 import com.teamexp.learnflowapi.content.model.MediaStatus;
 import com.teamexp.learnflowapi.content.repository.ContentMediaRepository;
+import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -113,7 +114,12 @@ public class ContentMediaService {
         });
 
         // mediaId와 lessonId와 바인딩
-        media.attachToLesson(lessonId);
+        try {
+            media.attachToLesson(lessonId);
+            contentMediaRepository.flush(); // 여기서 unique 위반 감지 가능
+        } catch (DataIntegrityViolationException e) {
+            throw new LessonAlreadyBoundToMediaException();
+        }
     }
 
     public String getStreamingUrl (Long lessonId){
