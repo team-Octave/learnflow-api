@@ -6,13 +6,14 @@ import com.teamexp.learnflowapi.content.dto.UploadInitRequest;
 import com.teamexp.learnflowapi.content.dto.UploadInitResponse;
 import com.teamexp.learnflowapi.content.exception.FileNameEmptyException;
 import com.teamexp.learnflowapi.content.exception.InvalidVideoExtensionException;
+import com.teamexp.learnflowapi.content.exception.LessonVideoNotFoundException;
 import com.teamexp.learnflowapi.content.exception.MediaAlreadyCompletedException;
 import com.teamexp.learnflowapi.content.exception.MediaNotFoundException;
+import com.teamexp.learnflowapi.content.exception.SignedUrlCreationException;
 import com.teamexp.learnflowapi.content.external.GcpSignedUrlService;
 import com.teamexp.learnflowapi.content.model.ContentMedia;
 import com.teamexp.learnflowapi.content.model.MediaStatus;
 import com.teamexp.learnflowapi.content.repository.ContentMediaRepository;
-import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -30,8 +31,6 @@ public class ContentMediaService {
         this.gcpSignedUrlService = gcpSignedUrlService;
     }
 
-    @Value("${spring.cloud.gcp.storage.bucket-name}")
-    private String bucketName;
 
     /*
      * 1. 영상 파일 형식 .mp4
@@ -90,6 +89,33 @@ public class ContentMediaService {
 
         // 업로드 상태 업데이트
         media.completeUpload(uploadCompleteRequest.durationSec());
+    }
+
+    public String getStreamingUrl (Long lessonId){
+        // 레슨 id조회
+        ContentMedia media =contentMediaRepository.findByLessonId(lessonId)
+                .orElseThrow(LessonVideoNotFoundException::new);
+
+        // 강의 영상 상태 검증(COMPLETED인지)
+        if (media.getStatus() != MediaStatus.COMPLETED){
+            throw new LessonVideoNotFoundException();
+        }
+
+        // - 정상 업로드 완료된 영상은 durationSec이 반드시 존재하고 1초 이상이어야 함
+        // - null 또는 0이면 업로드 완료 전에 lessonId가 매핑되었거나 비정상 데이터로 판단
+        if (media.getDurationSec() == null || media.getDurationSec() == 0){
+            throw new LessonVideoNotFoundException();
+        }
+
+        try {
+
+            return gcpSignedUrlService.streamingCreateSignedUrl(
+                    media.getFileKey(),
+                    media.getDurationSec()
+            );
+        } catch (Exception e){
+            throw new SignedUrlCreationException();
+        }
     }
 
     private void validateInitRequest(UploadInitRequest req) {

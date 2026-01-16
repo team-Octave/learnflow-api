@@ -15,6 +15,7 @@ public class GcpSignedUrlService {
     private final Storage storage;
     private final String bucketName;
     private static final String FIXED_CONTENT_TYPE = "video/mp4";
+    private static final int MIN_STREAMING_TTL_MINUTES = 30;
 
     public GcpSignedUrlService(
             Storage storage,
@@ -39,6 +40,30 @@ public class GcpSignedUrlService {
                 TimeUnit.MINUTES,
                 Storage.SignUrlOption.httpMethod(HttpMethod.PUT),
                 Storage.SignUrlOption.withContentType()
+        );
+
+        return url.toString();
+    }
+
+    /**
+     * 영상 재생용 Signed Url 생성
+     * */
+    public String streamingCreateSignedUrl(String fileKey, Integer durationSec) {
+
+        long ttlMinutes = Math.round((durationSec * 1.5) / 60);
+
+        if (ttlMinutes < MIN_STREAMING_TTL_MINUTES) {
+            ttlMinutes = MIN_STREAMING_TTL_MINUTES;
+        }
+
+        BlobInfo blobInfo = BlobInfo.newBuilder(bucketName, fileKey).build();
+
+        URL url = storage.signUrl(
+                blobInfo,
+                ttlMinutes,
+                TimeUnit.MINUTES,
+                Storage.SignUrlOption.httpMethod(HttpMethod.GET),
+                Storage.SignUrlOption.withV4Signature()
         );
 
         return url.toString();
