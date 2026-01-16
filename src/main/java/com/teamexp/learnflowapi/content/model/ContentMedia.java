@@ -1,5 +1,6 @@
 package com.teamexp.learnflowapi.content.model;
 
+import com.teamexp.learnflowapi.content.exception.MediaAlreadyBoundException;
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
 import jakarta.persistence.EntityListeners;
@@ -70,6 +71,17 @@ public class ContentMedia {
     public void completeUpload(Integer durationSec) {
         this.durationSec = durationSec;
         this.status = MediaStatus.COMPLETED;
+    }
+
+    /**
+     * 레슨과 매핑할때 호출
+     * */
+    public void attachToLesson(Long lessonId) {
+        // 다른 레슨과 연결되어있는지 확인
+        if (this.lessonId != null && !this.lessonId.equals(lessonId)) {
+            throw new MediaAlreadyBoundException();
+        }
+        this.lessonId = lessonId;
     }
 }
 
