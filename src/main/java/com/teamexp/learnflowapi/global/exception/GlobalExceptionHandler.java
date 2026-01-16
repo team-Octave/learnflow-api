@@ -1,10 +1,9 @@
 package com.teamexp.learnflowapi.global.exception;
 
 import com.teamexp.learnflowapi.global.response.BaseResponse;
-import jakarta.validation.ConstraintViolation;
-import jakarta.validation.ConstraintViolationException;
-import java.util.HashMap;
-import java.util.Map;
+import jakarta.servlet.http.HttpServletRequest;
+import lombok.extern.slf4j.Slf4j;
+import org.slf4j.MDC;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.authentication.BadCredentialsException;
@@ -16,53 +15,69 @@ import org.springframework.web.bind.MissingRequestHeaderException;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
 
+import java.util.HashMap;
+import java.util.Map;
+
+@Slf4j // 로깅을 위한 어노테이션 추가
 @RestControllerAdvice
 public class GlobalExceptionHandler {
 
-    // 우리가 만든 BaseException 처리
+    // 1. 우리가 만든 BaseException 처리
     @ExceptionHandler(BaseException.class)
     public ResponseEntity<BaseResponse<?>> handleBaseException(BaseException e) {
+        String traceId = MDC.get("traceId");
         ErrorCode errorCode = e.getErrorCode();
 
+        // 비즈니스 예외도 추적을 위해 로그를 남깁니다 (Warn 레벨 권장)
+        log.warn("[BaseException] traceId={}, code={}, message={}", traceId, errorCode.name(), errorCode.getMessage());
+
         return ResponseEntity
-                .status(errorCode.getStatus())
-                .body(BaseResponse.error(errorCode.name(), errorCode.getMessage()));
+            .status(errorCode.getStatus())
+            .body(BaseResponse.error(errorCode.name(), errorCode.getMessage(), traceId));
     }
 
-    // 예상하지 못한 에러 처리
+    // 2. 예상하지 못한 에러 처리 (가장 중요 ⭐)
     @ExceptionHandler(Exception.class)
     public ResponseEntity<BaseResponse<?>> handleException(Exception e) {
-        e.printStackTrace(); // TODO : 필요 시 로깅으로 변경
+        String traceId = MDC.get("traceId");
+
+        // e.printStackTrace() 대신 log.error 사용 (Loki로 스택 트레이스 전체 전송)
+        log.error("[UnhandledException] traceId={}, message={}", traceId, e.getMessage(), e);
 
         ErrorCode error = ErrorCode.INTERNAL_SERVER_ERROR;
 
         return ResponseEntity
-                .status(error.getStatus())
-                .body(BaseResponse.error(error.name(), error.getMessage()));
+            .status(error.getStatus())
+            .body(BaseResponse.error(error.name(), error.getMessage(), traceId));
     }
 
-    // 로그인 실패 시 발생하는 에러 처리
+    // 3. 로그인 실패 에러 처리
     @ExceptionHandler(BadCredentialsException.class)
     public ResponseEntity<?> handleBadCredentials(BadCredentialsException e) {
+        String traceId = MDC.get("traceId");
+        log.warn("[BadCredentialsException] traceId={}, message={}", traceId, e.getMessage());
+
         return ResponseEntity.status(HttpStatus.UNAUTHORIZED)
-                .body(BaseResponse.error("INVALID_CREDENTIALS", "이메일 또는 비밀번호가 틀렸습니다."));
+            .body(BaseResponse.error("INVALID_CREDENTIALS", "이메일 또는 비밀번호가 틀렸습니다.", traceId));
     }
 
-    // @Valid @RequestBody DTO 검증 실패
+    // 4. @Valid 검증 실패 처리
     @ExceptionHandler(MethodArgumentNotValidException.class)
     public ResponseEntity<BaseResponse<?>> handleMethodArgumentNotValid(MethodArgumentNotValidException e) {
+        String traceId = MDC.get("traceId");
 
-        // 필드별 에러 메시지 모으기
         Map<String, String> errors = new HashMap<>();
         for (FieldError fieldError : e.getBindingResult().getFieldErrors()) {
             errors.put(fieldError.getField(), fieldError.getDefaultMessage());
         }
 
+        log.warn("[MethodArgumentNotValidException] traceId={}, errors={}", traceId, errors);
+
         ErrorCode errorCode = ErrorCode.INVALID_INPUT_VALUE;
 
         return ResponseEntity
             .status(errorCode.getStatus())
-            .body(BaseResponse.error(errorCode.name(), errorCode.getMessage(), errors));
+            .body(BaseResponse.error(errorCode.name(), errorCode.getMessage(), errors, traceId));
     }
 
 //    @ExceptionHandler(ConstraintViolationException.class)
@@ -84,34 +99,33 @@ public class GlobalExceptionHandler {
 
     @ExceptionHandler(MissingRequestHeaderException.class)
     public ResponseEntity<?> handleMissingHeader(MissingRequestHeaderException e) {
+        String traceId = MDC.get("traceId");
+        log.warn("[MissingRequestHeaderException] traceId={}, header={}", traceId, e.getHeaderName());
+
         return ResponseEntity
             .status(HttpStatus.BAD_REQUEST)
-            .body(BaseResponse.error("MISSING_HEADER", e.getHeaderName() + " 헤더가 필요합니다."));
+            .body(BaseResponse.error("MISSING_HEADER", e.getHeaderName() + " 헤더가 필요합니다.", traceId));
     }
 
-
-
-    /*
-    * 유저가 논리적으로 삭제 되었을 때, 발생하는 에러 처리
-    * */
+    // 6. 삭제된 유저 처리
     @ExceptionHandler(DisabledException.class)
     public ResponseEntity<?> handleDisabled(DisabledException e) {
+        String traceId = MDC.get("traceId");
+        log.warn("[DisabledException] traceId={}", traceId);
+
         return ResponseEntity
             .status(HttpStatus.UNAUTHORIZED)
-            .body(BaseResponse.error("USER_DISABLED", "없는 유저입니다."));
+            .body(BaseResponse.error("USER_DISABLED", "없는 유저입니다.", traceId));
     }
 
-    /*
-    * 쿠키 누락 시, 발생하는 예외 처리
-    * */
+    // 7. 쿠키 누락 처리
     @ExceptionHandler(MissingRequestCookieException.class)
     public ResponseEntity<?> handleMissingCookie(MissingRequestCookieException e) {
+        String traceId = MDC.get("traceId");
+        log.warn("[MissingRequestCookieException] traceId={}, cookie={}", traceId, e.getCookieName());
+
         return ResponseEntity
             .status(HttpStatus.BAD_REQUEST)
-            .body(BaseResponse.error("MISSING_COOKIE", e.getCookieName() + " 쿠키가 필요합니다."));
+            .body(BaseResponse.error("MISSING_COOKIE", e.getCookieName() + " 쿠키가 필요합니다.", traceId));
     }
-
-
-
 }
-
