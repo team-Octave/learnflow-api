@@ -1,6 +1,7 @@
 package com.teamexp.learnflowapi.global.config;
 
 import com.teamexp.learnflowapi.global.common.filter.LogTraceFilter;
+import com.teamexp.learnflowapi.global.common.filter.RequestResponseLoggingFilter; // 1. 필터 임포트 추가
 import com.teamexp.learnflowapi.global.security.exception.JwtAuthenticationEntryPoint;
 import com.teamexp.learnflowapi.global.security.jwt.JwtAuthenticationFilter;
 import com.teamexp.learnflowapi.user.service.CustomUserDetailsService;
@@ -17,10 +18,6 @@ import org.springframework.security.config.http.SessionCreationPolicy;
 import org.springframework.security.web.SecurityFilterChain;
 import org.springframework.security.web.authentication.UsernamePasswordAuthenticationFilter;
 
-/**
- * 애플리케이션 보안 설정을 담당하는 클래스입니다.
- * 필터 체인 구성 및 권한 관리를 수행합니다.
- */
 @Configuration
 @EnableWebSecurity
 public class SecurityConfig {
@@ -41,13 +38,18 @@ public class SecurityConfig {
         this.jwtAuthenticationEntryPoint = jwtAuthenticationEntryPoint;
     }
 
-    /**
-     * TraceID 발급 필터를 빈으로 등록합니다.
-     * 코드래빗 피드백: @Component와 addFilterBefore 중복 등록을 방지하기 위해 수동 등록합니다.
-     */
     @Bean
     public LogTraceFilter logTraceFilter() {
         return new LogTraceFilter();
+    }
+
+    /**
+     * 바디 로깅 필터를 빈으로 등록합니다.
+     * LogTraceFilter와 동일한 이유로 중복 등록 방지를 위해 수동 등록합니다.
+     */
+    @Bean
+    public RequestResponseLoggingFilter requestResponseLoggingFilter() {
+        return new RequestResponseLoggingFilter();
     }
 
     @Bean
@@ -59,20 +61,13 @@ public class SecurityConfig {
                 session.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
             .exceptionHandling(exception -> exception.authenticationEntryPoint(jwtAuthenticationEntryPoint))
             .authorizeHttpRequests(auth -> auth
-                // 1. 최상단: 인가 불필요 경로
                 .requestMatchers("/actuator/**").permitAll()
                 .requestMatchers("/api/v1/auth/**").permitAll()
                 .requestMatchers(HttpMethod.POST, "/api/v1/users").permitAll()
                 .requestMatchers(HttpMethod.GET, "/api/v1/users/check").permitAll()
-
-                // 2. 구체적인 인증 필요 경로 (MEMBER 전용 조회)
                 .requestMatchers(HttpMethod.GET, "/api/v1/lectures/my").hasRole("MEMBER")
                 .requestMatchers(HttpMethod.GET, "/api/v1/users/me").hasAnyRole("MEMBER", "ADMIN")
-
-                // 3. ADMIN 전용 경로
                 .requestMatchers("/api/v1/admin/**").hasRole("ADMIN")
-
-                // 4. MEMBER 전용 (쓰기/수정/삭제 작업)
                 .requestMatchers(HttpMethod.POST, "/api/v1/lectures/**").hasRole("MEMBER")
                 .requestMatchers(HttpMethod.PUT, "/api/v1/lectures/**").hasRole("MEMBER")
                 .requestMatchers(HttpMethod.DELETE, "/api/v1/lectures/**").hasRole("MEMBER")
@@ -81,20 +76,20 @@ public class SecurityConfig {
                 .requestMatchers(HttpMethod.DELETE, "/api/v1/reviews/**").hasRole("MEMBER")
                 .requestMatchers("/api/v1/enrollment/**", "/api/v1/contents/**").hasRole("MEMBER")
                 .requestMatchers(HttpMethod.DELETE, "/api/v1/users/me").hasRole("MEMBER")
-
-                // 5. 일반 조회 API (누구나 가능)
                 .requestMatchers(HttpMethod.GET, "/api/v1/lectures/**").permitAll()
                 .requestMatchers(HttpMethod.GET, "/api/v1/reviews/**").permitAll()
                 .requestMatchers(HttpMethod.GET, "/api/v1/reviews/lectures/**").permitAll()
-
-                // 6. 나머지 모든 요청은 인증 필요
                 .anyRequest().authenticated()
             )
             .userDetailsService(userDetailsService);
 
-        // 필터 순서: 로깅(TraceID) -> JWT 인증 -> 표준 인증 필터 순으로 실행
+        // 🎯 필터 실행 순서 정의
         http
+            // 1. 가장 먼저 TraceID 생성 (MDC 주입)
             .addFilterBefore(logTraceFilter(), UsernamePasswordAuthenticationFilter.class)
+            // 2. 생성된 ID를 가지고 요청/응답 Body 로깅 실행
+            .addFilterAfter(requestResponseLoggingFilter(), LogTraceFilter.class)
+            // 3. 이후 JWT 인증 진행
             .addFilterBefore(jwtAuthenticationFilter, UsernamePasswordAuthenticationFilter.class);
 
         return http.build();
