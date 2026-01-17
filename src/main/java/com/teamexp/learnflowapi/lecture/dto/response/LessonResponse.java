@@ -19,7 +19,7 @@ public record LessonResponse(
     public record QuizQuestionResponse(
         Long id,
         String question,
-        Integer orderIndex,
+        Integer questionOrder,
         Boolean correct
     ) {
     }

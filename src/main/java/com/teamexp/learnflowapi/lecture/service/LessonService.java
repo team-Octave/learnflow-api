@@ -310,7 +310,7 @@ public class LessonService {
 
         for (QuizUpdateRequest item : items) {
             if (item.id() == null) {
-                Quiz newQuiz = Quiz.createQuiz(item.orderIndex(), item.question(), item.correct());
+                Quiz newQuiz = Quiz.createQuiz(item.questionOrder(), item.question(), item.correct());
                 lesson.addQuiz(newQuiz);
                 continue;
             }
@@ -319,7 +319,7 @@ public class LessonService {
             if (quiz == null) {
                 throw new QuizNotFoundException();
             }
-            quiz.update(item.orderIndex(), item.question(), item.correct());
+            quiz.update(item.questionOrder(), item.question(), item.correct());
         }
     }
 

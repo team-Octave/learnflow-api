@@ -4,7 +4,7 @@ import com.teamexp.learnflowapi.lecture.model.Quiz;
 
 public record QuizResponse(
         Long id,
-        Integer orderIndex,
+        Integer questionOrder,
         String question,
         Boolean correct
 ) {
