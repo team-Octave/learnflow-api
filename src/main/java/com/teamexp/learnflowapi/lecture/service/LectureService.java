@@ -391,7 +391,7 @@ public class LectureService {
         });
     }
 
-    // 강의 단건 조회
+    // 강의 단건 조회(요청 분리필요: 강사가 하는 요청 / 모두가 들어올수있는요청)
     @Transactional(readOnly = true)
     public LectureResponse getLecture(Long lectureId) {
         Lecture lecture = lectureRepository.findByIdWithChaptersAndLessonsAndQuizzes(lectureId)
