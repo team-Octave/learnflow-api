@@ -12,13 +12,13 @@ public record LessonReadDetailResponse(
     List<QuizQuestionDto> quizQuestions
 ) {
 
-    public static LessonReadDetailResponse from(Lesson lesson) {
+    public static LessonReadDetailResponse from(Lesson lesson, String signedUrl) {
         return new LessonReadDetailResponse(
             lesson.getId(),
             lesson.getLessonTitle(),
             lesson.getLessonType().getDisplayName(),
             lesson.getLessonOrder(),
-            lesson.getVideoUrl(),
+            signedUrl,
             lesson.getQuizzes().stream()
                 .map(QuizQuestionDto::from)
                 .toList()
