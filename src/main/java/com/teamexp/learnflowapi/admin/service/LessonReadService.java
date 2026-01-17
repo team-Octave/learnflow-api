@@ -37,7 +37,10 @@ public class LessonReadService {
             .orElseThrow(LessonNotFoundException::new);
 
         // Signed URL
-        String signedUrl = contentMediaService.getStreamingUrl(foundLesson.getId());
+        String signedUrl = null;
+        if (foundLesson.getLessonType().getDisplayName().equals("VIDEO")) {
+            signedUrl = contentMediaService.getStreamingUrl(foundLesson.getId());
+        }
 
 
         return LessonReadDetailResponse.from(foundLesson, signedUrl);
