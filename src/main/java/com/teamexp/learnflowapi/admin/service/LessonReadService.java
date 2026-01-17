@@ -2,6 +2,7 @@ package com.teamexp.learnflowapi.admin.service;
 
 import com.teamexp.learnflowapi.admin.dto.LessonReadDetailResponse;
 import com.teamexp.learnflowapi.admin.exception.LectureNotFoundException;
+import com.teamexp.learnflowapi.content.service.ContentMediaService;
 import com.teamexp.learnflowapi.lecture.exception.LessonNotFoundException;
 import com.teamexp.learnflowapi.lecture.model.Lecture;
 import com.teamexp.learnflowapi.lecture.model.Lesson;
@@ -15,9 +16,12 @@ public class LessonReadService {
 
     // TODO : Lesson 조회하는 Service가 있어야 하나 ?
     private final LectureAdminRepository lectureAdminRepository;
+    // TODO : Signed URL을 생성하기 위해 해당 서비스를 가져오는게 맞을까 ?..
+    private final ContentMediaService contentMediaService;
 
-    public LessonReadService(LectureAdminRepository lectureAdminRepository) {
+    public LessonReadService(LectureAdminRepository lectureAdminRepository, ContentMediaService contentMediaService) {
         this.lectureAdminRepository = lectureAdminRepository;
+        this.contentMediaService = contentMediaService;
     }
 
     public LessonReadDetailResponse readLesson(Long lectureId, Long lessonId) {
@@ -32,7 +36,11 @@ public class LessonReadService {
             .findFirst()
             .orElseThrow(LessonNotFoundException::new);
 
-        return LessonReadDetailResponse.from(foundLesson);
+        // Signed URL
+        String signedUrl = contentMediaService.getStreamingUrl(foundLesson.getId());
+
+
+        return LessonReadDetailResponse.from(foundLesson, signedUrl);
     }
 
 }
