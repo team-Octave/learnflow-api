@@ -576,7 +576,10 @@ public class LectureService {
     @Deprecated
     private void resolveThumbnailUrl(Lecture lecture) {
         if (lecture.getThumbnailUrl() == null) {
-            String thumbnailUrl = thumbnailRepository.findFileUrlById(lecture.getThumbnailId());
+            Thumbnail thumbnail = thumbnailRepository.findByLectureId(lecture.getId()).orElse(null);
+
+            String thumbnailUrl = (thumbnail != null) ? thumbnail.getFileUrl() : null;
+                
             lecture.setThumbnailUrl(thumbnailUrl != null ? thumbnailUrl : defaultThumbnailUrl);
         }
     }
@@ -590,21 +593,21 @@ public class LectureService {
     @Deprecated
     private void resolveThumbnailUrls(List<Lecture> lectures) {
         List<Lecture> needsResolve = lectures.stream()
-            .filter(l -> l.getThumbnailUrl() == null && l.getThumbnailId() != null)
+            .filter(l -> l.getThumbnailUrl() == null)
             .toList();
 
         if (needsResolve.isEmpty()) return;
 
-        List<Long> thumbnailIds = needsResolve.stream()
-            .map(Lecture::getThumbnailId)
+        List<Long> lectureIds = needsResolve.stream()
+            .map(Lecture::getId)
             .distinct()
             .toList();
 
-        Map<Long, String> urlMap = thumbnailRepository.findAllById(thumbnailIds).stream()
-            .collect(Collectors.toMap(Thumbnail::getId, Thumbnail::getFileUrl));
+        Map<Long, String> urlMap = thumbnailRepository.findAllByLectureIdIn(lectureIds).stream()
+            .collect(Collectors.toMap(Thumbnail::getLectureId, Thumbnail::getFileUrl));
 
         for (Lecture lecture : needsResolve) {
-            String url = urlMap.get(lecture.getThumbnailId());
+            String url = urlMap.get(lecture.getId());
             lecture.setThumbnailUrl(url != null ? url : defaultThumbnailUrl);
         }
     }
