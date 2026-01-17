@@ -12,7 +12,8 @@ public record LessonUpdateRequest(
     @Size(max = 200, message = "레슨 제목은 200자를 초과할 수 없습니다.")
     String lessonTitle,
     Boolean isFreePreview,
-    String videoUrl,
+    // TODO: mediaId is used to bind ContentMedia to Lesson (videoUrl is deprecated)
+    Long mediaId,
     @Valid
     QuizUpdateListRequest quizQuestions
 ) {

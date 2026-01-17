@@ -67,11 +67,23 @@ public class Approval {
         return new Approval(lectureId, rejectTypes, reason);
     }
 
+    public Long getApprovalId() {
+        return approvalId;
+    }
+
     public Long getLectureId() {
         return lectureId;
     }
 
     public Instant getUpdatedAt() {
         return updatedAt;
+    }
+
+    public String getRejectReason() {
+        return rejectReason;
+    }
+
+    public ApprovalRejectReason getRejectCategory() {
+        return rejectCategory;
     }
 }

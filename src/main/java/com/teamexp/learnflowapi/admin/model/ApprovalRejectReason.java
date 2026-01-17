@@ -43,5 +43,48 @@ public class ApprovalRejectReason {
         }
         return reason;
     }
+
+    public Boolean getContentQualityLow() {
+        return contentQualityLow;
+    }
+
+    public Boolean getLectureInfoMismatch() {
+        return lectureInfoMismatch;
+    }
+
+    public Boolean getMediaQualityIssue() {
+        return mediaQualityIssue;
+    }
+
+    public Boolean getPolicyViolations() {
+        return policyViolations;
+    }
+
+    public Boolean getOther() {
+        return other;
+    }
+
+    /**
+     * 반려 카테고리 목록을 List<String>으로 반환 (프론트엔드 툴팁용)
+     */
+    public List<String> toCategories() {
+        List<String> categories = new java.util.ArrayList<>();
+        if (Boolean.TRUE.equals(contentQualityLow)) {
+            categories.add("콘텐츠 품질 미달");
+        }
+        if (Boolean.TRUE.equals(lectureInfoMismatch)) {
+            categories.add("강의 정보 불일치");
+        }
+        if (Boolean.TRUE.equals(mediaQualityIssue)) {
+            categories.add("미디어 품질 문제");
+        }
+        if (Boolean.TRUE.equals(policyViolations)) {
+            categories.add("정책 위반");
+        }
+        if (Boolean.TRUE.equals(other)) {
+            categories.add("기타");
+        }
+        return categories;
+    }
 }
 

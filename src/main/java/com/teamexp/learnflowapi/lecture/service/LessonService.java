@@ -1,5 +1,9 @@
 package com.teamexp.learnflowapi.lecture.service;
 
+import com.teamexp.learnflowapi.enrollment.repository.EnrollmentRepository;
+import com.teamexp.learnflowapi.content.service.ContentMediaService;
+import com.teamexp.learnflowapi.global.exception.BaseException;
+import com.teamexp.learnflowapi.global.exception.ErrorCode;
 import com.teamexp.learnflowapi.lecture.dto.request.LessonCreateRequest;
 import com.teamexp.learnflowapi.lecture.dto.request.LessonUpdateRequest;
 import com.teamexp.learnflowapi.lecture.dto.request.QuizUpdateListRequest;
@@ -7,6 +11,7 @@ import com.teamexp.learnflowapi.lecture.dto.request.QuizUpdateRequest;
 import com.teamexp.learnflowapi.lecture.dto.response.LessonResponse;
 import com.teamexp.learnflowapi.lecture.exception.LectureAlreadyPublishedException;
 import com.teamexp.learnflowapi.lecture.exception.LectureNotFoundException;
+import com.teamexp.learnflowapi.lecture.exception.LessonAccessDeniedException;
 import com.teamexp.learnflowapi.lecture.exception.LessonNotFoundException;
 import com.teamexp.learnflowapi.lecture.exception.LessonQuizCountInvalidException;
 import com.teamexp.learnflowapi.lecture.exception.LessonTypeInvalidException;
@@ -44,17 +49,23 @@ public class LessonService {
     private final LessonRepository lessonRepository;
     private final QuizRepository quizRepository;
     private final LectureAccessValidator lectureAccessValidator;
+    private final ContentMediaService contentMediaService;
+    private final EnrollmentRepository enrollmentRepository;
 
     public LessonService(
         LectureRepository lectureRepository,
         LessonRepository lessonRepository,
         QuizRepository quizRepository,
-        LectureAccessValidator lectureAccessValidator
+        LectureAccessValidator lectureAccessValidator,
+        ContentMediaService contentMediaService,
+        EnrollmentRepository enrollmentRepository
     ) {
         this.lectureRepository = lectureRepository;
         this.lessonRepository = lessonRepository;
         this.quizRepository = quizRepository;
         this.lectureAccessValidator = lectureAccessValidator;
+        this.contentMediaService = contentMediaService;
+        this.enrollmentRepository = enrollmentRepository;
     }
 
     @Transactional
@@ -64,12 +75,13 @@ public class LessonService {
         validateLessonCreateRequest(request);
 
         Chapter chapter = lecture.findByChapterId(chapterId);
+        // VIDEO 타입도 videoUrl은 저장하지 않음 (mediaId 기반 바인딩 사용)
         Lesson lesson = Lesson.createLesson(
             request.lessonType(),
             request.lessonTitle(),
             chapter.getLessons().size(),
             request.isFreePreview(),
-            (request.lessonType() == LessonType.QUIZ ? null : request.videoUrl())
+            null  // videoUrl is no longer stored; use mediaId binding instead
         );
         chapter.addLesson(lesson);
 
@@ -84,6 +96,12 @@ public class LessonService {
         }
 
         Lesson savedLesson = lessonRepository.save(lesson);
+
+        // VIDEO 타입이고 mediaId가 제공된 경우, lessonId와 바인딩
+        if (savedLesson.getLessonType() == LessonType.VIDEO && request.mediaId() != null) {
+            contentMediaService.bindMediaToLesson(savedLesson.getId(), request.mediaId());
+        }
+
         return toLessonResponse(savedLesson);
     }
 
@@ -99,9 +117,10 @@ public class LessonService {
         if (request.isFreePreview() != null) {
             lesson.updateFreePreview(request.isFreePreview());
         }
-        if (request.videoUrl() != null) {
-            validateLessonVideoUrlUpdate(lesson, request.videoUrl());
-            lesson.updateVideoUrl(request.videoUrl());
+        // mediaId로 새 미디어 바인딩 (VIDEO 타입만)
+        if (request.mediaId() != null) {
+            validateLessonMediaIdUpdate(lesson);
+            contentMediaService.bindMediaToLesson(lessonId, request.mediaId());
         }
 
         if (request.quizQuestions() != null) {
@@ -125,13 +144,37 @@ public class LessonService {
         lectureRepository.save(lecture);
     }
 
-    public LessonResponse getLesson(Long lectureId, Long lessonId) {
+    /**
+     * V2 레슨 단건 조회.
+     *
+     * <p>NOTE: VIDEO 레슨의 videoUrl은 보안을 위해 signedUrl로 내려준다.
+     * 강의 상세/목록 응답에서는 VIDEO의 videoUrl을 내려주지 않는다.
+     */
+    public LessonResponse getLesson(Long lectureId, Long lessonId, String userId) {
+        if (userId == null || userId.isBlank()) {
+            throw new BaseException(ErrorCode.UNAUTHORIZED);
+        }
+
         Lecture lecture = findLectureWithChaptersAndLessons(lectureId);
 
         Chapter chapter = findChapterContainingLesson(lecture, lessonId);
         Lesson lesson = chapter.findByLessonId(lessonId);
 
-        return toLessonResponse(lesson);
+        if (lesson.getLessonType() == LessonType.QUIZ) {
+            return toLessonResponse(lesson);
+        }
+
+        validateVideoLessonAccess(lecture, lectureId, lesson, userId);
+
+        String signedUrl = contentMediaService.getStreamingUrl(lessonId);
+        return LessonResponse.withoutQuiz(
+            lesson.getId(),
+            lesson.getLessonTitle(),
+            lesson.getLessonType().getDisplayName(),
+            lesson.getLessonOrder(),
+            lesson.getIsFreePreview(),
+            signedUrl
+        );
     }
 
     // ===== Private Helper Methods =====
@@ -173,7 +216,7 @@ public class LessonService {
 
         if (request.lessonType() == LessonType.QUIZ) {
             // QUIZ: videoUrl must be null/blank
-            if (request.videoUrl() != null && !request.videoUrl().isBlank()) {
+            if (request.mediaId() != null) {
                 throw new LessonVideoUrlInvalidException();
             }
             int quizCount = request.quizQuestions() == null ? 0 : request.quizQuestions().size();
@@ -184,7 +227,7 @@ public class LessonService {
         }
 
         // VIDEO
-        if (request.videoUrl() == null || request.videoUrl().isBlank()) {
+        if (request.mediaId() == null) {
             throw new LessonVideoUrlInvalidException();
         }
         if (request.quizQuestions() != null && !request.quizQuestions().isEmpty()) {
@@ -192,18 +235,13 @@ public class LessonService {
         }
     }
 
-    private void validateLessonVideoUrlUpdate(Lesson lesson, String videoUrl) {
+    private void validateLessonMediaIdUpdate(Lesson lesson) {
         if (lesson == null || lesson.getLessonType() == null) {
             throw new LessonTypeInvalidException();
         }
 
         if (lesson.getLessonType() == LessonType.QUIZ) {
-            // QUIZ: videoUrl update is not allowed
-            throw new LessonVideoUrlInvalidException();
-        }
-
-        // VIDEO: videoUrl must be non-blank when provided
-        if (videoUrl == null || videoUrl.isBlank()) {
+            // QUIZ: mediaId update is not allowed
             throw new LessonVideoUrlInvalidException();
         }
     }
@@ -216,7 +254,7 @@ public class LessonService {
             // VIDEO: quiz payload is not allowed
             throw new LessonQuizCountInvalidException();
         }
-        int count = request == null || request.quizzes() == null ? 0 : request.quizzes().size();
+        int count = request == null || request.quizQuestions() == null ? 0 : request.quizQuestions().size();
         if (count < 1 || count > 10) {
             throw new LessonQuizCountInvalidException();
         }
@@ -236,11 +274,11 @@ public class LessonService {
     }
 
     private void upsertLessonQuizzes(Lesson lesson, QuizUpdateListRequest request) {
-        if (request == null || request.quizzes() == null) {
+        if (request == null || request.quizQuestions() == null) {
             return;
         }
 
-        List<QuizUpdateRequest> items = request.quizzes();
+        List<QuizUpdateRequest> items = request.quizQuestions();
         List<Long> requestedIds = items.stream()
             .map(QuizUpdateRequest::id)
             .filter(Objects::nonNull)
@@ -308,13 +346,32 @@ public class LessonService {
             );
         }
 
+        // NOTE: VIDEO 레슨의 signedUrl은 레슨 단건 조회(getLesson)에서만 발급하여 내려준다.
         return LessonResponse.withoutQuiz(
             lesson.getId(),
             lesson.getLessonTitle(),
             lesson.getLessonType().getDisplayName(),
             lesson.getLessonOrder(),
             lesson.getIsFreePreview(),
-            lesson.getVideoUrl()
+            null
         );
+    }
+
+    /**
+     * VIDEO 레슨 스트리밍 URL 접근 제어:
+     * - freePreview: 로그인만 되어있으면 허용
+     * - 그 외: 강의 소유 강사 또는 수강(enrollment) 중인 유저만 허용
+     */
+    private void validateVideoLessonAccess(Lecture lecture, Long lectureId, Lesson lesson, String userId) {
+        if (Boolean.TRUE.equals(lesson.getIsFreePreview())) {
+            return;
+        }
+        if (lecture.getInstructorId() != null && lecture.getInstructorId().equals(userId)) { // 강의 소유자 여부 확인
+            return;
+        }
+        if (enrollmentRepository.existsByUserIdAndLectureId(userId, lectureId)) { // 수강생 여부 확인
+            return;
+        }
+        throw new LessonAccessDeniedException();
     }
 }

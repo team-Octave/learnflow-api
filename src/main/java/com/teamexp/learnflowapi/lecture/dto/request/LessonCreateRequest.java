@@ -17,8 +17,9 @@ public record LessonCreateRequest(
     LessonType lessonType,
 
     Boolean isFreePreview,
-
-    String videoUrl, // videoUrl is nullable if lessonType is QUIZ
+ 
+    // TODO: Change videoUrl to mediaId
+    Long mediaId, // videoUrl is nullable if lessonType is QUIZ
 
     @Valid
     @Size(max = 10, message = "퀴즈는 최대 10개까지 가능합니다.")

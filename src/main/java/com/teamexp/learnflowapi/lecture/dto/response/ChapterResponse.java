@@ -15,6 +15,14 @@ public record ChapterResponse(
     int lessonCount,
     List<LessonResponse> lessons
 ) {
+    /**
+     * Chapter를 응답 DTO로 변환.
+     *
+     * <p>NOTE: VIDEO 레슨의 videoUrl(signedUrl)은 강의 상세/목록 응답에서 내려주지 않는다.
+     * 재생 시점에 V2 레슨 단건 조회에서 signedUrl을 발급하여 내려준다.
+     * 
+     * @param chapter 챕터 엔티티
+     */
     public static ChapterResponse from(Chapter chapter) {
         return new ChapterResponse(
             chapter.getId(),
@@ -43,13 +51,14 @@ public record ChapterResponse(
                             quizQuestions
                         );
                     } else {
+                        // VIDEO 레슨: 강의 상세/목록에서는 videoUrl을 내려주지 않음 (재생 시점에 V2 레슨 단건 조회 사용)
                         return LessonResponse.withoutQuiz(
                             lesson.getId(),
                             lesson.getLessonTitle(),
                             lesson.getLessonType().getDisplayName(),
                             lesson.getLessonOrder(),
                             lesson.getIsFreePreview(),
-                            lesson.getVideoUrl()
+                            null
                         );
                     }
                 })
