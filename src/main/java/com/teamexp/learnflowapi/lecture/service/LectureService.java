@@ -4,6 +4,7 @@ import com.teamexp.learnflowapi.admin.model.Approval;
 import com.teamexp.learnflowapi.admin.repository.ApprovalRepository;
 import com.teamexp.learnflowapi.lecture.model.Quiz;
 import com.teamexp.learnflowapi.lecture.repository.QuizRepository;
+import com.teamexp.learnflowapi.content.model.Thumbnail;
 import com.teamexp.learnflowapi.content.repository.ThumbnailRepository;
 import com.teamexp.learnflowapi.lecture.dto.request.CurriculumBindRequest;
 import com.teamexp.learnflowapi.lecture.dto.request.LectureBaseUpdateRequest;
@@ -378,6 +379,9 @@ public class LectureService {
             pageableWithoutSort
         );
 
+        // @Deprecated: 모든 lecture의 thumbnailUrl 역정규화 완료 후 제거
+        resolveThumbnailUrls(lecturePage.getContent());
+
         // Page<LectureResponse>로 변환
         return lecturePage.map(lecture -> {
             LectureStatistic statistic = lecture.getStatistic();
@@ -400,18 +404,8 @@ public class LectureService {
 
         LectureStatistic statistic = lecture.getStatistic();
 
-
-        // @Deprecated // TODO: 모든 lecture의 thumbnailUrl 역정규화 완료 후 제거
-        // 사실 read 에 이런 setter가 있으면 안되지만, 내부 데이터의 변경에서 사용하는 개념이라 여기에 둠
-        if (lecture.getThumbnailUrl() == null) {
-            String thumbnailUrl = thumbnailRepository.findFileUrlById(lecture.getThumbnailId());
-            if (thumbnailUrl != null) {
-                lecture.setThumbnailUrl(thumbnailUrl);
-                updateLectureThumbnailUrl(lectureId, thumbnailUrl);
-            } else {
-                lecture.setThumbnailUrl(defaultThumbnailUrl);
-            }
-        }
+        // @Deprecated: 모든 lecture의 thumbnailUrl 역정규화 완료 후 제거
+        resolveThumbnailUrl(lecture);
 
         // TODO : Change Get Instructor Nickname response from Adapter API with userId
         String instructorNickname = userRepository.findById(lecture.getInstructorId())
@@ -445,6 +439,9 @@ public class LectureService {
         );
         Page<Lecture> lecturePage = lectureRepository.findByInstructorIdOrderByUpdatedAtDesc(instructorId, pageableWithoutSort);
 
+        // @Deprecated: 모든 lecture의 thumbnailUrl 역정규화 완료 후 제거
+        resolveThumbnailUrls(lecturePage.getContent());
+
         // 반려 사유 배치 조회 (N+1 방지)
         List<Long> rejectedLectureIds = lecturePage.getContent().stream()
             .filter(lecture -> lecture.getStatus() == LectureStatus.REJECTED)
@@ -475,7 +472,12 @@ public class LectureService {
 
     // 카테고리별 발행된 강의 목록 조회
     public List<LectureResponse> getPublishedLecturesByCategory(Integer categoryId) {
-        return lectureRepository.findByCategoryIdAndStatusAndDeleteFlagFalse(categoryId, LectureStatus.AVAILABLE).stream()
+        List<Lecture> lectures = lectureRepository.findByCategoryIdAndStatusAndDeleteFlagFalse(categoryId, LectureStatus.AVAILABLE);
+
+        // @Deprecated: 모든 lecture의 thumbnailUrl 역정규화 완료 후 제거
+        resolveThumbnailUrls(lectures);
+
+        return lectures.stream()
             .map(
                 lecture -> {
                     // TODO : Change Get Instructor Nickname response from Adapter API with userId
@@ -558,6 +560,52 @@ public class LectureService {
     private void validateUpdatable(Lecture lecture) {
         if (lecture.getStatus() == LectureStatus.AVAILABLE || lecture.getStatus() == LectureStatus.SUBMITTED) {
             throw new LectureCannotUpdateException();
+        }
+    }
+
+    // =========================
+    // Thumbnail URL Resolution Helpers
+    // =========================
+
+    /**
+     * 단건 Lecture의 thumbnailUrl을 해결합니다.
+     * thumbnailUrl이 null인 경우 thumbnailId로 조회하거나 기본값을 설정합니다.
+     * 
+     * @deprecated 모든 lecture의 thumbnailUrl 역정규화 완료 후 제거 예정
+     */
+    @Deprecated
+    private void resolveThumbnailUrl(Lecture lecture) {
+        if (lecture.getThumbnailUrl() == null) {
+            String thumbnailUrl = thumbnailRepository.findFileUrlById(lecture.getThumbnailId());
+            lecture.setThumbnailUrl(thumbnailUrl != null ? thumbnailUrl : defaultThumbnailUrl);
+        }
+    }
+
+    /**
+     * 여러 Lecture의 thumbnailUrl을 배치로 해결합니다. (N+1 방지)
+     * thumbnailUrl이 null인 경우 thumbnailId로 조회하거나 기본값을 설정합니다.
+     * 
+     * @deprecated 모든 lecture의 thumbnailUrl 역정규화 완료 후 제거 예정
+     */
+    @Deprecated
+    private void resolveThumbnailUrls(List<Lecture> lectures) {
+        List<Lecture> needsResolve = lectures.stream()
+            .filter(l -> l.getThumbnailUrl() == null && l.getThumbnailId() != null)
+            .toList();
+
+        if (needsResolve.isEmpty()) return;
+
+        List<Long> thumbnailIds = needsResolve.stream()
+            .map(Lecture::getThumbnailId)
+            .distinct()
+            .toList();
+
+        Map<Long, String> urlMap = thumbnailRepository.findAllById(thumbnailIds).stream()
+            .collect(Collectors.toMap(Thumbnail::getId, Thumbnail::getFileUrl));
+
+        for (Lecture lecture : needsResolve) {
+            String url = urlMap.get(lecture.getThumbnailId());
+            lecture.setThumbnailUrl(url != null ? url : defaultThumbnailUrl);
         }
     }
 
