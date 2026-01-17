@@ -70,16 +70,16 @@ public class ApprovalRejectReason {
     public List<String> toCategories() {
         List<String> categories = new java.util.ArrayList<>();
         if (Boolean.TRUE.equals(contentQualityLow)) {
-            categories.add("콘텐츠 품질 미달");
+            categories.add("콘텐츠 내용 부족");
         }
         if (Boolean.TRUE.equals(lectureInfoMismatch)) {
-            categories.add("강의 정보 불일치");
+            categories.add("강의 정보 불일치 또는 누락");
         }
         if (Boolean.TRUE.equals(mediaQualityIssue)) {
             categories.add("미디어 품질 문제");
         }
         if (Boolean.TRUE.equals(policyViolations)) {
-            categories.add("정책 위반");
+            categories.add("정책 및 법적 기준 위반");
         }
         if (Boolean.TRUE.equals(other)) {
             categories.add("기타");
