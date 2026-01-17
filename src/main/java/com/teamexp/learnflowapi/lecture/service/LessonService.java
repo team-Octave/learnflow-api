@@ -254,7 +254,7 @@ public class LessonService {
             // VIDEO: quiz payload is not allowed
             throw new LessonQuizCountInvalidException();
         }
-        int count = request == null || request.quizzes() == null ? 0 : request.quizzes().size();
+        int count = request == null || request.quizQuestions() == null ? 0 : request.quizQuestions().size();
         if (count < 1 || count > 10) {
             throw new LessonQuizCountInvalidException();
         }
@@ -274,11 +274,11 @@ public class LessonService {
     }
 
     private void upsertLessonQuizzes(Lesson lesson, QuizUpdateListRequest request) {
-        if (request == null || request.quizzes() == null) {
+        if (request == null || request.quizQuestions() == null) {
             return;
         }
 
-        List<QuizUpdateRequest> items = request.quizzes();
+        List<QuizUpdateRequest> items = request.quizQuestions();
         List<Long> requestedIds = items.stream()
             .map(QuizUpdateRequest::id)
             .filter(Objects::nonNull)
