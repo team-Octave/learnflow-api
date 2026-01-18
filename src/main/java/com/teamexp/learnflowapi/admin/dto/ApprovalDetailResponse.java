@@ -8,6 +8,7 @@ public record ApprovalDetailResponse(
     Long lectureId,
     String title,
     String description,
+    String thumbnailUrl,
     String instructorName,
     String level,
     Integer categoryId,
@@ -19,6 +20,7 @@ public record ApprovalDetailResponse(
             lecture.getId(),
             lecture.getTitle(),
             lecture.getDescription(),
+            lecture.getThumbnailUrl(),
             // instructorName이 null이면 알 수 없음으로 표시
             instructor == null ? "알 수 없음" :  instructor.getNickname(),
             lecture.getLevel().getDisplayName(),
