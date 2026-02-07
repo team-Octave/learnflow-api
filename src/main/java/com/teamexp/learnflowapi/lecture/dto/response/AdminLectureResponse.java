@@ -10,11 +10,13 @@ public record AdminLectureResponse(
     String title,
     String instructorId,
     boolean deleteFlag,
+    String paymentType,
     Instant deletedAt,
     Instant createdAt,
     Instant updatedAt,
     Double ratingAverage,
     Long enrollmentCount
+
 ) {
     public static AdminLectureResponse from(Lecture lecture) {
         LectureStatistic stat = lecture.getStatistic();
@@ -26,6 +28,7 @@ public record AdminLectureResponse(
             lecture.getTitle(),
             lecture.getInstructorId(),
             lecture.isDeleteFlag(),
+            "FREE", //임시 머지되면 lecture.getPaymentType().name() 로변경
             lecture.getDeletedAt(),
             lecture.getCreatedAt(),
             lecture.getUpdatedAt(),

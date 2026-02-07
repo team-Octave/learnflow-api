@@ -5,6 +5,7 @@ import com.teamexp.learnflowapi.admin.dto.ApprovalUpdateResponse;
 import com.teamexp.learnflowapi.admin.dto.ApprovalsResponse;
 import com.teamexp.learnflowapi.admin.dto.request.ApprovalUpdateRequest;
 import com.teamexp.learnflowapi.admin.service.ApprovalService;
+import com.teamexp.learnflowapi.global.aop.LogTrace;
 import com.teamexp.learnflowapi.global.response.BaseResponse;
 import jakarta.validation.Valid;
 import org.springframework.data.domain.Pageable;
