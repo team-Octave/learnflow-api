@@ -3,6 +3,8 @@ package com.teamexp.learnflowapi.lecture.repository;
 import com.teamexp.learnflowapi.lecture.model.Lecture;
 import com.teamexp.learnflowapi.lecture.model.LectureLevel;
 import com.teamexp.learnflowapi.lecture.model.LectureStatus;
+import com.teamexp.learnflowapi.lecture.model.PaymentType;
+
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 
@@ -39,7 +41,7 @@ public interface LectureRepository  {
 
     List<Lecture> findByCategoryIdAndStatusAndDeleteFlagFalse(Integer categoryId, LectureStatus status);
 
-    Page<Lecture> findByFiltersWithStats(Integer categoryId, LectureLevel level, LectureStatus status, String sortBy, Pageable pageable);
+    Page<Lecture> findByFiltersWithStats(Integer categoryId, LectureLevel level, LectureStatus status, PaymentType paymentType, String sortBy, Pageable pageable);
 
     Page<Lecture> findAllWithStatsForAdmin(String sortBy, Pageable pageable);
 

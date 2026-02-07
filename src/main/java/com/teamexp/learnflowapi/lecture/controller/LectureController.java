@@ -93,9 +93,10 @@ public class LectureController {
         @RequestParam(required = false, defaultValue = "ALL") String category, // case "ALL" means no filter, if not "ALL", then filter by categoryId as String 
         @RequestParam(required = false, defaultValue = "ALL") String level, // case "ALL" means no filter, if not "ALL", then filter by level
         @RequestParam(required = false, defaultValue = "POPULAR") String sort, // POPULAR, RATING, LATEST
+        @RequestParam(required = false, defaultValue = "ALL") String paymentType,
         @PageableDefault(size = 16) Pageable pageable
     ) {
-        Page<LectureResponse> lectures = lectureService.getAllLecturesWithFilters(category, level, sort, pageable);
+        Page<LectureResponse> lectures = lectureService.getAllLecturesWithFilters(category, level, sort, paymentType, pageable);
         return ResponseEntity.status(HttpStatus.OK).body(BaseResponse.ok(lectures));
     }
 
