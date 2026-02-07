@@ -28,7 +28,7 @@ public record LectureResponse(
     Double ratingAverage,
     Long enrollmentCount,
     String thumbnailUrl,
-    PaymentType paymentType,
+    String paymentType,
     // 반려 사유 (REJECTED 상태일 때만 포함, 툴팁용)
     List<String> rejectCategories,
     String rejectReason
@@ -59,7 +59,7 @@ public record LectureResponse(
             null,
             null,
             lecture.getThumbnailUrl(),
-            lecture.getPaymentType(),
+            lecture.getPaymentType().getDisplayName(),
             null,
             null
         );
@@ -99,7 +99,7 @@ public record LectureResponse(
             ratingAvg,
             enrollmentCnt,
             lecture.getThumbnailUrl(),
-            lecture.getPaymentType(),
+            lecture.getPaymentType().getDisplayName(),
             null,
             null
         );
@@ -124,7 +124,7 @@ public record LectureResponse(
             null,
             null,
             lecture.getThumbnailUrl(),
-            lecture.getPaymentType(),
+            lecture.getPaymentType().getDisplayName(),
             null,
             null
         );
@@ -173,7 +173,7 @@ public record LectureResponse(
             ratingAvg,
             enrollmentCnt,
             lecture.getThumbnailUrl(),
-            lecture.getPaymentType(),
+            lecture.getPaymentType().getDisplayName(),
             rejectCats,
             rejectMsg
         );
