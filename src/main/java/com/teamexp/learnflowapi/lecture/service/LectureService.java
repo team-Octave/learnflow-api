@@ -95,7 +95,8 @@ public class LectureService {
             LectureLevel.forEntity(lectureCreateRequest.level()),
             lectureCreateRequest.categoryId(), // check category existence if needed
             instructorId,
-            lectureCreateRequest.thumbnailUrl() != null ? lectureCreateRequest.thumbnailUrl() : defaultThumbnailUrl // temperary thumbnailUrl
+            lectureCreateRequest.thumbnailUrl() != null ? lectureCreateRequest.thumbnailUrl() : defaultThumbnailUrl, // temperary thumbnailUrl
+            PaymentType.forEntity(lectureCreateRequest.paymentType())
         );
 
         // 2. 저장
@@ -118,7 +119,8 @@ public class LectureService {
             LectureLevel.forEntity(lectureCreateRequest.level()),
             lectureCreateRequest.categoryId(), // check category existence if needed
             instructorId,
-            lectureCreateRequest.thumbnailUrl()
+            lectureCreateRequest.thumbnailUrl(),
+            PaymentType.forEntity(lectureCreateRequest.paymentType())
         );
 
         // 2. 저장
@@ -344,10 +346,11 @@ public class LectureService {
     }
 
     // 강의 목록 조회 (필터링 및 페이지네이션)
-    public Page<LectureResponse> getAllLecturesWithFilters(String category, String level, String sort, Pageable pageable) {
+    public Page<LectureResponse> getAllLecturesWithFilters(String category, String level, String sort, String paymentType, Pageable pageable) {
         // "ALL" 값 처리
         Integer categoryId = "ALL".equals(category) ? null : (category != null ? Integer.parseInt(category) : null);
         LectureLevel lectureLevel = "ALL".equals(level) ? null : (level != null ? LectureLevel.forEntity(level) : null);
+        PaymentType paymentTypeEnum = "ALL".equals(paymentType) ? null : (paymentType != null ? PaymentType.forEntity(paymentType) : null);
         
         // 정렬 타입 파싱 및 기본값 처리
         String sortBy = sort != null && !sort.isEmpty() ? sort : "POPULAR";
@@ -375,6 +378,7 @@ public class LectureService {
             categoryId,
             lectureLevel,
             LectureStatus.AVAILABLE,
+            paymentTypeEnum,
             sortBy,
             pageableWithoutSort
         );
