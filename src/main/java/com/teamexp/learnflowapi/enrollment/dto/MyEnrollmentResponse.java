@@ -13,6 +13,7 @@ public record MyEnrollmentResponse(
         String lectureTitle,
         EnrollmentStatus enrollmentStatus,
         Integer progress,
+        boolean isAccessible,
         Instant enrolledAt,
         Instant updatedAt,
         Integer reviewRating,
@@ -21,5 +22,6 @@ public record MyEnrollmentResponse(
         Long lastCompletedLessonChapterId,
         Long firstChapterId,
         Long firstLessonId
+
 ) {
 }

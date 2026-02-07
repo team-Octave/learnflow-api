@@ -2,6 +2,7 @@ package com.teamexp.learnflowapi.enrollment.controller;
 
 import com.teamexp.learnflowapi.enrollment.dto.*;
 import com.teamexp.learnflowapi.enrollment.service.EnrollmentService;
+import com.teamexp.learnflowapi.global.aop.LogTrace;
 import com.teamexp.learnflowapi.global.response.BaseResponse;
 import com.teamexp.learnflowapi.global.security.principal.CustomUserPrincipal;
 import jakarta.validation.Valid;
@@ -19,7 +20,6 @@ import java.util.List;
 public class EnrollmentController {
 
     private final EnrollmentService enrollmentService;
-
     @Autowired
     public EnrollmentController(EnrollmentService enrollmentService) {
         this.enrollmentService = enrollmentService;
