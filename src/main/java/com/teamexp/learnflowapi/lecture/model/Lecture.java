@@ -248,6 +248,9 @@ public class Lecture {
                 .sum();
     }
     
+    public boolean isFreeLecture() {
+        return this.paymentType == PaymentType.FREE;
+    }
 
     // Get total count of chapters in this lecture
     public int getTotalChapterCount() {
