@@ -4,6 +4,7 @@ import com.teamexp.learnflowapi.admin.model.Approval;
 import com.teamexp.learnflowapi.lecture.model.Lecture;
 import com.teamexp.learnflowapi.lecture.model.LectureLevel;
 import com.teamexp.learnflowapi.lecture.model.LectureStatistic;
+import com.teamexp.learnflowapi.lecture.model.PaymentType;
 
 import java.time.Instant;
 
@@ -27,6 +28,7 @@ public record LectureResponse(
     Double ratingAverage,
     Long enrollmentCount,
     String thumbnailUrl,
+    PaymentType paymentType,
     // 반려 사유 (REJECTED 상태일 때만 포함, 툴팁용)
     List<String> rejectCategories,
     String rejectReason
@@ -57,6 +59,7 @@ public record LectureResponse(
             null,
             null,
             lecture.getThumbnailUrl(),
+            lecture.getPaymentType(),
             null,
             null
         );
@@ -96,6 +99,7 @@ public record LectureResponse(
             ratingAvg,
             enrollmentCnt,
             lecture.getThumbnailUrl(),
+            lecture.getPaymentType(),
             null,
             null
         );
@@ -120,6 +124,7 @@ public record LectureResponse(
             null,
             null,
             lecture.getThumbnailUrl(),
+            lecture.getPaymentType(),
             null,
             null
         );
@@ -168,6 +173,7 @@ public record LectureResponse(
             ratingAvg,
             enrollmentCnt,
             lecture.getThumbnailUrl(),
+            lecture.getPaymentType(),
             rejectCats,
             rejectMsg
         );
