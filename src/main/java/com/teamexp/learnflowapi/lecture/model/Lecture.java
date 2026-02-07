@@ -33,9 +33,9 @@ public class Lecture {
     /*
      * TODO(Work Plan)
      * 1) 상태 전이 규칙 확정:
-     *    - UNAVAILABLE -> AVAILABLE (publish)
+     *    - UNAVAILABLE -> SUBMITTED -> AVAILABLE (publish)
      *    - softDelete / restore 가능 조건
-     *    - (선택) AVAILABLE -> UNAVAILABLE 허용 여부
+     *    - (차후) AVAILABLE -> UNAVAILABLE 허용 여부(정확히는 AVAILABLE 일때는 replicated lecture 생성 후 UNAVAILABLE로 전환)
      *
      * 2) 발행(AVAILABLE) 정책 분리 여부 결정:
      *    - 현재 validateForAvailable()의 "최소 1 챕터 + 최소 1 레슨" 규칙을
@@ -43,7 +43,7 @@ public class Lecture {
      *    - 결정 전까지는 엔티티 내부 규칙으로 유지
      *
      * 3) 썸네일 모델 정리:
-     *    - Thumbnail(Embedded) vs thumbnailId(FK) 중 하나로 통일
+     *    - Thumbnail(Embedded) 로 통일
      *    - @Deprecated addThumbnailLink/setThumbnailId 제거 플랜에 맞춰 마이그레이션
      *
      * 4) 매핑/로딩 전략 재검토:
@@ -104,6 +104,10 @@ public class Lecture {
     @OneToOne(mappedBy = "lecture", cascade = CascadeType.ALL, fetch = FetchType.LAZY, optional = true)
     private LectureStatistic statistic;
 
+    @Enumerated(EnumType.STRING)
+    @Column(name = "free",columnDefinition = "VARCHAR(10) DEFAULT 'FREE'")
+    private PaymentType paymentType;
+
 
     public LectureStatistic getStatistic() {
         return statistic;
@@ -120,7 +124,7 @@ public class Lecture {
 
     protected Lecture() {}
 
-    private Lecture(String title, String description, LectureLevel level, LectureStatus status, Integer categoryId, String instructorId, String thumbnailUrl) {
+    private Lecture(String title, String description, LectureLevel level, LectureStatus status, Integer categoryId, String instructorId, String thumbnailUrl, PaymentType paymentType) {
         this.title = title;
         this.description = description;
         this.level = level;
@@ -128,10 +132,11 @@ public class Lecture {
         this.categoryId = categoryId;
         this.instructorId = instructorId;
         this.thumbnailUrl = thumbnailUrl;
+        this.paymentType = paymentType;
     }
 
-    public static Lecture createLecture(String title, String description, LectureLevel level, Integer categoryId, String instructorId, String thumbnailUrl) {
-        return new Lecture(title, description, level, LectureStatus.UNAVAILABLE, categoryId, instructorId, thumbnailUrl);
+    public static Lecture createLecture(String title, String description, LectureLevel level, Integer categoryId, String instructorId, String thumbnailUrl, PaymentType paymentType) {
+        return new Lecture(title, description, level, LectureStatus.UNAVAILABLE, categoryId, instructorId, thumbnailUrl, paymentType);
     }
 
 
