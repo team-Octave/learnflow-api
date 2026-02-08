@@ -1,0 +1,85 @@
+<!DOCTYPE html>
+<html layout:decorate="~{admin/layout/base}" xmlns:layout="http://www.ultraq.net.nz/thymeleaf/layout">
+
+<div layout:fragment="content">
+
+    <div class="grid gap-4 xl:grid-cols-2 2xl:grid-cols-3">
+        <div class="p-4 bg-white border border-gray-200 rounded-lg shadow-sm dark:border-gray-700 sm:p-6 dark:bg-gray-800">
+            <div class="flex items-center justify-between mb-4">
+                <div class="flex-shrink-0">
+                    <span class="text-xl font-bold leading-none text-gray-900 sm:text-2xl dark:text-white">1,234명</span>
+                    <h3 class="text-base font-light text-gray-500 dark:text-gray-400">오늘의 신규 가입자</h3>
+                </div>
+            </div>
+        </div>
+        <div class="p-4 bg-white border border-gray-200 rounded-lg shadow-sm dark:border-gray-700 sm:p-6 dark:bg-gray-800">
+            <div class="flex items-center justify-between mb-4">
+                <div class="flex-shrink-0">
+                    <span class="text-xl font-bold leading-none text-gray-900 sm:text-2xl dark:text-white">₩ 45,385,000</span>
+                    <h3 class="text-base font-light text-gray-500 dark:text-gray-400">이번 달 정산 예정액</h3>
+                </div>
+            </div>
+        </div>
+        <div class="p-4 bg-white border border-gray-200 rounded-lg shadow-sm dark:border-gray-700 sm:p-6 dark:bg-gray-800">
+            <div class="flex items-center justify-between mb-4">
+                <div class="flex-shrink-0">
+                    <span class="text-xl font-bold leading-none text-gray-900 sm:text-2xl dark:text-white">340명</span>
+                    <h3 class="text-base font-light text-gray-500 dark:text-gray-400">현재 접속자 (DAU)</h3>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="mt-4 p-4 bg-white border border-gray-200 rounded-lg shadow-sm dark:border-gray-700 sm:p-6 dark:bg-gray-800">
+        <h3 class="text-lg font-semibold text-gray-900 dark:text-white mb-4">최근 가입 유저</h3>
+        <p class="text-gray-500">데이터가 들어올 영역입니다.</p>
+    </div>
+
+    <div class="mt-4 p-4 bg-white border border-gray-200 rounded-lg shadow-sm dark:border-gray-700 sm:p-6 dark:bg-gray-800">
+        <h3 class="text-xl font-bold text-gray-900 dark:text-white mb-4">신규 가입자 추이</h3>
+        <div id="new-users-chart"></div>
+    </div>
+
+    <script>
+        document.addEventListener("DOMContentLoaded", function () {
+            if (document.getElementById("new-users-chart") && typeof ApexCharts !== 'undefined') {
+                const options = {
+                    chart: {
+                        height: "100%",
+                        maxWidth: "100%",
+                        type: "area",
+                        fontFamily: "Inter, sans-serif",
+                        dropShadow: { enabled: false },
+                        toolbar: { show: false },
+                    },
+                    tooltip: { enabled: true, x: { show: false } },
+                    fill: {
+                        type: "gradient",
+                        gradient: { opacityFrom: 0.55, opacityTo: 0, shade: "#1C64F2", gradientToColors: ["#1C64F2"] },
+                    },
+                    dataLabels: { enabled: false },
+                    stroke: { width: 6 },
+                    grid: { show: false, strokeDashArray: 4, padding: { left: 2, right: 2, top: 0 } },
+                    series: [
+                        {
+                            name: "신규 가입자",
+                            data: [10, 41, 35, 51, 49, 62, 69, 91, 148], // 나중에 이 부분을 [[${stats}]] 같은 타임리프 변수로 교체하면 됨
+                            color: "#1A56DB",
+                        },
+                    ],
+                    xaxis: {
+                        categories: ['01 Feb', '02 Feb', '03 Feb', '04 Feb', '05 Feb', '06 Feb', '07 Feb'],
+                        labels: { show: false },
+                        axisBorder: { show: false },
+                        axisTicks: { show: false },
+                    },
+                    yaxis: { show: false },
+                }
+
+                const chart = new ApexCharts(document.getElementById("new-users-chart"), options);
+                chart.render();
+            }
+        });
+    </script>
+
+</div> </html>

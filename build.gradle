@@ -59,6 +59,14 @@ dependencies {
     // AOP 지원 추가
     implementation 'org.springframework.boot:spring-boot-starter-aop'
 
+    // [TASK 0] Thymeleaf 템플릿 엔진 (관리자 대시보드용)
+    implementation 'org.springframework.boot:spring-boot-starter-thymeleaf'
+    
+    // [TASK 0] Apache POI (엑셀 다운로드용)
+    implementation 'org.apache.poi:poi-ooxml:5.2.5'
+    implementation 'nz.net.ultraq.thymeleaf:thymeleaf-layout-dialect'
+    implementation 'org.thymeleaf.extras:thymeleaf-extras-springsecurity6'
+
 }
 dependencyManagement {
     imports {
