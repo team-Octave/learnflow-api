@@ -29,7 +29,35 @@ public class AdminPageController {
         this.settlementService = settlementService;
     }
 
-    // ... (중략) ...
+    /**
+     * 관리자 로그인 페이지
+     */
+    @GetMapping("/admin-login")
+    public String loginPage() {
+        return "admin/login";
+    }
+
+    /**
+     * 관리자 대시보드 페이지
+     * 실제 서비스 데이터 연동
+     */
+    @GetMapping("/admin/dashboard")
+    public String dashboard(Model model) {
+        AdminDashboardDto stats = adminDashboardService.getDashboardStats();
+
+        model.addAttribute("totalUsers", stats.totalUsers());
+        model.addAttribute("newUsersToday", stats.newUsersToday());
+        model.addAttribute("churnedUsersTotal", stats.churnedUsersTotal());
+        model.addAttribute("dauToday", stats.dauToday());
+        
+        model.addAttribute("referrerDistribution", stats.referrerDistribution());
+        model.addAttribute("weeklyNewUsers", stats.weeklyNewUsers());
+        model.addAttribute("weeklyDau", stats.weeklyDau());
+        
+        model.addAttribute("recentUsers", List.of()); // 빈 리스트 (TASK 3에서 구현)
+        
+        return "admin/index";
+    }
 
     /**
      * 정산 페이지
