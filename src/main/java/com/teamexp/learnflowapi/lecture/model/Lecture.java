@@ -74,6 +74,7 @@ public class Lecture {
     @Column(name = "created_at",nullable = false)
     private Instant createdAt;
 
+    // TODO-nullable: false after migration
     @LastModifiedDate
     @Column(name = "updated_at") // 추후 nullablefalse로
     private Instant updatedAt;
@@ -82,6 +83,7 @@ public class Lecture {
     @Column(nullable = false)
     private LectureStatus status;
 
+    // TODO-nullable: false after migration
     @Column(name="delete_flag", columnDefinition = "boolean default false") // 추후 nullable 다시 false로 
     private boolean deleteFlag;
 
@@ -104,8 +106,9 @@ public class Lecture {
     @OneToOne(mappedBy = "lecture", cascade = CascadeType.ALL, fetch = FetchType.LAZY, optional = true)
     private LectureStatistic statistic;
 
+    // TODO-nullable: add nullable=false after migration
     @Enumerated(EnumType.STRING)
-    @Column(name = "free",columnDefinition = "VARCHAR(10) DEFAULT 'FREE'")
+    @Column(name = "payment_type" ,columnDefinition = "VARCHAR(10) DEFAULT 'FREE'") // 정확히는 notnull 이 맞지만, 기존 데이터 마이그레이션 전까지는 nullable 허용
     private PaymentType paymentType;
 
 
@@ -249,7 +252,7 @@ public class Lecture {
     }
     
     public boolean isFreeLecture() {
-        return this.paymentType == PaymentType.FREE;
+        return this.paymentType == PaymentType.FREE || this.paymentType == null;
     }
 
     // Get total count of chapters in this lecture

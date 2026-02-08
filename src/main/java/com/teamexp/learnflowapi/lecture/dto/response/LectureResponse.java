@@ -59,7 +59,7 @@ public record LectureResponse(
             null,
             null,
             lecture.getThumbnailUrl(),
-            lecture.getPaymentType().getDisplayName(),
+            lecture.getPaymentType() != null ? lecture.getPaymentType().getDisplayName() : PaymentType.FREE.getDisplayName(),
             null,
             null
         );
@@ -99,7 +99,7 @@ public record LectureResponse(
             ratingAvg,
             enrollmentCnt,
             lecture.getThumbnailUrl(),
-            lecture.getPaymentType().getDisplayName(),
+            lecture.getPaymentType() != null ? lecture.getPaymentType().getDisplayName() : PaymentType.FREE.getDisplayName(),
             null,
             null
         );
@@ -124,7 +124,7 @@ public record LectureResponse(
             null,
             null,
             lecture.getThumbnailUrl(),
-            lecture.getPaymentType().getDisplayName(),
+            lecture.getPaymentType() != null ? lecture.getPaymentType().getDisplayName() : PaymentType.FREE.getDisplayName(),
             null,
             null
         );
@@ -173,7 +173,7 @@ public record LectureResponse(
             ratingAvg,
             enrollmentCnt,
             lecture.getThumbnailUrl(),
-            lecture.getPaymentType().getDisplayName(),
+            lecture.getPaymentType() != null ? lecture.getPaymentType().getDisplayName() : PaymentType.FREE.getDisplayName(),
             rejectCats,
             rejectMsg
         );
