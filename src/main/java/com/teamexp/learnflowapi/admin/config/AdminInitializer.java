@@ -14,7 +14,7 @@ import org.springframework.security.crypto.password.PasswordEncoder;
  * production 환경에서는 이 빈이 로드되지 않음
  */
 @Configuration
-@Profile("local")
+@Profile({"local", "default"}) // default 프로필에서도 실행되도록 추가
 public class AdminInitializer {
 
     @Bean
