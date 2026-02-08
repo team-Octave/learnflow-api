@@ -24,18 +24,21 @@ public class AuthService {
     private final JwtTokenProvider jwtTokenProvider;
     private final UserRepository userRepository;
     private final TokenService tokenService;
+    private final LoginHistoryService loginHistoryService;
 
     @Autowired
     public AuthService(AuthenticationManager authenticationManager, JwtTokenProvider jwtTokenProvider,
-                       UserRepository userRepository, TokenService tokenService) {
+                       UserRepository userRepository, TokenService tokenService,
+                       LoginHistoryService loginHistoryService) {
         this.authenticationManager = authenticationManager;
         this.jwtTokenProvider = jwtTokenProvider;
         this.userRepository = userRepository;
         this.tokenService = tokenService;
+        this.loginHistoryService = loginHistoryService;
     }
 
     @Transactional
-    public LoginResponse login(LoginRequest request) {
+    public LoginResponse login(LoginRequest request, String ipAddress, String userAgent) {
         // 1. 스프링 시큐리티 인증 시도 (이메일/비번)
         Authentication authentication = authenticationManager.authenticate(
             new UsernamePasswordAuthenticationToken(
@@ -55,6 +58,9 @@ public class AuthService {
 
         // 4. 발급한 refresh token DB에 저장하는 로직 필요 (RTR 방식)
         tokenService.issueRefreshToken(user.getId(), refreshToken);
+
+        // 4.5. 로그인 이력 비동기 저장 (로그인 응답에 영향 없음)
+        loginHistoryService.saveLoginHistory(user.getId(), ipAddress, userAgent);
 
         // 5. DTO로 맵핑
         return new LoginResponse(user.getNickname(), user.getEmail(), user.getRole().name(), accessToken, refreshToken);
