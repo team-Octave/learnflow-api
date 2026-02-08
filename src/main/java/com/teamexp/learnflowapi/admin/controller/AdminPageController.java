@@ -1,85 +1,64 @@
 package com.teamexp.learnflowapi.admin.controller;
 
+import com.teamexp.learnflowapi.admin.dto.AdminDashboardDto;
+import com.teamexp.learnflowapi.admin.dto.SettlementDto;
+import com.teamexp.learnflowapi.admin.service.AdminDashboardService;
+import com.teamexp.learnflowapi.admin.service.SettlementService;
+import org.springframework.core.io.InputStreamResource;
+import org.springframework.http.HttpHeaders;
+import org.springframework.http.MediaType;
+import org.springframework.http.ResponseEntity;
 import org.springframework.stereotype.Controller;
 import org.springframework.ui.Model;
 import org.springframework.web.bind.annotation.GetMapping;
 
+import java.io.ByteArrayInputStream;
 import java.util.List;
-import java.util.Map;
 
 /**
  * 관리자 페이지 컨트롤러 (Thymeleaf 뷰 반환)
- * TASK 0: 껍데기 확인용 더미 데이터 제공
  */
 @Controller
 public class AdminPageController {
 
-    /**
-     * 관리자 로그인 페이지
-     */
-    @GetMapping("/admin-login")
-    public String loginPage() {
-        return "admin/login";
+    private final AdminDashboardService adminDashboardService;
+    private final SettlementService settlementService;
+
+    public AdminPageController(AdminDashboardService adminDashboardService, SettlementService settlementService) {
+        this.adminDashboardService = adminDashboardService;
+        this.settlementService = settlementService;
     }
 
-    /**
-     * 관리자 대시보드 페이지
-     * 더미 데이터로 HTML 껍데기 확인
-     */
-    @GetMapping("/admin/dashboard")
-    public String dashboard(Model model) {
-        // 더미 데이터 - TASK 2에서 실제 서비스로 교체 예정
-        model.addAttribute("totalUsers", 1234);
-        model.addAttribute("newUsersToday", 12);
-        model.addAttribute("churnedUsersTotal", 45);
-        model.addAttribute("dauToday", 148);
-        
-        model.addAttribute("referrerDistribution", Map.of(
-            "직접 유입", 800L,
-            "검색", 300L,
-            "SNS", 134L
-        ));
-        
-        model.addAttribute("weeklyNewUsers", List.of(
-            new DailyStatDto("2026-02-01", 10),
-            new DailyStatDto("2026-02-02", 15),
-            new DailyStatDto("2026-02-03", 8),
-            new DailyStatDto("2026-02-04", 20),
-            new DailyStatDto("2026-02-05", 12),
-            new DailyStatDto("2026-02-06", 18),
-            new DailyStatDto("2026-02-07", 12)
-        ));
-        
-        model.addAttribute("weeklyDau", List.of(
-            new DailyStatDto("2026-02-01", 120),
-            new DailyStatDto("2026-02-02", 135),
-            new DailyStatDto("2026-02-03", 110),
-            new DailyStatDto("2026-02-04", 150),
-            new DailyStatDto("2026-02-05", 140),
-            new DailyStatDto("2026-02-06", 155),
-            new DailyStatDto("2026-02-07", 148)
-        ));
-        
-        model.addAttribute("recentUsers", List.of());  // 빈 리스트 (TASK 3에서 구현)
-        
-        return "admin/index";
-    }
+    // ... (중략) ...
 
     /**
      * 정산 페이지
-     * 더미 데이터로 HTML 껍데기 확인
+     * 실제 정산 데이터 연결
      */
     @GetMapping("/admin/settlement")
     public String settlement(Model model) {
-        // 더미 데이터 - TASK 4에서 실제 서비스로 교체 예정
-        model.addAttribute("rows", List.of());
-        model.addAttribute("totalCompletedCount", 0L);
+        List<SettlementDto> rows = settlementService.getSettlementList();
+        long totalSettlementAmount = rows.stream().mapToLong(SettlementDto::settlementAmount).sum();
+
+        model.addAttribute("rows", rows);
+        model.addAttribute("totalCompletedCount", totalSettlementAmount);
+        
         return "admin/settlement";
     }
 
     /**
-     * 일별 통계 DTO (더미 데이터용)
-     * TASK 2에서 admin/dto/ 패키지로 이동 예정
+     * 정산 내역 엑셀 다운로드
      */
-    record DailyStatDto(String date, long count) {}
+    @GetMapping("/admin/settlement/download")
+    public ResponseEntity<InputStreamResource> downloadSettlementExcel() {
+        ByteArrayInputStream in = settlementService.createExcel();
+
+        HttpHeaders headers = new HttpHeaders();
+        headers.add("Content-Disposition", "attachment; filename=settlement.xlsx");
+
+        return ResponseEntity.ok()
+            .headers(headers)
+            .contentType(MediaType.APPLICATION_OCTET_STREAM)
+            .body(new InputStreamResource(in));
+    }
 }
