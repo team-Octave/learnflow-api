@@ -1,0 +1,14 @@
+package com.teamexp.learnflowapi.payment.dto.request;
+
+import jakarta.validation.constraints.NotBlank;
+import jakarta.validation.constraints.NotNull;
+
+public record PaymentConfirmRequest(
+        @NotBlank
+        String paymentId,
+        @NotBlank
+        String orderId,
+        @NotNull
+        Long amount
+) {
+}
