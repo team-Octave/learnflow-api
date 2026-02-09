@@ -5,7 +5,7 @@ import jakarta.validation.constraints.NotNull;
 
 public record PaymentConfirmRequest(
         @NotBlank
-        String paymentId,
+        String paymentKey,
         @NotBlank
         String orderId,
         @NotNull
