@@ -9,14 +9,19 @@ import java.time.Instant;
 
 @Entity
 @Getter
-@Table(name = "ai_outbox")
+@Table(name = "ai_outbox",
+    indexes = {
+        @Index(name = "idx_ai_task_poll", columnList = "status, next_attempt_at, created_at"), // 폴링 성능 최적화
+        @Index(name = "idx_ai_task_lesson_id", columnList = "lesson_id", unique = true) // 레슨 ID 유니크 인덱스
+    }
+)
 @EntityListeners(AuditingEntityListener.class)
 public class AiTask {
 
     @Id @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
-    @Column(nullable = false)
+    @Column(nullable = false, unique = true) // ✨ [수정] DB 레벨 중복 방지
     private Long lessonId;
 
     @Enumerated(EnumType.STRING)
@@ -46,6 +51,7 @@ public class AiTask {
         this.lessonId = lessonId;
         this.status = status;
         this.retryCount = 0;
+        this.nextAttemptAt = Instant.now();
     }
 
     public static AiTask create(Long lessonId) {

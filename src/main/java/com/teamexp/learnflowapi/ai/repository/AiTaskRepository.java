@@ -29,4 +29,8 @@ public interface AiTaskRepository extends JpaRepository<AiTask, Long> {
     List<AiTask> findByStatusAndUpdatedAtBefore(TaskStatus status, Instant updatedAt);
 
     Optional<AiTask> findByLessonId(Long lessonId);
+
+    // 중복 생성 방지를 위해 이미 존재하는 LessonId 목록 조회
+    @Query("SELECT t.lessonId FROM AiTask t WHERE t.lessonId IN :lessonIds")
+    List<Long> findAllLessonIdsByLessonIdIn(@Param("lessonIds") List<Long> lessonIds);
 }
