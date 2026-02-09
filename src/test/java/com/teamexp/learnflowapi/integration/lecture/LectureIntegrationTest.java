@@ -2,6 +2,7 @@ package com.teamexp.learnflowapi.integration.lecture;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.teamexp.learnflowapi.global.security.jwt.JwtTokenProvider;
+import com.teamexp.learnflowapi.integration.config.TestMockConfig;
 import com.teamexp.learnflowapi.user.model.User;
 import com.teamexp.learnflowapi.user.model.vo.UserRole;
 import com.teamexp.learnflowapi.user.repository.UserRepository;
@@ -11,6 +12,7 @@ import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMockMvc;
 import org.springframework.boot.test.context.SpringBootTest;
+import org.springframework.context.annotation.Import;
 import org.springframework.http.MediaType;
 import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.transaction.annotation.Transactional;
@@ -22,6 +24,7 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 @SpringBootTest
 @AutoConfigureMockMvc
 @Transactional
+@Import(TestMockConfig.class)
 public class LectureIntegrationTest {
 
     @Autowired

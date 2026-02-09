@@ -1,6 +1,7 @@
 package com.teamexp.learnflowapi.integration.user;
 
 import com.teamexp.learnflowapi.global.security.jwt.JwtTokenProvider;
+import com.teamexp.learnflowapi.integration.config.TestMockConfig;
 import com.teamexp.learnflowapi.user.model.User;
 import com.teamexp.learnflowapi.user.model.vo.UserRole;
 import com.teamexp.learnflowapi.user.repository.UserRepository;
@@ -11,6 +12,7 @@ import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMockMvc;
 import org.springframework.boot.test.context.SpringBootTest;
+import org.springframework.context.annotation.Import;
 import org.springframework.test.web.servlet.MockMvc;
 
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
@@ -21,6 +23,7 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 })
 @AutoConfigureMockMvc
 @Transactional
+@Import(TestMockConfig.class)
 class UserTokenExpirationIntegrationTest {
 
     @Autowired
@@ -41,7 +44,7 @@ class UserTokenExpirationIntegrationTest {
 
     @Test
     @DisplayName("만료된 토큰 접근 차단")
-    void expired_token_access_blocked() throws Exception {
+    void tc2_expired_token_access_blocked() throws Exception {
         String token = jwtTokenProvider.createAccessToken(
                 user.getUserId(), user.getEmail(), user.getRole().name(), user.getNickname()
         );
