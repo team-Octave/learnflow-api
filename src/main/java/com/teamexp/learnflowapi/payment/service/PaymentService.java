@@ -78,6 +78,9 @@ public class PaymentService {
     }
 
     private PlanType resolvePlanType(String orderName) {
+        if (orderName.contains("12개월")) {
+            return PlanType.YEAR;
+        }
         if (orderName.contains("1개월")) {
             return PlanType.ONE_MONTH;
         }
@@ -86,9 +89,6 @@ public class PaymentService {
         }
         if (orderName.contains("6개월")) {
             return PlanType.HALF_YEAR;
-        }
-        if (orderName.contains("12개월")) {
-            return PlanType.YEAR;
         }
         return PlanType.ONE_MONTH;
     }

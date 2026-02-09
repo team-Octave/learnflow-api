@@ -11,7 +11,7 @@ import jakarta.persistence.GeneratedValue;
 import jakarta.persistence.GenerationType;
 import jakarta.persistence.Id;
 import java.time.LocalDateTime;
-import java.util.UUID;
+
 import lombok.AccessLevel;
 import lombok.Builder;
 import lombok.Getter;
@@ -40,7 +40,7 @@ public class PaymentHistory {
     @Enumerated(EnumType.STRING)
     private PaymentStatus status;
     @CreatedDate
-    private LocalDateTime createAt;
+    private LocalDateTime createdAt;
     private LocalDateTime approvedAt;
 
     @Builder
