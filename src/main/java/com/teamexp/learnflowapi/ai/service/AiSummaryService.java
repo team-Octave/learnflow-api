@@ -20,18 +20,18 @@ public class AiSummaryService {
         return summaryRepository.findByLessonId(lessonId)
             .map(summary -> AiSummaryApiResponse.completed(
                 summary.getLessonId(),
-                summary.getContent())) // Converter가 자동으로 객체로 변환해줌
+                summary.getContent()))
 
-            // 2. 결과가 없다면, 작업 테이블(AiTask)에서 진행 상태 확인
+            // 2. 결과가 없다면, 작업 테이블(AiTask) 상태 확인
             .orElseGet(() -> checkProcessingStatus(lessonId));
     }
 
     private AiSummaryApiResponse checkProcessingStatus(Long lessonId) {
         return taskRepository.findByLessonId(lessonId)
-            .map(task -> AiSummaryApiResponse.processing(
-                lessonId,
-                task.getStatus().name()))
-
+            .map(task -> switch (task.getStatus()) {
+                case FAILED -> AiSummaryApiResponse.failed(); // 실패 상태 명시
+                default -> AiSummaryApiResponse.processing(lessonId, task.getStatus().name());
+            })
             // 3. 둘 다 없으면 "요청된 적 없음"
             .orElse(AiSummaryApiResponse.notFound(lessonId));
     }

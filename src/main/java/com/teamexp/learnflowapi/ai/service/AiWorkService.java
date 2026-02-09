@@ -37,15 +37,11 @@ public class AiWorkService {
     private final GcpSignedUrlService gcpSignedUrlService;
     private final ObjectMapper objectMapper;
 
-    private static final int DEFAULT_EXPIRATION_SEC = 3600;
+    // AI 워커가 다운로드하기 위한 URL 만료 시간 (1시간)
+    private static final int SIGNED_URL_EXPIRATION_SEC = 3600;
 
-    /**
-     * [AI 서버 호출용] 처리할 작업을 조회하여 반환 (Polling 대응)
-     * DB에서 READY 상태인 작업을 찾아 PROCESSING으로 변경 후 반환 (SKIP LOCKED 사용)
-     */
     @Transactional
     public List<AiJobResponse> fetchPendingTasks(int limit) {
-        // 1. 작업 선점 (Concurrency safe)
         List<AiTask> tasks = aiTaskRepository.findTasksToProcess(TaskStatus.READY, PageRequest.of(0, limit));
         List<AiJobResponse> responseList = new ArrayList<>();
 
@@ -58,23 +54,21 @@ public class AiWorkService {
                 Lesson lesson = lessonRepository.findById(task.getLessonId())
                     .orElseThrow(() -> new RuntimeException("Lesson not found"));
 
-                // Signed URL 생성 (AI 서버가 다운로드할 수 있도록)
-                String signedUrl = gcpSignedUrlService.streamingCreateSignedUrl(media.getFileKey(), DEFAULT_EXPIRATION_SEC);
+                // streamingCreateSignedUrl의 두 번째 인자는 원래 durationSec이지만,
+                // AI 워커용 다운로드 URL 생성을 위해 만료 시간(TTL)으로 3600초를 전달함.
+                String signedUrl = gcpSignedUrlService.streamingCreateSignedUrl(media.getFileKey(), SIGNED_URL_EXPIRATION_SEC);
 
                 responseList.add(new AiJobResponse(task.getId(), signedUrl, lesson.getLessonTitle()));
                 log.info("AI Worker에게 작업 할당: taskId={}, lessonId={}", task.getId(), task.getLessonId());
 
             } catch (Exception e) {
                 log.error("작업 할당 중 오류 발생 taskId={}", task.getId(), e);
-                task.changeStatus(TaskStatus.FAILED); // 데이터 오류 시 즉시 실패 처리
+                task.changeStatus(TaskStatus.FAILED);
             }
         }
         return responseList;
     }
 
-    /**
-     * [AI 서버 호출용] 작업 결과 처리
-     */
     @Transactional
     public void processResult(AiJobResultRequest request) {
         AiTask task = aiTaskRepository.findById(request.taskId())
@@ -82,7 +76,6 @@ public class AiWorkService {
 
         if (request.success()) {
             try {
-                // JSON 파싱 및 결과 저장
                 AiSummaryContent content = objectMapper.readValue(request.summaryJson(), AiSummaryContent.class);
 
                 if (!aiSummaryRepository.existsByLessonId(task.getLessonId())) {
@@ -113,7 +106,7 @@ public class AiWorkService {
                 default -> 60;
             };
             task.setNextAttemptAt(Instant.now().plus(waitMinutes, ChronoUnit.MINUTES));
-            task.changeStatus(TaskStatus.READY); // 다시 READY로 돌려서 나중에 fetch 되게 함
+            task.changeStatus(TaskStatus.READY);
         }
     }
 }

@@ -20,10 +20,6 @@ public class AiRescueWorker {
 
     private final AiTaskRepository aiTaskRepository;
 
-    /**
-     * 10분마다 실행되어 오랫동안 PROCESSING 상태인 좀비 작업을 구조합니다.
-     * (서버가 비정상 종료되어 커밋되지 못한 작업들)
-     */
     @Scheduled(fixedDelay = 600000)
     @Transactional
     public void rescueZombies() {
@@ -38,8 +34,17 @@ public class AiRescueWorker {
         if (!zombies.isEmpty()) {
             log.warn("🧟 좀비 작업 {}개 발견! 구조 시작...", zombies.size());
             for (AiTask zombie : zombies) {
-                zombie.changeStatus(TaskStatus.READY); // 다시 READY로 변경하여 RelayWorker가 가져가도록 함
-                log.info("Task {} 심폐소생 완료 (READY로 변경)", zombie.getId());
+                // 무조건 READY로 돌리지 않고, 재시도 횟수 체크
+                zombie.incrementRetryCount();
+
+                if (zombie.getRetryCount() > 3) {
+                    log.error("Zombie task {} exceeded retry limit. Marking as FAILED.", zombie.getId());
+                    zombie.changeStatus(TaskStatus.FAILED);
+                } else {
+                    zombie.changeStatus(TaskStatus.READY);
+                    zombie.setNextAttemptAt(Instant.now()); // 즉시 재시도
+                    log.info("Task {} 심폐소생 완료 (READY로 변경, retryCount={})", zombie.getId(), zombie.getRetryCount());
+                }
             }
         }
     }

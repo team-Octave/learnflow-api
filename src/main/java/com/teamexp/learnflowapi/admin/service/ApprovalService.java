@@ -10,11 +10,11 @@ import com.teamexp.learnflowapi.admin.exception.LectureNotFoundException;
 import com.teamexp.learnflowapi.admin.model.Approval;
 import com.teamexp.learnflowapi.admin.model.ApprovalRejectType;
 import com.teamexp.learnflowapi.admin.repository.ApprovalRepository;
-import com.teamexp.learnflowapi.ai.model.AiTask; // ✨ 추가
-import com.teamexp.learnflowapi.ai.repository.AiTaskRepository; // ✨ 추가
-import com.teamexp.learnflowapi.lecture.model.Chapter; // ✨ 추가
+import com.teamexp.learnflowapi.ai.model.AiTask;
+import com.teamexp.learnflowapi.ai.repository.AiTaskRepository;
+import com.teamexp.learnflowapi.lecture.model.Chapter;
 import com.teamexp.learnflowapi.lecture.model.Lecture;
-import com.teamexp.learnflowapi.lecture.model.Lesson; // ✨ 추가
+import com.teamexp.learnflowapi.lecture.model.Lesson;
 import com.teamexp.learnflowapi.lecture.repository.LectureAdminRepository;
 import com.teamexp.learnflowapi.lecture.service.LectureAdminService;
 import com.teamexp.learnflowapi.user.model.User;
@@ -25,7 +25,7 @@ import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
-import java.util.ArrayList; // ✨ 추가
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 import java.util.stream.Collectors;
@@ -41,14 +41,14 @@ public class ApprovalService {
     private final LectureAdminRepository lectureAdminRepository;
     private final LectureAdminService lectureAdminService;
     private final ApprovalRepository approvalRepository;
-    private final AiTaskRepository aiTaskRepository; // ✨ [추가] AI 작업 저장소 주입
+    private final AiTaskRepository aiTaskRepository;
 
     public ApprovalService(
         UserRepository userRepository,
         LectureAdminRepository lectureAdminRepository,
         ApprovalRepository approvalRepository,
         LectureAdminService lectureAdminService,
-        AiTaskRepository aiTaskRepository) { // ✨ 생성자 파라미터 추가
+        AiTaskRepository aiTaskRepository) {
 
         this.userRepository = userRepository;
         this.lectureAdminRepository = lectureAdminRepository;
@@ -121,19 +121,13 @@ public class ApprovalService {
         return ApprovalDetailResponse.of(foundLecture, foundUser);
     }
 
-    // ✨ [수정] 강의 승인 시 AI 작업 트리거 로직 추가
     @Transactional
     public ApprovalUpdateResponse updateApproval(Long lectureId, ApprovalUpdateRequest request) {
-
-        // Lecture 조회 (챕터/레슨 정보가 필요하므로 Fetch Join된 메서드 사용 권장, 없으면 일반 조회 후 Lazy Loading)
-        // 여기서는 안전하게 챕터/레슨을 가져오기 위해 기존에 있는 findByIdWith...를 쓰는게 좋지만,
-        // 일단 기존 코드 흐름(findById)을 유지하면서 설명하겠습니다.
-        // *주의: Lazy Loading이 발생할 수 있으므로 @Transactional 필수
-        Lecture foundedLecture = lectureAdminRepository.findById(lectureId).orElseThrow(
+        // N+1 방지: Fetch Join 사용
+        Lecture foundedLecture = lectureAdminRepository.findByIdWithChaptersAndLessonsAndQuizzes(lectureId).orElseThrow(
             LectureNotFoundException::new
         );
 
-        // approval 데이터 저장
         ApprovalStatus approvalStatus = request.status();
         Approval approval = Approval.create(
             lectureId,
@@ -142,26 +136,29 @@ public class ApprovalService {
         );
         approvalRepository.saveAndFlush(approval);
 
-        // Lecture의 상태 값 업데이트 & AI 트리거
         String status = switch (approvalStatus) {
             case APPROVED -> {
                 lectureAdminService.allowPublishLecture(lectureId);
 
-                // ✨ [AI Trigger] 강의 승인 시 요약 작업 예약 (Outbox Pattern)
-                List<AiTask> tasks = new ArrayList<>();
+                // AI 작업 트리거: 중복 생성 방지 로직 추가
+                List<Lesson> videoLessons = foundedLecture.getChapters().stream()
+                    .flatMap(chapter -> chapter.getLessons().stream())
+                    .toList(); // Lesson 필터링 조건(isVideoType)이 있다면 추가
 
-                // 강의 하위의 모든 챕터 -> 모든 레슨 순회
-                for (Chapter chapter : foundedLecture.getChapters()) {
-                    for (Lesson lesson : chapter.getLessons()) {
-                        // 각 레슨마다 AI 요약 작업(READY) 생성
-                        tasks.add(AiTask.create(lesson.getId()));
+                if (!videoLessons.isEmpty()) {
+                    List<Long> lessonIds = videoLessons.stream().map(Lesson::getId).toList();
+                    // 이미 존재하는 Task 조회
+                    List<Long> existingTaskLessonIds = aiTaskRepository.findAllLessonIdsByLessonIdIn(lessonIds);
+
+                    List<AiTask> newTasks = videoLessons.stream()
+                        .filter(lesson -> !existingTaskLessonIds.contains(lesson.getId()))
+                        .map(lesson -> AiTask.create(lesson.getId()))
+                        .toList();
+
+                    if (!newTasks.isEmpty()) {
+                        aiTaskRepository.saveAll(newTasks);
                     }
                 }
-
-                if (!tasks.isEmpty()) {
-                    aiTaskRepository.saveAll(tasks); // 일괄 저장
-                }
-
                 yield "PUBLISHED";
             }
             case REJECTED -> {
