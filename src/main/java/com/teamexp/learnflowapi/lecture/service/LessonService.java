@@ -149,6 +149,7 @@ public class LessonService {
      *
      * <p>NOTE: VIDEO 레슨의 videoUrl은 보안을 위해 signedUrl로 내려준다.
      * 강의 상세/목록 응답에서는 VIDEO의 videoUrl을 내려주지 않는다.
+     * TODO-membership : Check User Principal's Membership
      */
     public LessonResponse getLesson(Long lectureId, Long lessonId, String userId) {
         if (userId == null || userId.isBlank()) {
@@ -359,16 +360,17 @@ public class LessonService {
 
     /**
      * VIDEO 레슨 스트리밍 URL 접근 제어:
-     * - freePreview: 로그인만 되어있으면 허용
+     * - freeLecture: 로그인만 되어있으면 허용
      * - 그 외: 강의 소유 강사 또는 수강(enrollment) 중인 유저만 허용
      */
     private void validateVideoLessonAccess(Lecture lecture, Long lectureId, Lesson lesson, String userId) {
-        if (Boolean.TRUE.equals(lesson.getIsFreePreview())) {
+        if (Boolean.TRUE.equals(lecture.isFreeLecture())) {
             return;
         }
         if (lecture.getInstructorId() != null && lecture.getInstructorId().equals(userId)) { // 강의 소유자 여부 확인
             return;
         }
+        // 기존: 수강(enrollment) 중인 유저 여부 확인 -> 수정: 수강생 여부 확인+ membership 활성 상태 확인
         if (enrollmentRepository.existsByUserIdAndLectureId(userId, lectureId)) { // 수강생 여부 확인
             return;
         }
