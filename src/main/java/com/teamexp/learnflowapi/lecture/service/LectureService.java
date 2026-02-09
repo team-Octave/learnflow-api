@@ -512,6 +512,15 @@ public class LectureService {
         if (request.thumbnailUrl() != null && !request.thumbnailUrl().isBlank()) {
             lecture.updateThumbnailUrl(request.thumbnailUrl());
         }
+        if (request.categoryId() != null) {
+            lecture.updateCategoryId(request.categoryId());
+        }
+        if (request.level() != null && !request.level().isBlank()) {
+            lecture.updateLevel(LectureLevel.forEntity(request.level()));
+        }
+        if (request.paymentType() != null && !request.paymentType().isBlank()) {
+            lecture.updatePaymentType(PaymentType.forEntity(request.paymentType()));
+        }
         Lecture savedLecture = lectureRepository.save(lecture);
         String instructorNickname = userRepository.findById(savedLecture.getInstructorId())
             .map(user -> user.getNickname())

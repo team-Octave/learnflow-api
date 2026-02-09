@@ -273,6 +273,16 @@ public class Lecture {
         this.thumbnailUrl = newThumbnailUrl;
     }
 
+    public void updateCategoryId(Integer newCategoryId) {
+        this.categoryId = newCategoryId;
+    }
+    public void updateLevel(LectureLevel newLevel) {
+        this.level = newLevel;
+    }
+    public void updatePaymentType(PaymentType newPaymentType) {
+        this.paymentType = newPaymentType;
+    }
+
     // lecture/domain/policy/LecturePublishPolicy.java
     // public interface LecturePublishPolicy {
     // boolean canPublish(Lecture lecture);
