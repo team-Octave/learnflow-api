@@ -29,7 +29,7 @@ public class AiSummaryService {
     private AiSummaryApiResponse checkProcessingStatus(Long lessonId) {
         return taskRepository.findByLessonId(lessonId)
             .map(task -> switch (task.getStatus()) {
-                case FAILED -> AiSummaryApiResponse.failed(); // 실패 상태 명시
+                case FAILED -> AiSummaryApiResponse.failed(lessonId); // 실패 상태 명시
                 default -> AiSummaryApiResponse.processing(lessonId, task.getStatus().name());
             })
             // 3. 둘 다 없으면 "요청된 적 없음"

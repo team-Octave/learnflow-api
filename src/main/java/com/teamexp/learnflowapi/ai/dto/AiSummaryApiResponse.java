@@ -35,9 +35,9 @@ public class AiSummaryApiResponse {
     }
 
     // 3. 실패 (에러 해결을 위해 이 메서드가 필요함!)
-    public static AiSummaryApiResponse failed() {
+    public static AiSummaryApiResponse failed(Long lessonId) {
         return AiSummaryApiResponse.builder()
-            .lessonId(null)
+            .lessonId(lessonId)
             .status("FAILED")
             .content(null)
             .build();
