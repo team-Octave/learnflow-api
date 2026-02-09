@@ -18,6 +18,9 @@ public record LectureCreateRequestV2(
     String level,
 
     @NotBlank(message = "썸네일은 필수 입력 값입니다.")
-    String thumbnailUrl
+    String thumbnailUrl,
+
+    @NotNull(message = "강의 유형은 필수 입력 값입니다.")
+    String paymentType
 ) {
 }
