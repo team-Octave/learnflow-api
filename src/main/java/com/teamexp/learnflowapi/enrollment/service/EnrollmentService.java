@@ -189,6 +189,7 @@ public class EnrollmentService {
                     return new MyEnrollmentResponse(
                             lecture.getId(),
                             enrollment.getId(),
+                            lecture.getPaymentType(),
                             review != null ? review.getId() : null,
                             lecture.getThumbnailUrl(),  // Lecture 엔티티에서 직접 thumbnailUrl 사용
                             lecture.getTitle(),

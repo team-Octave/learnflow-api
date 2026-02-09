@@ -1,6 +1,7 @@
 package com.teamexp.learnflowapi.admin.dto;
 
 import com.teamexp.learnflowapi.lecture.model.Lecture;
+import com.teamexp.learnflowapi.lecture.model.PaymentType;
 import com.teamexp.learnflowapi.user.model.User;
 import java.util.List;
 
@@ -10,6 +11,7 @@ public record ApprovalDetailResponse(
     String description,
     String thumbnailUrl,
     String instructorName,
+    PaymentType paymentType,
     String level,
     Integer categoryId,
     List<ChapterDto> chapters
@@ -23,6 +25,7 @@ public record ApprovalDetailResponse(
             lecture.getThumbnailUrl(),
             // instructorName이 null이면 알 수 없음으로 표시
             instructor == null ? "알 수 없음" :  instructor.getNickname(),
+            lecture.getPaymentType(),
             lecture.getLevel().getDisplayName(),
             lecture.getCategoryId(),
             lecture.getChapters().stream()
