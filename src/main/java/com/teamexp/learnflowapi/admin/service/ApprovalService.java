@@ -15,6 +15,7 @@ import com.teamexp.learnflowapi.ai.repository.AiTaskRepository;
 import com.teamexp.learnflowapi.lecture.model.Chapter;
 import com.teamexp.learnflowapi.lecture.model.Lecture;
 import com.teamexp.learnflowapi.lecture.model.Lesson;
+import com.teamexp.learnflowapi.lecture.model.LessonType;
 import com.teamexp.learnflowapi.lecture.repository.LectureAdminRepository;
 import com.teamexp.learnflowapi.lecture.service.LectureAdminService;
 import com.teamexp.learnflowapi.user.model.User;
@@ -29,6 +30,8 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 import java.util.stream.Collectors;
+
+import static java.util.stream.Collectors.toList;
 
 @Service
 @Transactional(readOnly = true)
@@ -143,6 +146,7 @@ public class ApprovalService {
                 // AI 작업 트리거: 중복 생성 방지 로직 추가
                 List<Lesson> videoLessons = foundedLecture.getChapters().stream()
                     .flatMap(chapter -> chapter.getLessons().stream())
+                    .filter(l -> l.getLessonType() == LessonType.VIDEO)
                     .toList(); // Lesson 필터링 조건(isVideoType)이 있다면 추가
 
                 if (!videoLessons.isEmpty()) {
