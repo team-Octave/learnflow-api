@@ -8,6 +8,8 @@ import com.teamexp.learnflowapi.payment.dto.response.PaymentConfirmResponse;
 import com.teamexp.learnflowapi.payment.service.PaymentHistoryService;
 import com.teamexp.learnflowapi.payment.service.PaymentService;
 import java.util.List;
+
+import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
@@ -26,7 +28,7 @@ public class PaymentController {
 
     @PostMapping("/confirm")
     public ResponseEntity<BaseResponse<PaymentConfirmResponse>> confirmPayment(
-            @RequestBody PaymentConfirmRequest request,
+            @RequestBody @Valid PaymentConfirmRequest request,
             @AuthenticationPrincipal CustomUserPrincipal principal
             ) {
         PaymentConfirmResponse response = paymentService.tossConfirm(request, principal.getId());

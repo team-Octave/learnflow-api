@@ -2,6 +2,9 @@ package com.teamexp.learnflowapi.payment.service;
 
 import com.teamexp.learnflowapi.payment.dto.request.PaymentConfirmRequest;
 import com.teamexp.learnflowapi.payment.dto.response.PaymentConfirmResponse;
+import com.teamexp.learnflowapi.payment.exception.InvalidPlanTypeException;
+import com.teamexp.learnflowapi.payment.exception.PaymentAlreadyProcessedException;
+import com.teamexp.learnflowapi.payment.exception.PaymentAmountMismatchException;
 import com.teamexp.learnflowapi.payment.exception.TossErrorException;
 import com.teamexp.learnflowapi.payment.model.PaymentHistory;
 import com.teamexp.learnflowapi.payment.model.constant.PlanType;
@@ -29,7 +32,15 @@ public class PaymentService {
 
     @Transactional
     public PaymentConfirmResponse tossConfirm(PaymentConfirmRequest request, String userId) {
+        if (paymentHistoryRepository.existsByOrderId(request.orderId())) {
+            throw new PaymentAlreadyProcessedException();
+        }
+
         PaymentDto paymentDto = callTossConfirmApi(request);
+
+        if (!request.amount().equals(paymentDto.totalAmount())) {
+            throw new PaymentAmountMismatchException();
+        }
 
         PlanType planType = resolvePlanType(paymentDto.orderName());
 
