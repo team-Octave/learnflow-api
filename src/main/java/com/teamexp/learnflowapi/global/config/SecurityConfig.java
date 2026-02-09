@@ -5,18 +5,30 @@ import com.teamexp.learnflowapi.global.common.filter.RequestResponseLoggingFilte
 import com.teamexp.learnflowapi.global.security.exception.JwtAuthenticationEntryPoint;
 import com.teamexp.learnflowapi.global.security.jwt.JwtAuthenticationFilter;
 import com.teamexp.learnflowapi.user.service.CustomUserDetailsService;
-import org.springframework.beans.factory.annotation.Autowired; // @Autowired 사용을 위해 추가
+import jakarta.servlet.FilterChain;
+import jakarta.servlet.ServletException;
+import jakarta.servlet.http.HttpServletRequest;
+import jakarta.servlet.http.HttpServletResponse;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.http.HttpMethod;
 import org.springframework.security.authentication.AuthenticationManager;
+import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.config.annotation.authentication.builders.AuthenticationManagerBuilder;
 import org.springframework.security.config.annotation.web.builders.HttpSecurity;
 import org.springframework.security.config.annotation.web.configuration.EnableWebSecurity;
 import org.springframework.security.config.annotation.web.configurers.AbstractHttpConfigurer;
 import org.springframework.security.config.http.SessionCreationPolicy;
+import org.springframework.security.core.authority.SimpleGrantedAuthority;
+import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.security.web.SecurityFilterChain;
 import org.springframework.security.web.authentication.UsernamePasswordAuthenticationFilter;
+import org.springframework.web.filter.OncePerRequestFilter;
+
+import java.io.IOException;
+import java.util.List;
 
 @Configuration
 @EnableWebSecurity
@@ -26,6 +38,9 @@ public class SecurityConfig {
     private final PasswordConfig passwordConfig;
     private final JwtAuthenticationFilter jwtAuthenticationFilter;
     private final JwtAuthenticationEntryPoint jwtAuthenticationEntryPoint;
+
+    @Value("${app.internal-api-key:secret-key-change-me}") // ✨ API Key 주입
+    private String internalApiKey;
 
     @Autowired
     public SecurityConfig(CustomUserDetailsService userDetailsService,
@@ -57,24 +72,20 @@ public class SecurityConfig {
                 session.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
             .exceptionHandling(exception -> exception.authenticationEntryPoint(jwtAuthenticationEntryPoint))
 
-            // 🔒 [권한 설정]
             .authorizeHttpRequests(auth -> auth
-                // --- 기존 허용 URL ---
                 .requestMatchers("/actuator/**").permitAll()
                 .requestMatchers("/api/v1/auth/**").permitAll()
                 .requestMatchers(HttpMethod.POST, "/api/v1/users").permitAll()
                 .requestMatchers(HttpMethod.GET, "/api/v1/users/check").permitAll()
 
-                // ✨ [NEW] AI 시스템 관련 허용 URL 추가
-                .requestMatchers("/api/internal/**").permitAll()   // AI 서버가 호출하는 내부 API (Polling/Result)
-                .requestMatchers("/api/ai/summary/**").permitAll() // 프론트엔드가 조회하는 요약 API (Public)
+                // 내부 API는 인증된 요청만 허용 (Filter에서 처리)
+                .requestMatchers("/api/internal/**").authenticated()
 
-                // --- 역할별 권한 설정 ---
+                .requestMatchers("/api/ai/summary/**").permitAll()
+
                 .requestMatchers(HttpMethod.GET, "/api/v1/lectures/my").hasRole("MEMBER")
                 .requestMatchers(HttpMethod.GET, "/api/v1/users/me").hasAnyRole("MEMBER", "ADMIN")
                 .requestMatchers("/api/v1/admin/**").hasRole("ADMIN")
-
-                // --- Member 권한 ---
                 .requestMatchers(HttpMethod.POST, "/api/v1/lectures/**").hasRole("MEMBER")
                 .requestMatchers(HttpMethod.PUT, "/api/v1/lectures/**").hasRole("MEMBER")
                 .requestMatchers(HttpMethod.DELETE, "/api/v1/lectures/**").hasRole("MEMBER")
@@ -83,8 +94,6 @@ public class SecurityConfig {
                 .requestMatchers(HttpMethod.DELETE, "/api/v1/reviews/**").hasRole("MEMBER")
                 .requestMatchers("/api/v1/enrollment/**", "/api/v1/contents/**").hasRole("MEMBER")
                 .requestMatchers(HttpMethod.DELETE, "/api/v1/users/me").hasRole("MEMBER")
-
-                // --- 조회 권한 (Public) ---
                 .requestMatchers(HttpMethod.GET, "/api/v1/lectures/**").permitAll()
                 .requestMatchers(HttpMethod.GET, "/api/v1/reviews/**").permitAll()
                 .requestMatchers(HttpMethod.GET, "/api/v1/reviews/lectures/**").permitAll()
@@ -92,8 +101,9 @@ public class SecurityConfig {
                 .anyRequest().authenticated()
             );
 
-        // 🎯 필터 실행 순서 정의
+        // 🎯 필터 실행 순서: InternalAPIKey -> LogTrace -> Logging -> JWT
         http
+            .addFilterBefore(new InternalApiKeyFilter(internalApiKey), UsernamePasswordAuthenticationFilter.class) // ✨ 필터 등록
             .addFilterBefore(logTraceFilter(), UsernamePasswordAuthenticationFilter.class)
             .addFilterAfter(requestResponseLoggingFilter(), LogTraceFilter.class)
             .addFilterBefore(jwtAuthenticationFilter, UsernamePasswordAuthenticationFilter.class);
@@ -108,5 +118,36 @@ public class SecurityConfig {
             .passwordEncoder(passwordConfig.passwordEncoder());
 
         return builder.build();
+    }
+
+    // 내부 API Key 검증 필터
+    public static class InternalApiKeyFilter extends OncePerRequestFilter {
+        private final String expectedKey;
+
+        public InternalApiKeyFilter(String expectedKey) {
+            this.expectedKey = expectedKey;
+        }
+
+        @Override
+        protected void doFilterInternal(HttpServletRequest request, HttpServletResponse response, FilterChain filterChain)
+            throws ServletException, IOException {
+
+            if (request.getRequestURI().startsWith("/api/internal/")) {
+                String requestKey = request.getHeader("X-Internal-Api-Key");
+
+                if (expectedKey.equals(requestKey)) {
+                    // 인증 성공: 시스템 권한 부여
+                    SecurityContextHolder.getContext().setAuthentication(
+                        new UsernamePasswordAuthenticationToken("system", null, List.of(new SimpleGrantedAuthority("ROLE_SYSTEM")))
+                    );
+                } else {
+                    // 인증 실패
+                    response.setStatus(HttpServletResponse.SC_UNAUTHORIZED);
+                    response.getWriter().write("Unauthorized: Invalid API Key");
+                    return;
+                }
+            }
+            filterChain.doFilter(request, response);
+        }
     }
 }
