@@ -39,7 +39,7 @@ public class SecurityConfig {
     private final JwtAuthenticationFilter jwtAuthenticationFilter;
     private final JwtAuthenticationEntryPoint jwtAuthenticationEntryPoint;
 
-    @Value("${app.internal-api-key:secret-key-change-me}") // ✨ API Key 주입
+    @Value("${app.internal-api-key}")
     private String internalApiKey;
 
     @Autowired
