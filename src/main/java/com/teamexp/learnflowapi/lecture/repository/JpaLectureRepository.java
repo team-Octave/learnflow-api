@@ -3,6 +3,8 @@ package com.teamexp.learnflowapi.lecture.repository;
 import com.teamexp.learnflowapi.lecture.model.Lecture;
 import com.teamexp.learnflowapi.lecture.model.LectureLevel;
 import com.teamexp.learnflowapi.lecture.model.LectureStatus;
+import com.teamexp.learnflowapi.lecture.model.PaymentType;
+
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.repository.EntityGraph;
@@ -62,14 +64,15 @@ public interface JpaLectureRepository extends JpaRepository<Lecture, Long>, Lect
             Integer categoryId,
             LectureLevel level,
             LectureStatus status,
+            PaymentType paymentType,
             String sortBy,
             Pageable pageable
     ) {
         return switch (sortBy) {
-            case "POPULAR" -> findByFiltersWithStatsOrderByPopular(categoryId, level, status, pageable);
-            case "RATING" -> findByFiltersWithStatsOrderByRating(categoryId, level, status, pageable);
-            case "LATEST" -> findByFiltersWithStatsOrderByLatest(categoryId, level, status, pageable);
-            default -> findByFiltersWithStatsOrderByPopular(categoryId, level, status, pageable);
+            case "POPULAR" -> findByFiltersWithStatsOrderByPopular(categoryId, level, status, paymentType, pageable);
+            case "RATING" -> findByFiltersWithStatsOrderByRating(categoryId, level, status, paymentType, pageable);
+            case "LATEST" -> findByFiltersWithStatsOrderByLatest(categoryId, level, status, paymentType, pageable);
+            default -> findByFiltersWithStatsOrderByPopular(categoryId, level, status, paymentType, pageable);
         };
     }
 
@@ -140,6 +143,7 @@ public interface JpaLectureRepository extends JpaRepository<Lecture, Long>, Lect
             @Param("categoryId") Integer categoryId,
             @Param("level") LectureLevel level,
             @Param("status") LectureStatus status,
+            @Param("paymentType") PaymentType paymentType,
             Pageable pageable
     );
 
@@ -150,12 +154,14 @@ public interface JpaLectureRepository extends JpaRepository<Lecture, Long>, Lect
         AND l.deleteFlag = false
         AND (:categoryId IS NULL OR l.categoryId = :categoryId)
         AND (:level IS NULL OR l.level = :level)
+        AND (:paymentType IS NULL OR l.paymentType = :paymentType)
         ORDER BY ls.ratingAverage DESC NULLS LAST
         """)
     Page<Lecture> findByFiltersWithStatsOrderByRating(
             @Param("categoryId") Integer categoryId,
             @Param("level") LectureLevel level,
             @Param("status") LectureStatus status,
+            @Param("paymentType") PaymentType paymentType,
             Pageable pageable
     );
 
@@ -167,12 +173,14 @@ public interface JpaLectureRepository extends JpaRepository<Lecture, Long>, Lect
         AND l.deleteFlag = false
         AND (:categoryId IS NULL OR l.categoryId = :categoryId)
         AND (:level IS NULL OR l.level = :level)
+        AND (:paymentType IS NULL OR l.paymentType = :paymentType)
         ORDER BY l.updatedAt DESC NULLS LAST, l.createdAt DESC
         """)
     Page<Lecture> findByFiltersWithStatsOrderByLatest(
             @Param("categoryId") Integer categoryId,
             @Param("level") LectureLevel level,
             @Param("status") LectureStatus status,
+            @Param("paymentType") PaymentType paymentType,
             Pageable pageable
     );
 

@@ -6,7 +6,10 @@ public record LectureBaseUpdateRequest(
     @Size(max = 100, message = "강의 제목은 100자를 초과할 수 없습니다.")
     String title,
     String description,
-    String thumbnailUrl
+    String thumbnailUrl,
+    Integer categoryId,
+    String level,
+    String paymentType
 ) {
     
 }
