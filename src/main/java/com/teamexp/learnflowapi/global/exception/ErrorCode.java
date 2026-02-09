@@ -75,7 +75,7 @@ public enum ErrorCode {
     // Payment 도메인 관련
     PAYMENT_CONFIRM_FAILED(HttpStatus.BAD_REQUEST, "결제 승인에 실패했습니다."),
     PAYMENT_NETWORK_ERROR(HttpStatus.INTERNAL_SERVER_ERROR, "결제 대행사와의 통신 중 오류가 발생했습니다."),
-    PAYMENT_AMOUNT_MISMATCH(HttpStatus.BAD_REQUEST,"토스 서버의 결제 금액과 입력된 걸제 금액이 다릅니다."),
+    PAYMENT_AMOUNT_MISMATCH(HttpStatus.BAD_REQUEST,"토스 서버의 결제 금액과 입력된 결제 금액이 다릅니다."),
     PAYMENT_ALREADY_PROCESSED(HttpStatus.BAD_REQUEST,"이미 처리된 결제 입니다."),
     INVALID_PLAN_TYPE(HttpStatus.BAD_REQUEST, "유효하지 않은 요금제입니다."),
     ;
