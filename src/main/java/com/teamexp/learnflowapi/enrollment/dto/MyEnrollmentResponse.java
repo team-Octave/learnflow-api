@@ -1,6 +1,7 @@
 package com.teamexp.learnflowapi.enrollment.dto;
 
 import com.teamexp.learnflowapi.enrollment.model.EnrollmentStatus;
+import com.teamexp.learnflowapi.lecture.model.PaymentType;
 
 import java.util.List;
 import java.time.Instant;
@@ -8,6 +9,7 @@ import java.time.Instant;
 public record MyEnrollmentResponse(
         Long lectureId,
         Long enrollmentId,
+        PaymentType paymentType,
         Long reviewId,
         String lectureThumbnail,
         String lectureTitle,
