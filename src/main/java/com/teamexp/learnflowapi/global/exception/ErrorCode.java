@@ -77,8 +77,8 @@ public enum ErrorCode {
     AI_TASK_NOT_FOUND(HttpStatus.NOT_FOUND, "요청한 AI 작업을 찾을 수 없습니다."),
     AI_SUMMARY_NOT_FOUND(HttpStatus.NOT_FOUND, "AI 요약 정보를 찾을 수 없습니다."),
     AI_API_CALL_FAILED(HttpStatus.INTERNAL_SERVER_ERROR, "AI 서비스 연동 중 오류가 발생했습니다."),
-    AI_INTERNAL_KEY_INVALID(HttpStatus.UNAUTHORIZED, "유효하지 않은 AI 내부 API 키입니다.");
-
+    AI_INTERNAL_KEY_INVALID(HttpStatus.UNAUTHORIZED, "유효하지 않은 AI 내부 API 키입니다."),
+    AI_SUMMARY_SERIALIZATION_FAILED(HttpStatus.INTERNAL_SERVER_ERROR, "AI 요약 데이터 변환 중 오류가 발생했습니다.");
     private final HttpStatus status;
     private final String message;
 
