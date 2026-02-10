@@ -3,32 +3,22 @@ package com.teamexp.learnflowapi.global.config;
 import com.teamexp.learnflowapi.global.common.filter.LogTraceFilter;
 import com.teamexp.learnflowapi.global.common.filter.RequestResponseLoggingFilter;
 import com.teamexp.learnflowapi.global.security.exception.JwtAuthenticationEntryPoint;
+import com.teamexp.learnflowapi.global.security.filter.InternalApiKeyFilter; // Import 추가
 import com.teamexp.learnflowapi.global.security.jwt.JwtAuthenticationFilter;
 import com.teamexp.learnflowapi.user.service.CustomUserDetailsService;
-import jakarta.servlet.FilterChain;
-import jakarta.servlet.ServletException;
-import jakarta.servlet.http.HttpServletRequest;
-import jakarta.servlet.http.HttpServletResponse;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.http.HttpMethod;
 import org.springframework.security.authentication.AuthenticationManager;
-import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.config.annotation.authentication.builders.AuthenticationManagerBuilder;
 import org.springframework.security.config.annotation.web.builders.HttpSecurity;
 import org.springframework.security.config.annotation.web.configuration.EnableWebSecurity;
 import org.springframework.security.config.annotation.web.configurers.AbstractHttpConfigurer;
 import org.springframework.security.config.http.SessionCreationPolicy;
-import org.springframework.security.core.authority.SimpleGrantedAuthority;
-import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.security.web.SecurityFilterChain;
 import org.springframework.security.web.authentication.UsernamePasswordAuthenticationFilter;
-import org.springframework.web.filter.OncePerRequestFilter;
-
-import java.io.IOException;
-import java.util.List;
 
 @Configuration
 @EnableWebSecurity
@@ -78,11 +68,12 @@ public class SecurityConfig {
                 .requestMatchers(HttpMethod.POST, "/api/v1/users").permitAll()
                 .requestMatchers(HttpMethod.GET, "/api/v1/users/check").permitAll()
 
-                // 내부 API는 인증된 요청만 허용 (Filter에서 처리)
+                // 내부 API는 인증된 요청만 허용 (InternalApiKeyFilter에서 ROLE_SYSTEM 부여)
                 .requestMatchers("/api/internal/**").authenticated()
 
-                .requestMatchers("/api/ai/summary/**").permitAll()
+                .requestMatchers("/api/ai/summary/**").permitAll() // AI 요약 조회는 공개
 
+                // ... 기존 권한 설정 유지 ...
                 .requestMatchers(HttpMethod.GET, "/api/v1/lectures/my").hasRole("MEMBER")
                 .requestMatchers(HttpMethod.GET, "/api/v1/users/me").hasAnyRole("MEMBER", "ADMIN")
                 .requestMatchers("/api/v1/admin/**").hasRole("ADMIN")
@@ -102,8 +93,9 @@ public class SecurityConfig {
             );
 
         // 🎯 필터 실행 순서: InternalAPIKey -> LogTrace -> Logging -> JWT
+        // InternalApiKeyFilter를 별도 클래스로 생성하여 등록
         http
-            .addFilterBefore(new InternalApiKeyFilter(internalApiKey), UsernamePasswordAuthenticationFilter.class) // ✨ 필터 등록
+            .addFilterBefore(new InternalApiKeyFilter(internalApiKey), UsernamePasswordAuthenticationFilter.class)
             .addFilterBefore(logTraceFilter(), UsernamePasswordAuthenticationFilter.class)
             .addFilterAfter(requestResponseLoggingFilter(), LogTraceFilter.class)
             .addFilterBefore(jwtAuthenticationFilter, UsernamePasswordAuthenticationFilter.class);
@@ -118,36 +110,5 @@ public class SecurityConfig {
             .passwordEncoder(passwordConfig.passwordEncoder());
 
         return builder.build();
-    }
-
-    // 내부 API Key 검증 필터
-    public static class InternalApiKeyFilter extends OncePerRequestFilter {
-        private final String expectedKey;
-
-        public InternalApiKeyFilter(String expectedKey) {
-            this.expectedKey = expectedKey;
-        }
-
-        @Override
-        protected void doFilterInternal(HttpServletRequest request, HttpServletResponse response, FilterChain filterChain)
-            throws ServletException, IOException {
-
-            if (request.getRequestURI().startsWith("/api/internal/")) {
-                String requestKey = request.getHeader("X-Internal-Api-Key");
-
-                if (expectedKey.equals(requestKey)) {
-                    // 인증 성공: 시스템 권한 부여
-                    SecurityContextHolder.getContext().setAuthentication(
-                        new UsernamePasswordAuthenticationToken("system", null, List.of(new SimpleGrantedAuthority("ROLE_SYSTEM")))
-                    );
-                } else {
-                    // 인증 실패
-                    response.setStatus(HttpServletResponse.SC_UNAUTHORIZED);
-                    response.getWriter().write("Unauthorized: Invalid API Key");
-                    return;
-                }
-            }
-            filterChain.doFilter(request, response);
-        }
     }
 }
