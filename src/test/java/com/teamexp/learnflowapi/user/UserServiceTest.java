@@ -1,4 +1,4 @@
-package com.teamexp.learnflowapi.unit.user;
+package com.teamexp.learnflowapi.user;
 
 import com.teamexp.learnflowapi.global.config.PasswordConfig;
 import com.teamexp.learnflowapi.user.controller.dto.UserCreateRequest;
