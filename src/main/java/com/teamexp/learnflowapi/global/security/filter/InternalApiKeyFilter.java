@@ -44,6 +44,7 @@ public class InternalApiKeyFilter extends OncePerRequestFilter {
                     requestUri, request.getRemoteAddr(), (requestKey == null ? "null" : "REDACTED"));
 
                 response.setStatus(HttpServletResponse.SC_UNAUTHORIZED);
+                response.setContentType("text/plain;charset=UTF-8"); // Content-Type 헤더 추가
                 response.getWriter().write("Unauthorized: Invalid API Key");
                 return; // 필터 체인 중단
             }
