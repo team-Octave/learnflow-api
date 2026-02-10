@@ -152,6 +152,7 @@ public class LectureControllerV2 {
         @PathVariable Long lessonId,
         @AuthenticationPrincipal CustomUserPrincipal customUser
     ) {
+        // TODO-membership : Check User Principal's Membership and parsing membership status
         LessonResponse response = lessonService.getLesson(lectureId, lessonId, customUser.getId());
         return ResponseEntity.status(HttpStatus.OK).body(BaseResponse.ok(response));
     }
