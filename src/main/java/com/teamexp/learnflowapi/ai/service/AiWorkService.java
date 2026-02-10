@@ -3,18 +3,18 @@ package com.teamexp.learnflowapi.ai.service;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.teamexp.learnflowapi.ai.dto.AiJobResponse;
 import com.teamexp.learnflowapi.ai.dto.AiJobResultRequest;
-import com.teamexp.learnflowapi.ai.exception.AiTaskNotFoundException; // New
+import com.teamexp.learnflowapi.ai.exception.AiTaskNotFoundException;
 import com.teamexp.learnflowapi.ai.model.AiSummary;
 import com.teamexp.learnflowapi.ai.model.AiSummaryContent;
 import com.teamexp.learnflowapi.ai.model.AiTask;
 import com.teamexp.learnflowapi.ai.model.TaskStatus;
 import com.teamexp.learnflowapi.ai.repository.AiSummaryRepository;
 import com.teamexp.learnflowapi.ai.repository.AiTaskRepository;
-import com.teamexp.learnflowapi.content.exception.MediaNotFoundException; // Existing
+import com.teamexp.learnflowapi.content.exception.MediaNotFoundException;
 import com.teamexp.learnflowapi.content.external.GcpSignedUrlService;
 import com.teamexp.learnflowapi.content.model.ContentMedia;
 import com.teamexp.learnflowapi.content.repository.ContentMediaRepository;
-import com.teamexp.learnflowapi.lecture.exception.LessonNotFoundException; // Existing
+import com.teamexp.learnflowapi.lecture.exception.LessonNotFoundException;
 import com.teamexp.learnflowapi.lecture.model.Lesson;
 import com.teamexp.learnflowapi.lecture.repository.LessonRepository;
 import lombok.RequiredArgsConstructor;
@@ -62,7 +62,6 @@ public class AiWorkService {
 
         for (AiTask task : tasks) {
             try {
-                // 예외 처리 리팩토링: RuntimeException -> 구체적인 예외로 변경
                 ContentMedia media = contentMediaRepository.findByLessonId(task.getLessonId())
                     .orElseThrow(() -> new MediaNotFoundException());
 
@@ -75,8 +74,6 @@ public class AiWorkService {
                 log.info("AI Worker에게 작업 할당: taskId={}, lessonId={}", task.getId(), task.getLessonId());
 
             } catch (Exception e) {
-                // MediaNotFoundException 등도 여기서 잡혀서 재시도 로직으로 넘어감.
-                // 영구적인 오류(예: 미디어 없음)인 경우 재시도 횟수만 소진하다 FAILED가 됨
                 log.error("작업 할당 실패 (Retry 처리): taskId={}", task.getId(), e);
                 handleAllocationFailure(task.getId());
             }
@@ -97,7 +94,6 @@ public class AiWorkService {
 
     @Transactional
     public void processResult(AiJobResultRequest request) {
-        // 예외 처리 리팩토링
         AiTask task = aiTaskRepository.findById(request.taskId())
             .orElseThrow(AiTaskNotFoundException::new);
 
@@ -121,7 +117,9 @@ public class AiWorkService {
 
     private void handleFailure(AiTask task) {
         task.incrementRetryCount();
-        if (task.getRetryCount() > 3) {
+
+        // Refactored: 도메인 엔티티에게 판단 위임
+        if (task.isRetryLimitExceeded()) {
             task.changeStatus(TaskStatus.FAILED);
             log.error("최대 재시도 초과 -> FAILED: taskId={}", task.getId());
         } else {
