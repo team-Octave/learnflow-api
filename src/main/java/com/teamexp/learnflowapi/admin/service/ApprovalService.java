@@ -12,7 +12,6 @@ import com.teamexp.learnflowapi.admin.model.ApprovalRejectType;
 import com.teamexp.learnflowapi.admin.repository.ApprovalRepository;
 import com.teamexp.learnflowapi.ai.model.AiTask;
 import com.teamexp.learnflowapi.ai.repository.AiTaskRepository;
-import com.teamexp.learnflowapi.lecture.model.Chapter;
 import com.teamexp.learnflowapi.lecture.model.Lecture;
 import com.teamexp.learnflowapi.lecture.model.Lesson;
 import com.teamexp.learnflowapi.lecture.model.LessonType;
@@ -26,12 +25,9 @@ import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
-import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 import java.util.stream.Collectors;
-
-import static java.util.stream.Collectors.toList;
 
 @Service
 @Transactional(readOnly = true)
@@ -69,16 +65,20 @@ public class ApprovalService {
             .distinct()
             .toList();
 
+        // 닉네임 Map 생성
+        // 값이 없으면 빈 문자열("")로 매핑 (Collectors.toMap은 value가 null일 경우 NPE 발생 방지)
+        // 실제 "알 수 없음" 변환 로직은 ApprovalDto의 Compact Constructor가 담당함 (책임 분리)
         Map<String, String> nicknameMap = userRepository.findAllById(instructorIds).stream()
             .collect(Collectors.toMap(
                 User::getUserId,
-                user -> user.getNickname() != null ? user.getNickname() : "알 수 없음",
+                user -> user.getNickname() != null ? user.getNickname() : "",
                 (existing, replacement) -> existing
             ));
 
         List<ApprovalDto> approvals = lectures.getContent().stream()
             .map(lecture -> {
-                String instructorName = nicknameMap.getOrDefault(lecture.getInstructorId(), "알 수 없음");
+                String instructorName = nicknameMap.get(lecture.getInstructorId());
+
                 String finalThumbnailUrl = (lecture.getThumbnailUrl() != null && !lecture.getThumbnailUrl().isBlank())
                     ? lecture.getThumbnailUrl()
                     : defaultThumbnailUrl;
@@ -126,7 +126,6 @@ public class ApprovalService {
 
     @Transactional
     public ApprovalUpdateResponse updateApproval(Long lectureId, ApprovalUpdateRequest request) {
-        // N+1 방지: Fetch Join 사용
         Lecture foundedLecture = lectureAdminRepository.findByIdWithChaptersAndLessonsAndQuizzes(lectureId).orElseThrow(
             LectureNotFoundException::new
         );
@@ -142,27 +141,7 @@ public class ApprovalService {
         String status = switch (approvalStatus) {
             case APPROVED -> {
                 lectureAdminService.allowPublishLecture(lectureId);
-
-                // AI 작업 트리거: 중복 생성 방지 로직 추가
-                List<Lesson> videoLessons = foundedLecture.getChapters().stream()
-                    .flatMap(chapter -> chapter.getLessons().stream())
-                    .filter(l -> l.getLessonType() == LessonType.VIDEO)
-                    .toList(); // Lesson 필터링 조건(isVideoType)이 있다면 추가
-
-                if (!videoLessons.isEmpty()) {
-                    List<Long> lessonIds = videoLessons.stream().map(Lesson::getId).toList();
-                    // 이미 존재하는 Task 조회
-                    List<Long> existingTaskLessonIds = aiTaskRepository.findAllLessonIdsByLessonIdIn(lessonIds);
-
-                    List<AiTask> newTasks = videoLessons.stream()
-                        .filter(lesson -> !existingTaskLessonIds.contains(lesson.getId()))
-                        .map(lesson -> AiTask.create(lesson.getId()))
-                        .toList();
-
-                    if (!newTasks.isEmpty()) {
-                        aiTaskRepository.saveAll(newTasks);
-                    }
-                }
+                triggerAiTasks(foundedLecture); // AI 작업 트리거 로직 분리
                 yield "PUBLISHED";
             }
             case REJECTED -> {
@@ -176,5 +155,31 @@ public class ApprovalService {
             status,
             approval.getUpdatedAt()
         );
+    }
+
+    /**
+     * 강의 승인 시 AI 요약 작업을 트리거합니다.
+     * 이미 작업이 존재하는 경우 중복 생성을 방지합니다.
+     */
+    private void triggerAiTasks(Lecture lecture) {
+        List<Lesson> videoLessons = lecture.getChapters().stream()
+            .flatMap(chapter -> chapter.getLessons().stream())
+            .filter(l -> l.getLessonType() == LessonType.VIDEO)
+            .toList();
+
+        if (!videoLessons.isEmpty()) {
+            List<Long> lessonIds = videoLessons.stream().map(Lesson::getId).toList();
+            // 이미 생성된 태스크가 있는지 확인하여 중복 방지
+            List<Long> existingTaskLessonIds = aiTaskRepository.findAllLessonIdsByLessonIdIn(lessonIds);
+
+            List<AiTask> newTasks = videoLessons.stream()
+                .filter(lesson -> !existingTaskLessonIds.contains(lesson.getId()))
+                .map(lesson -> AiTask.create(lesson.getId()))
+                .toList();
+
+            if (!newTasks.isEmpty()) {
+                aiTaskRepository.saveAll(newTasks);
+            }
+        }
     }
 }
