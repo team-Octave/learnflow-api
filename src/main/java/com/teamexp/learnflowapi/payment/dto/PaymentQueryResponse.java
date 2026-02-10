@@ -1,11 +1,11 @@
 package com.teamexp.learnflowapi.payment.dto;
 
 import com.teamexp.learnflowapi.payment.service.dto.PaymentQueryDto;
-import java.time.LocalDateTime;
+import java.time.Instant;
 
 public record PaymentQueryResponse(
         Long id,
-        LocalDateTime paymentDate,
+        Instant paymentDate,
         String planType,
         String status
 ) {

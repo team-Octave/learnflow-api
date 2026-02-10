@@ -3,6 +3,7 @@ package com.teamexp.learnflowapi.payment.service.dto;
 import com.teamexp.learnflowapi.payment.model.PaymentHistory;
 import com.teamexp.learnflowapi.payment.model.constant.PaymentStatus;
 import com.teamexp.learnflowapi.payment.model.constant.PlanType;
+import java.time.Instant;
 import java.time.LocalDateTime;
 import lombok.Builder;
 
@@ -11,10 +12,10 @@ public record PaymentQueryDto(
         Long amount,
         PlanType planType,
         PaymentStatus status,
-        LocalDateTime paymentDate
+        Instant paymentDate
 ) {
     @Builder
-    public PaymentQueryDto(Long id, Long amount, PlanType planType, PaymentStatus status, LocalDateTime paymentDate) {
+    public PaymentQueryDto(Long id, Long amount, PlanType planType, PaymentStatus status, Instant paymentDate) {
         this.id = id;
         this.amount = amount;
         this.planType = planType;
