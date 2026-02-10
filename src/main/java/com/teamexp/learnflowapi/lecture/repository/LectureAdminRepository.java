@@ -21,6 +21,6 @@ public interface LectureAdminRepository {
 
     // findByIdWithChaptersAndLessonsAndQuizzes - use check lecture detail
     Optional<Lecture> findByIdWithChaptersAndLessonsAndQuizzes(Long lectureId);
-
-    
+    // 퀴즈 없이 챕터와 레슨만 조회 - 승인 처리 및 AI 작업 트리거 시 성능 최적화를 위해 사용
+    Optional<Lecture> findByIdWithChaptersAndLessons(Long lectureId);
 }

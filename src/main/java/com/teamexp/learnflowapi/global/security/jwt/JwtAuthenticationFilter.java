@@ -34,8 +34,10 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
     @Override
     protected boolean shouldNotFilter(HttpServletRequest request) throws ServletException {
         String path = request.getRequestURI();
-        // Actuator(모니터링) 경로와 토큰 재발급 경로는 필터를 거치지 않음
-        return path.startsWith("/actuator") || path.equals("/api/v1/auth/reissue");
+        // Actuator, 토큰 재발급, 그리고 내부 API 호출은 JWT 필터를 거치지 않음
+        return path.startsWith("/actuator")
+            || path.equals("/api/v1/auth/reissue")
+            || path.startsWith("/api/internal/"); // ✨ [수정] 내부 API 경로 추가
     }
 
     @Override
@@ -43,6 +45,12 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
                                     HttpServletResponse response,
                                     FilterChain filterChain)
         throws ServletException, IOException {
+
+        // ✨ [수정] 이미 앞선 필터(InternalApiKeyFilter)에서 인증이 완료되었다면 JWT 로직 건너뜀
+        if (SecurityContextHolder.getContext().getAuthentication() != null) {
+            filterChain.doFilter(request, response);
+            return;
+        }
 
         String authHeader = request.getHeader("Authorization");
 
