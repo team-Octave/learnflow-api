@@ -98,9 +98,9 @@ public class AiWorkService {
             .orElseThrow(AiTaskNotFoundException::new);
 
         if (task.getStatus() != TaskStatus.PROCESSING) {
-            log.warn("PROCESSING 상태가 아닌 태스크에 결과 수신: taskId={}, status={}",
+            log.warn("PROCESSING 상태가 아닌 태스크에 결과 수신 시도: taskId={}, status={}",
                 task.getId(), task.getStatus());
-            return; // 추가 진행 없이 반환
+            return;
         }
 
         if (request.success()) {
@@ -112,22 +112,34 @@ public class AiWorkService {
                 task.changeStatus(TaskStatus.COMPLETED);
                 log.info("AI 작업 완료: taskId={}", task.getId());
             } catch (Exception e) {
-                log.error("결과 저장 실패", e);
-                handleFailure(task);
+                log.error("결과 저장 중 예외 발생 (실패 트랜잭션 분리 처리): taskId={}", task.getId(), e);
+                handleFailureWithNewTransaction(task.getId());
+                // [수정] Checked Exception을 RuntimeException으로 래핑하여 컴파일 에러 해결 및 롤백 유도
+                throw new RuntimeException("AI 결과 처리 중 오류 발생", e);
             }
         } else {
-            log.warn("AI 작업 실패 보고: taskId={}", task.getId());
-            handleFailure(task);
+            log.warn("AI 작업 실패 보고 수신: taskId={}", task.getId());
+            handleFailureWithNewTransaction(task.getId());
+        }
+    }
+
+    private void handleFailureWithNewTransaction(Long taskId) {
+        try {
+            transactionTemplate.execute(status -> {
+                aiTaskRepository.findById(taskId).ifPresent(this::handleFailure);
+                return null;
+            });
+        } catch (Exception ex) {
+            log.error("실패 상태 업데이트 트랜잭션 실행 실패: taskId={}", taskId, ex);
         }
     }
 
     private void handleFailure(AiTask task) {
         task.incrementRetryCount();
 
-        // Refactored: 도메인 엔티티에게 판단 위임
         if (task.isRetryLimitExceeded()) {
             task.changeStatus(TaskStatus.FAILED);
-            log.error("최대 재시도 초과 -> FAILED: taskId={}", task.getId());
+            log.error("최대 재시도 초과 -> FAILED 처리: taskId={}", task.getId());
         } else {
             long waitMinutes = switch (task.getRetryCount()) {
                 case 1 -> 1;
@@ -136,7 +148,8 @@ public class AiWorkService {
             };
             task.setNextAttemptAt(Instant.now().plus(waitMinutes, ChronoUnit.MINUTES));
             task.changeStatus(TaskStatus.READY);
-            log.info("재시도 예약: taskId={}, count={}", task.getId(), task.getRetryCount());
+            log.info("재시도 예약 완료: taskId={}, count={}, nextAttemptAt={}",
+                task.getId(), task.getRetryCount(), task.getNextAttemptAt());
         }
     }
 }
