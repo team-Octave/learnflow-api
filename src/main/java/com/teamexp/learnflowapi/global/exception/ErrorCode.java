@@ -73,6 +73,14 @@ public enum ErrorCode {
     // Admin 도메인 관련
     APPROVAL_NOT_FOUND(HttpStatus.NOT_FOUND, "승인 요청 정보를 찾을 수 없습니다."),
 
+    // Payment 도메인 관련
+    PAYMENT_CONFIRM_FAILED(HttpStatus.BAD_REQUEST, "결제 승인에 실패했습니다."),
+    PAYMENT_NETWORK_ERROR(HttpStatus.INTERNAL_SERVER_ERROR, "결제 대행사와의 통신 중 오류가 발생했습니다."),
+    PAYMENT_AMOUNT_MISMATCH(HttpStatus.BAD_REQUEST,"토스 서버의 결제 금액과 입력된 결제 금액이 다릅니다."),
+    PAYMENT_ALREADY_PROCESSED(HttpStatus.BAD_REQUEST,"이미 처리된 결제 입니다."),
+    INVALID_PLAN_TYPE(HttpStatus.BAD_REQUEST, "유효하지 않은 요금제입니다."),
+    ;
+
     // AI 도메인 관련
     AI_TASK_NOT_FOUND(HttpStatus.NOT_FOUND, "요청한 AI 작업을 찾을 수 없습니다."),
     AI_SUMMARY_NOT_FOUND(HttpStatus.NOT_FOUND, "AI 요약 정보를 찾을 수 없습니다."),
