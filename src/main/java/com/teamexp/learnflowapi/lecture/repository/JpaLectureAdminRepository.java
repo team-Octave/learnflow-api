@@ -7,6 +7,7 @@ import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Query;
+import org.springframework.data.repository.query.Param;
 import org.springframework.stereotype.Repository;
 
 import com.teamexp.learnflowapi.lecture.model.Lecture;
@@ -37,6 +38,13 @@ public interface JpaLectureAdminRepository extends JpaRepository<Lecture, Long>,
         "LEFT JOIN FETCH ls.quizzes " +
         "WHERE l.id = :lectureId AND l.deleteFlag = false AND l.status = 'SUBMITTED'")
     Optional<Lecture> findByIdWithChaptersAndLessonsAndQuizzes(Long lectureId);
+
+    @Override
+    @Query("SELECT DISTINCT l FROM Lecture l " +
+        "LEFT JOIN FETCH l.chapters c " +
+        "LEFT JOIN FETCH c.lessons ls " +
+        "WHERE l.id = :lectureId AND l.deleteFlag = false AND l.status = 'SUBMITTED'")
+    Optional<Lecture> findByIdWithChaptersAndLessons(@Param("lectureId") Long lectureId);
 }
 
 
