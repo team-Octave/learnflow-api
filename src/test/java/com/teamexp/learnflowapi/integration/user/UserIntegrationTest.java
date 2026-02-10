@@ -13,10 +13,13 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMockMvc;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.context.annotation.Import;
-import org.springframework.test.context.ActiveProfiles;
+import org.springframework.http.MediaType;
 import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.transaction.annotation.Transactional;
 
+import static org.assertj.core.api.AssertionsForClassTypes.assertThat;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.delete;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
@@ -78,5 +81,68 @@ public class UserIntegrationTest {
                 .andExpect(jsonPath("$.data.email").value(user.getEmail()))
                 .andExpect(jsonPath("$.data.nickname").value(user.getNickname()))
                 .andExpect(jsonPath("$.data.role").value(user.getRole().name()));
+    }
+
+    @Test
+    @DisplayName("회원 탈퇴 성공 + 소프트 삭제 적용")
+    void tc23_withdraw_user_success_soft_delete_applied() throws Exception {
+        // 회원 탈퇴 요청
+        mockMvc.perform(delete("/api/v1/users/me")
+                        .header("Authorization", "Bearer " + accessToken))
+                .andExpect(status().isOk());
+
+        // Then: DB에서 del_flag=true 확인 (soft delete 검증 핵심)
+        var deletedUser = userRepository.findByEmail(user.getEmail()).orElseThrow();
+        assertThat(deletedUser.getDelFlag()).isTrue();
+    }
+
+    @Test
+    @DisplayName("중복 탈퇴 요청 실패 - 이미 탈퇴된 유저")
+    void tc24_withdraw_user_fail_already_withdrawn() throws Exception {
+        // Given: 1차 탈퇴 성공
+        mockMvc.perform(delete("/api/v1/users/me")
+                        .header("Authorization", "Bearer " + accessToken))
+                .andExpect(status().isOk());
+
+        // When & Then: 2차 탈퇴 요청 -> UserNotFound (404)
+        mockMvc.perform(delete("/api/v1/users/me")
+                        .header("Authorization", "Bearer " + accessToken))
+                .andExpect(status().isNotFound());
+    }
+
+    @Test
+    @DisplayName("탈퇴 유저 로그인 실패")
+    void tc25_withdrawn_user_login_fail() throws Exception {
+        // Given: 유저 탈퇴
+        mockMvc.perform(delete("/api/v1/users/me")
+                        .header("Authorization", "Bearer " + accessToken))
+                .andExpect(status().isOk());
+
+        // When & Then: 탈퇴 유저로 로그인 시도 -> UserNotFound (404)
+        String loginBody = objectMapper.writeValueAsString(
+                new java.util.HashMap<String, Object>() {{
+                    put("email", user.getEmail());
+                    put("password", "password");
+                }}
+        );
+
+        mockMvc.perform(post("/api/v1/auth/login")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(loginBody))
+                .andExpect(status().isUnauthorized());
+    }
+
+    @Test
+    @DisplayName("탈퇴 유저 /me 조회 실패")
+    void tc26_withdrawn_user_me_lookup_fail() throws Exception {
+        // Given: 유저 탈퇴
+        mockMvc.perform(delete("/api/v1/users/me")
+                        .header("Authorization", "Bearer " + accessToken))
+                .andExpect(status().isOk());
+
+        // When & Then: 탈퇴 유저로 /me 조회 시도
+        mockMvc.perform(get("/api/v1/users/me")
+                        .header("Authorization", "Bearer " + accessToken))
+                .andExpect(status().isNotFound());
     }
 }

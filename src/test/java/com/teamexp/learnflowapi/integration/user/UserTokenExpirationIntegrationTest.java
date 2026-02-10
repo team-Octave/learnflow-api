@@ -19,7 +19,7 @@ import static org.springframework.test.web.servlet.request.MockMvcRequestBuilder
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
 @SpringBootTest(properties = {
-        "spring.jwt.access-expiration= 1"
+        "spring.jwt.access-expiration=1"
 })
 @AutoConfigureMockMvc
 @Transactional
