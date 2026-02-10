@@ -1,5 +1,6 @@
 package com.teamexp.learnflowapi.payment.service;
 
+import com.teamexp.learnflowapi.membership.service.dto.PaymentCompletedEvent;
 import com.teamexp.learnflowapi.payment.dto.request.PaymentConfirmRequest;
 import com.teamexp.learnflowapi.payment.dto.response.PaymentConfirmResponse;
 import com.teamexp.learnflowapi.payment.exception.PaymentAlreadyProcessedException;
@@ -14,6 +15,7 @@ import java.time.OffsetDateTime;
 import java.time.format.DateTimeFormatter;
 import java.util.Base64;
 import lombok.RequiredArgsConstructor;
+import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpStatusCode;
 import org.springframework.http.MediaType;
@@ -28,6 +30,7 @@ public class PaymentService {
     private final RestClient tossRestClient;
     private final TossProps tossProps;
     private final PaymentHistoryRepository paymentHistoryRepository;
+    private final ApplicationEventPublisher eventPublisher;
 
     @Transactional
     public PaymentConfirmResponse tossConfirm(PaymentConfirmRequest request, String userId) {
@@ -44,6 +47,8 @@ public class PaymentService {
         PlanType planType = resolvePlanType(paymentDto.orderName());
 
         savePaymentHistory(userId, paymentDto, planType);
+
+        eventPublisher.publishEvent(new PaymentCompletedEvent(userId, planType));
 
         return PaymentConfirmResponse.from(paymentDto);
     }
