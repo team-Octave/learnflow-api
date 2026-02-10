@@ -138,11 +138,10 @@ public class EnrollmentService {
             return List.of();
         }
 
-        User user = userRepository.findById(userId)
-                .orElseThrow(()-> new UserNotFoundException());
-
-        // TODO: User 엔티티에 hasActiveMembership() 메서드가 생기면 교체
-        //boolean hasActiveMembership = checkUserMembership(user);
+        // TODO: User 엔티티에 hasActiveMembership() 메서드가 생기면 아래 주석 해제
+        // User user = userRepository.findById(userId)
+        //         .orElseThrow(UserNotFoundException::new);
+        // boolean hasActiveMembership = checkUserMembership(user);
 
         List<Long> enrollmentIds = enrollments.stream().map(Enrollment::getId).toList();
         List<Long> lectureIds = enrollments.stream().map(Enrollment::getLectureId).distinct().toList();

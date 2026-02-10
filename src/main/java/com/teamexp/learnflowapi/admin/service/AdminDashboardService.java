@@ -4,6 +4,7 @@ import com.teamexp.learnflowapi.admin.dto.AdminDashboardDto;
 import com.teamexp.learnflowapi.admin.dto.AdminDashboardDto.DailyStatDto;
 import com.teamexp.learnflowapi.auth.repository.LoginHistoryRepository;
 import com.teamexp.learnflowapi.log.repository.TrackingRepository;
+import com.teamexp.learnflowapi.log.repository.TrackingStatsProjection;
 import com.teamexp.learnflowapi.user.repository.UserRepository;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -61,11 +62,11 @@ public class AdminDashboardService {
         List<DailyStatDto> weeklyDau = fillMissingDates(dauStats, weekAgoDate, 7);
 
         //Referrer
-        List<Object[]> referrerStats = trackingRepository.findReferrerStats();
+        List<TrackingStatsProjection> referrerStats = trackingRepository.findReferrerStats();
         Map<String, Long> referrerDistribution = convertStatsToMap(referrerStats);
 
         //이탈 페이지(Exit Page)
-        List<Object[]> exitStats = trackingRepository.findExitPageStats();
+        List<TrackingStatsProjection> exitStats = trackingRepository.findExitPageStats();
         Map<String, Long> exitPageDistribution = convertStatsToMap(exitStats);
 
         return new AdminDashboardDto(
@@ -80,11 +81,11 @@ public class AdminDashboardService {
         );
     }
 
-    private Map<String, Long> convertStatsToMap(List<Object[]> stats) {
+    private Map<String, Long> convertStatsToMap(List<TrackingStatsProjection> stats) {
         Map<String, Long> result = stats.stream()
                 .collect(Collectors.toMap(
-                        row -> (String) row[0],
-                        row -> ((Number) row[1]).longValue(),
+                        TrackingStatsProjection::getKey,
+                        TrackingStatsProjection::getCount,
                         (oldVal, newVal) -> oldVal,
                         LinkedHashMap::new
                 ));

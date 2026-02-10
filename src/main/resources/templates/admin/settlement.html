@@ -11,7 +11,7 @@
                     <!-- 총 정산 예정액 표시 -->
                     <div class="mr-4 p-2 bg-gray-100 rounded dark:bg-gray-700">
                         <span class="text-sm text-gray-500 dark:text-gray-400">총 정산 예정액: </span>
-                        <span class="text-lg font-bold text-gray-900 dark:text-white" th:text="'₩ ' + ${#numbers.formatInteger(totalCompletedCount, 0, 'COMMA')}">0원</span>
+                        <span class="text-lg font-bold text-gray-900 dark:text-white" th:text="'₩ ' + ${#numbers.formatInteger(totalSettlementAmount, 0, 'COMMA')}">0원</span>
                     </div>
                     
                     <a href="/admin/settlement/download" class="inline-flex items-center justify-center w-1/2 px-3 py-2 text-sm font-medium text-center text-white rounded-lg bg-green-700 hover:bg-green-800 focus:ring-4 focus:ring-green-300 sm:w-auto dark:bg-green-600 dark:hover:bg-green-700 dark:focus:ring-green-800">

@@ -63,7 +63,7 @@ dependencies {
     implementation 'org.springframework.boot:spring-boot-starter-thymeleaf'
     
     // [TASK 0] Apache POI (엑셀 다운로드용)
-    implementation 'org.apache.poi:poi-ooxml:5.2.5'
+    implementation 'org.apache.poi:poi-ooxml:5.5.1'
     implementation 'nz.net.ultraq.thymeleaf:thymeleaf-layout-dialect'
     implementation 'org.thymeleaf.extras:thymeleaf-extras-springsecurity6'
 

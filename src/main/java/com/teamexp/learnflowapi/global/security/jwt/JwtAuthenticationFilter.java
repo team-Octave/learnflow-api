@@ -31,11 +31,13 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
     /**
      * 특정 경로는 필터 로직을 타지 않도록 설정 (Bypass)
      */
-    @Override
+  @Override
     protected boolean shouldNotFilter(HttpServletRequest request) throws ServletException {
         String path = request.getRequestURI();
-        // Actuator(모니터링) 경로와 토큰 재발급 경로는 필터를 거치지 않음
-        return path.startsWith("/actuator") || path.equals("/api/v1/auth/reissue");
+        return path.startsWith("/actuator")
+                || path.startsWith("/admin")  // /admin/** 경로 추가
+                || path.equals("/api/v1/auth/reissue");
+
     }
 
     @Override

@@ -111,31 +111,6 @@
             }
         }
     });
-
-    // 2. 사이드바 모바일 토글 (햄버거 버튼)
-    const sidebar = document.getElementById('sidebar');
-    const toggleSidebarMobile = document.getElementById('toggleSidebarMobile');
-    const sidebarBackdrop = document.createElement('div');
-    sidebarBackdrop.classList.add('fixed', 'inset-0', 'z-10', 'bg-gray-900/50', 'dark:bg-gray-900/90', 'hidden');
-    document.body.appendChild(sidebarBackdrop);
-
-    toggleSidebarMobile.addEventListener('click', () => {
-        sidebar.classList.toggle('hidden');
-        sidebarBackdrop.classList.toggle('hidden');
-
-        // 아이콘 교체 로직
-        const hamburger = document.getElementById('toggleSidebarMobileHamburger');
-        const close = document.getElementById('toggleSidebarMobileClose');
-        hamburger.classList.toggle('hidden');
-        close.classList.toggle('hidden');
-    });
-
-    sidebarBackdrop.addEventListener('click', () => {
-        sidebar.classList.add('hidden');
-        sidebarBackdrop.classList.add('hidden');
-        document.getElementById('toggleSidebarMobileHamburger').classList.remove('hidden');
-        document.getElementById('toggleSidebarMobileClose').classList.add('hidden');
-    });
 </script>
 
 </body>

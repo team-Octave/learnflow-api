@@ -18,7 +18,9 @@ public interface EnrollmentRepository extends JpaRepository<Enrollment, Long> {
 
     List<Enrollment> findByUserId(String userId);
 
-    // 강의별 수강신청 수 집계
-    @Query("SELECT e.lectureId, COUNT(e) FROM Enrollment e GROUP BY e.lectureId")
-    List<Object[]> countEnrollmentsGroupByLectureId();
+    // 강의별 완강 수 집계 (정산 대상)
+    @Query("SELECT e.lectureId AS lectureId, COUNT(e) AS count FROM Enrollment e WHERE e.status = 'COMPLETED' GROUP BY e.lectureId")
+    List<LectureSalesProjection> countCompletedEnrollmentsGroupByLectureId();
+
+
 }

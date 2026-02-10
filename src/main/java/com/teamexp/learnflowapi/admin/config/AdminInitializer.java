@@ -14,7 +14,7 @@ import org.springframework.security.crypto.password.PasswordEncoder;
  * production 환경에서는 이 빈이 로드되지 않음
  */
 @Configuration
-@Profile({"local", "default"}) // default 프로필에서도 실행되도록 추가
+@Profile({"local", "dev","test"}) // default 프로필에서도 실행되도록 추가
 public class AdminInitializer {
 
     @Bean
@@ -22,22 +22,19 @@ public class AdminInitializer {
         return args -> {
             String adminEmail = "admin@learnflow.com";
 
-            // 기존 계정이 있으면 삭제 (비밀번호 초기화 및 상태 리셋을 위해)
-            userRepository.findByEmail(adminEmail).ifPresent(user -> {
-                userRepository.delete(user);
-                System.out.println("🔄 기존 ADMIN 계정 삭제 완료 (초기화)");
-            });
-
-            // 계정 신규 생성
-            User admin = User.createUser(
-                    adminEmail,
-                    passwordEncoder.encode("password"),
-                    "관리자",
-                    UserRole.ADMIN
-            );
-            userRepository.save(admin);
-            System.out.println("✅ ADMIN 계정 생성/초기화 완료: " + adminEmail + " / password");
+            if (userRepository.findByEmail(adminEmail).isEmpty()) {
+                User admin = User.createUser(
+                        adminEmail,
+                        passwordEncoder.encode("password"),
+                        "Admin",
+                        UserRole.ADMIN
+                );
+                userRepository.save(admin);
+                System.out.println("✅ ADMIN 계정 생성/초기화 완료");
+            } else {
+                System.out.println("ℹ️ ADMIN 계정이 이미 존재합니다: " + adminEmail);
+            }
         };
     }
-
 }
+
