@@ -12,6 +12,8 @@ import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.web.filter.OncePerRequestFilter;
 
 import java.io.IOException;
+import java.nio.charset.StandardCharsets;
+import java.security.MessageDigest;
 import java.util.List;
 
 @Slf4j
@@ -32,7 +34,9 @@ public class InternalApiKeyFilter extends OncePerRequestFilter {
         if (requestUri.startsWith(INTERNAL_API_PREFIX)) {
             String requestKey = request.getHeader(HEADER_API_KEY);
 
-            if (expectedKey.equals(requestKey)) {
+            if (requestKey != null && MessageDigest.isEqual(
+                expectedKey.getBytes(StandardCharsets.UTF_8),
+                requestKey.getBytes(StandardCharsets.UTF_8))) {
                 // 인증 성공
                 SecurityContextHolder.getContext().setAuthentication(
                     new UsernamePasswordAuthenticationToken("system", null, List.of(new SimpleGrantedAuthority("ROLE_SYSTEM")))

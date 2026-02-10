@@ -97,6 +97,12 @@ public class AiWorkService {
         AiTask task = aiTaskRepository.findById(request.taskId())
             .orElseThrow(AiTaskNotFoundException::new);
 
+        if (task.getStatus() != TaskStatus.PROCESSING) {
+            log.warn("PROCESSING 상태가 아닌 태스크에 결과 수신: taskId={}, status={}",
+                task.getId(), task.getStatus());
+            return; // 추가 진행 없이 반환
+        }
+
         if (request.success()) {
             try {
                 AiSummaryContent content = objectMapper.readValue(request.summaryJson(), AiSummaryContent.class);
