@@ -8,7 +8,6 @@ import com.teamexp.learnflowapi.user.repository.UserRepository;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
-import java.sql.Date;
 import java.time.Instant;
 import java.time.LocalDate;
 import java.time.ZoneId;
@@ -27,12 +26,13 @@ public class AdminDashboardService {
     private final LoginHistoryRepository loginHistoryRepository;
     private final TrackingRepository trackingRepository;
 
-    public AdminDashboardService(UserRepository userRepository, LoginHistoryRepository loginHistoryRepository, TrackingRepository trackingRepository) {
+    public AdminDashboardService(UserRepository userRepository,
+                                 LoginHistoryRepository loginHistoryRepository,
+                                 TrackingRepository trackingRepository) {
         this.userRepository = userRepository;
         this.loginHistoryRepository = loginHistoryRepository;
         this.trackingRepository = trackingRepository;
     }
-
 
     public AdminDashboardDto getDashboardStats() {
         LocalDate today = LocalDate.now();
@@ -40,66 +40,71 @@ public class AdminDashboardService {
 
         Instant todayStart = today.atStartOfDay(zoneId).toInstant();
         Instant todayEnd = today.plusDays(1).atStartOfDay(zoneId).toInstant();
-        
-        // 최근 7일 (오늘 포함)
+
         LocalDate weekAgoDate = today.minusDays(6);
         Instant weekStart = weekAgoDate.atStartOfDay(zoneId).toInstant();
 
-        // 1. 카드형 통계
+        //카드형 통계
         long totalUsers = userRepository.countByDelFlagFalse();
         long newUsersToday = userRepository.countByCreatedAtBetweenAndDelFlagFalse(todayStart, todayEnd);
         long churnedUsers = userRepository.countByDelFlagTrue();
-        
-        // LoginHistory 테이블이 비어있을 경우 null 반환 방지
+
         Long dauCount = loginHistoryRepository.countDistinctUserByLoginAtBetween(todayStart, todayEnd);
         long dauToday = (dauCount != null) ? dauCount : 0L;
 
-        // 2. 차트 데이터 (가입자)
+        //가입자
         List<Object[]> signupStats = userRepository.findDailySignupStats(weekStart, todayEnd);
         List<DailyStatDto> weeklyNewUsers = fillMissingDates(signupStats, weekAgoDate, 7);
 
-        // 3. 차트 데이터 (DAU)
+        //DAU
         List<Object[]> dauStats = loginHistoryRepository.findDailyActiveUsers(weekStart, todayEnd);
         List<DailyStatDto> weeklyDau = fillMissingDates(dauStats, weekAgoDate, 7);
 
-        // DB에서 {referrer, count} 리스트 조회
+        //Referrer
         List<Object[]> referrerStats = trackingRepository.findReferrerStats();
+        Map<String, Long> referrerDistribution = convertStatsToMap(referrerStats);
 
-
-        // List<Object[]> -> Map<String, Long> 변환
-        Map<String, Long> referrerDistribution = referrerStats.stream()
-                .collect(Collectors.toMap(
-                        row -> (String) row[0],                 // Referrer URL
-                        row -> ((Number) row[1]).longValue(),   // Count
-                        (oldVal, newVal) -> oldVal,             // 키 중복 시 기존 값 유지
-                        LinkedHashMap::new                      // 순서 보장 (쿼리에서 DESC 정렬했으므로)
-                ));
-        if (referrerDistribution.isEmpty()) {
-            referrerDistribution.put("데이터 수집 중", 0L);
-        }
+        //이탈 페이지(Exit Page)
+        List<Object[]> exitStats = trackingRepository.findExitPageStats();
+        Map<String, Long> exitPageDistribution = convertStatsToMap(exitStats);
 
         return new AdminDashboardDto(
-            totalUsers,
-            newUsersToday,
-            churnedUsers,
-            dauToday,
-            referrerDistribution,
-            weeklyNewUsers,
-            weeklyDau
+                totalUsers,
+                newUsersToday,
+                churnedUsers,
+                dauToday,
+                referrerDistribution,
+                exitPageDistribution,
+                weeklyNewUsers,
+                weeklyDau
         );
     }
 
-    /**
-     * DB에서 조회한 날짜별 통계 데이터를 바탕으로, 누락된 날짜를 0으로 채워서 반환
-     */
+    private Map<String, Long> convertStatsToMap(List<Object[]> stats) {
+        Map<String, Long> result = stats.stream()
+                .collect(Collectors.toMap(
+                        row -> (String) row[0],
+                        row -> ((Number) row[1]).longValue(),
+                        (oldVal, newVal) -> oldVal,
+                        LinkedHashMap::new
+                ));
+
+        // 데이터가 없으면 "데이터 수집 중" 표시
+        if (result.isEmpty()) {
+            result.put("데이터 수집 중", 0L);
+        }
+
+        return result;
+    }
+
+    // (기존 메서드 유지) 날짜 채우기
     private List<DailyStatDto> fillMissingDates(List<Object[]> rawData, LocalDate startDate, int days) {
-        // DB 결과를 Map으로 변환 (Key: 날짜문자열, Value: count)
         Map<String, Long> statMap = rawData.stream()
-            .collect(Collectors.toMap(
-                row -> row[0].toString(), // DATE 함수 결과 (YYYY-MM-DD)
-                row -> ((Number) row[1]).longValue(),
-                (v1, v2) -> v1 // 중복 발생 시 첫 번째 값
-            ));
+                .collect(Collectors.toMap(
+                        row -> row[0].toString(),
+                        row -> ((Number) row[1]).longValue(),
+                        (v1, v2) -> v1
+                ));
 
         List<DailyStatDto> result = new ArrayList<>();
         DateTimeFormatter formatter = DateTimeFormatter.ofPattern("yyyy-MM-dd");

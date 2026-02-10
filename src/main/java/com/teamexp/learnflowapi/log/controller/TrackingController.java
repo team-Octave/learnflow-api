@@ -24,7 +24,7 @@ public class TrackingController {
     private final TrackingRepository trackingRepository;
     private final ObjectMapper objectMapper;
 
-    @PostMapping(value = "/track", consumes = MediaType.ALL_VALUE)
+    @PostMapping(value = "/v1/track", consumes = MediaType.ALL_VALUE)
     public BaseResponse<Void> track(@RequestBody String body) {
         try {
 
