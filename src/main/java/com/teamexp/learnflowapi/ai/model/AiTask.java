@@ -1,27 +1,34 @@
 package com.teamexp.learnflowapi.ai.model;
 
 import jakarta.persistence.*;
+import lombok.AccessLevel;
 import lombok.Getter;
+import lombok.NoArgsConstructor;
 import org.springframework.data.annotation.CreatedDate;
 import org.springframework.data.annotation.LastModifiedDate;
 import org.springframework.data.jpa.domain.support.AuditingEntityListener;
+
 import java.time.Instant;
 
 @Entity
 @Getter
+@NoArgsConstructor(access = AccessLevel.PROTECTED)
 @Table(name = "ai_outbox",
     indexes = {
-        @Index(name = "idx_ai_task_poll", columnList = "status, next_attempt_at, created_at"), // 폴링 성능 최적화
-        @Index(name = "idx_ai_task_lesson_id", columnList = "lesson_id", unique = true) // 레슨 ID 유니크 인덱스
+        @Index(name = "idx_ai_task_poll", columnList = "status, next_attempt_at, created_at"),
+        @Index(name = "idx_ai_task_lesson_id", columnList = "lesson_id", unique = true)
     }
 )
 @EntityListeners(AuditingEntityListener.class)
 public class AiTask {
 
-    @Id @GeneratedValue(strategy = GenerationType.IDENTITY)
+    private static final int MAX_RETRY_COUNT = 3;
+
+    @Id
+    @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
-    @Column(nullable = false, unique = true) // ✨ [수정] DB 레벨 중복 방지
+    @Column(name = "lesson_id", nullable = false, unique = true)
     private Long lessonId;
 
     @Enumerated(EnumType.STRING)
@@ -45,8 +52,7 @@ public class AiTask {
     @Column(name = "updated_at", nullable = false)
     private Instant updatedAt;
 
-    protected AiTask() {}
-
+    // 생성자는 비즈니스 로직(초기 상태 설정)을 담기 위해 private으로 제한
     private AiTask(Long lessonId, TaskStatus status) {
         this.lessonId = lessonId;
         this.status = status;
@@ -54,6 +60,7 @@ public class AiTask {
         this.nextAttemptAt = Instant.now();
     }
 
+    // 팩토리 메서드
     public static AiTask create(Long lessonId) {
         return new AiTask(lessonId, TaskStatus.READY);
     }
@@ -68,5 +75,12 @@ public class AiTask {
 
     public void setNextAttemptAt(Instant nextAttemptAt) {
         this.nextAttemptAt = nextAttemptAt;
+    }
+
+    /**
+     * 최대 재시도 횟수 초과 여부를 엔티티 스스로 판단 (캡슐화)
+     */
+    public boolean isRetryLimitExceeded() {
+        return this.retryCount > MAX_RETRY_COUNT;
     }
 }
