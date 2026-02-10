@@ -3,15 +3,18 @@ package com.teamexp.learnflowapi.ai.service;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.teamexp.learnflowapi.ai.dto.AiJobResponse;
 import com.teamexp.learnflowapi.ai.dto.AiJobResultRequest;
+import com.teamexp.learnflowapi.ai.exception.AiTaskNotFoundException; // New
 import com.teamexp.learnflowapi.ai.model.AiSummary;
 import com.teamexp.learnflowapi.ai.model.AiSummaryContent;
 import com.teamexp.learnflowapi.ai.model.AiTask;
 import com.teamexp.learnflowapi.ai.model.TaskStatus;
 import com.teamexp.learnflowapi.ai.repository.AiSummaryRepository;
 import com.teamexp.learnflowapi.ai.repository.AiTaskRepository;
+import com.teamexp.learnflowapi.content.exception.MediaNotFoundException; // Existing
 import com.teamexp.learnflowapi.content.external.GcpSignedUrlService;
 import com.teamexp.learnflowapi.content.model.ContentMedia;
 import com.teamexp.learnflowapi.content.repository.ContentMediaRepository;
+import com.teamexp.learnflowapi.lecture.exception.LessonNotFoundException; // Existing
 import com.teamexp.learnflowapi.lecture.model.Lesson;
 import com.teamexp.learnflowapi.lecture.repository.LessonRepository;
 import lombok.RequiredArgsConstructor;
@@ -43,7 +46,6 @@ public class AiWorkService {
     private static final int SIGNED_URL_EXPIRATION_SEC = 3600;
 
     public List<AiJobResponse> fetchPendingTasks(int limit) {
-        // 1. [DB Transaction] SKIP LOCKED로 작업 선점 (락 충돌 시 대기하지 않고 건너뜀)
         List<AiTask> tasks = transactionTemplate.execute(status -> {
             List<AiTask> readyTasks = aiTaskRepository.findTasksToProcess(TaskStatus.READY, PageRequest.of(0, limit));
             for (AiTask task : readyTasks) {
@@ -58,13 +60,14 @@ public class AiWorkService {
 
         List<AiJobResponse> responseList = new ArrayList<>();
 
-        // 2. [No Transaction] 외부 API 호출 (GCP)
         for (AiTask task : tasks) {
             try {
+                // 예외 처리 리팩토링: RuntimeException -> 구체적인 예외로 변경
                 ContentMedia media = contentMediaRepository.findByLessonId(task.getLessonId())
-                    .orElseThrow(() -> new RuntimeException("Media not found"));
+                    .orElseThrow(() -> new MediaNotFoundException());
+
                 Lesson lesson = lessonRepository.findById(task.getLessonId())
-                    .orElseThrow(() -> new RuntimeException("Lesson not found"));
+                    .orElseThrow(() -> new LessonNotFoundException());
 
                 String signedUrl = gcpSignedUrlService.generateDownloadUrl(media.getFileKey(), SIGNED_URL_EXPIRATION_SEC);
 
@@ -72,15 +75,15 @@ public class AiWorkService {
                 log.info("AI Worker에게 작업 할당: taskId={}, lessonId={}", task.getId(), task.getLessonId());
 
             } catch (Exception e) {
+                // MediaNotFoundException 등도 여기서 잡혀서 재시도 로직으로 넘어감.
+                // 영구적인 오류(예: 미디어 없음)인 경우 재시도 횟수만 소진하다 FAILED가 됨
                 log.error("작업 할당 실패 (Retry 처리): taskId={}", task.getId(), e);
-                // 즉시 FAILED가 아니라 Retry 로직 수행
                 handleAllocationFailure(task.getId());
             }
         }
         return responseList;
     }
 
-    // 할당 실패 시 재시도 처리용 (별도 트랜잭션)
     private void handleAllocationFailure(Long taskId) {
         try {
             transactionTemplate.execute(status -> {
@@ -94,8 +97,9 @@ public class AiWorkService {
 
     @Transactional
     public void processResult(AiJobResultRequest request) {
+        // 예외 처리 리팩토링
         AiTask task = aiTaskRepository.findById(request.taskId())
-            .orElseThrow(() -> new RuntimeException("Task not found"));
+            .orElseThrow(AiTaskNotFoundException::new);
 
         if (request.success()) {
             try {
