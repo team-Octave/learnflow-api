@@ -34,6 +34,10 @@ public class TrackingController {
             String path = node.path("path").asText();
             long ts = node.path("ts").asLong();
 
+            if (event == null || event.isBlank()) {
+                return BaseResponse.error("BAD_REQUEST", "event 필드는 필수입니다.", MDC.get("traceId"));
+            }
+
             TrackingLog.TrackingLogBuilder logBuilder = TrackingLog.builder()
                     .event(event)
                     .path(path)
@@ -53,13 +57,11 @@ public class TrackingController {
             trackingRepository.save(logBuilder.build());
 
             return BaseResponse.ok(null);
-        }catch (JsonProcessingException e) {
-            log.error("Tracking JSON parse Error. Body: {}", body, e);
-
-            return BaseResponse.error("BAD_REQUEST", "잘못된 요청 형식입니다.", MDC.get("traceID"));
+        } catch (JsonProcessingException e) {
+            return BaseResponse.error("BAD_REQUEST", "잘못된 요청 형식입니다.", MDC.get("traceId"));
         } catch (Exception e) {
             log.error("Tracking Save Error", e);
-            return BaseResponse.error("INTERNAL_SEVER_ERROR", "로그 저장 중 오류가 발생했습니다.",MDC.get("traceID"));
+            return BaseResponse.error("INTERNAL_SERVER_ERROR", "로그 저장 중 오류가 발생했습니다.", MDC.get("traceId"));
         }
     }
 }

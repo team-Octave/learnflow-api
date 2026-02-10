@@ -70,7 +70,7 @@ public class AdminPageController {
         long totalSettlementAmount = rows.stream().mapToLong(SettlementDto::settlementAmount).sum();
 
         model.addAttribute("rows", rows);
-        model.addAttribute("totalCompletedCount", totalSettlementAmount);
+        model.addAttribute("totalSettlementAmount", totalSettlementAmount);
         
         return "admin/settlement";
     }

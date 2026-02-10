@@ -99,7 +99,7 @@ public class SecurityConfig {
             .authorizeHttpRequests(auth -> auth
                 .requestMatchers("/actuator/**").permitAll()
                 .requestMatchers("/api/v1/auth/**").permitAll()
-                .requestMatchers("/api/track").permitAll()
+                .requestMatchers("/api/v1/track").permitAll()
                 .requestMatchers(HttpMethod.POST, "/api/v1/users").permitAll()
                 .requestMatchers(HttpMethod.GET, "/api/v1/users/check").permitAll()
                 .requestMatchers(HttpMethod.GET, "/api/v1/lectures/my").hasRole("MEMBER")

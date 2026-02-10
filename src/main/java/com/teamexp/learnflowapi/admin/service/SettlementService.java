@@ -48,7 +48,7 @@ public class SettlementService {
      */
     public List<SettlementDto> getSettlementList() {
         // 1. 강의별 판매량 조회 (Enrollment 테이블 집계)
-        List<Object[]> salesData = enrollmentRepository.countEnrollmentsGroupByLectureId();
+        List<LectureSalesProjection> salesData = enrollmentRepository.countCompletedEnrollmentsGroupByLectureId();
 
         Map<Long, Long> salesByLectureId = salesData.stream()
             .collect(Collectors.toMap(
