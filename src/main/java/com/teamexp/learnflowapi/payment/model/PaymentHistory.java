@@ -10,6 +10,7 @@ import jakarta.persistence.Enumerated;
 import jakarta.persistence.GeneratedValue;
 import jakarta.persistence.GenerationType;
 import jakarta.persistence.Id;
+import java.time.Instant;
 import java.time.LocalDateTime;
 
 import lombok.AccessLevel;
@@ -40,13 +41,13 @@ public class PaymentHistory {
     @Enumerated(EnumType.STRING)
     private PaymentStatus status;
     @CreatedDate
-    private LocalDateTime createdAt;
-    private LocalDateTime approvedAt;
+    private Instant createdAt;
+    private Instant approvedAt;
 
     @Builder
     private PaymentHistory(String userId, String orderId, String paymentKey,
                            Long amount, PlanType planType, PaymentStatus status,
-                           LocalDateTime approvedAt) {
+                           Instant approvedAt) {
         this.userId = userId;
         this.orderId = orderId;
         this.paymentKey = paymentKey;
@@ -57,7 +58,7 @@ public class PaymentHistory {
     }
 
     public static PaymentHistory create(String userId, String orderId, String paymentKey,
-                                        Long amount, PlanType planType, LocalDateTime approvedAt) {
+                                        Long amount, PlanType planType, Instant approvedAt) {
         return PaymentHistory.builder()
                 .userId(userId)
                 .orderId(orderId)

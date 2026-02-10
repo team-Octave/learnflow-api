@@ -2,7 +2,6 @@ package com.teamexp.learnflowapi.payment.service;
 
 import com.teamexp.learnflowapi.payment.dto.request.PaymentConfirmRequest;
 import com.teamexp.learnflowapi.payment.dto.response.PaymentConfirmResponse;
-import com.teamexp.learnflowapi.payment.exception.InvalidPlanTypeException;
 import com.teamexp.learnflowapi.payment.exception.PaymentAlreadyProcessedException;
 import com.teamexp.learnflowapi.payment.exception.PaymentAmountMismatchException;
 import com.teamexp.learnflowapi.payment.exception.TossErrorException;
@@ -11,7 +10,7 @@ import com.teamexp.learnflowapi.payment.model.constant.PlanType;
 import com.teamexp.learnflowapi.payment.repository.PaymentHistoryRepository;
 import com.teamexp.learnflowapi.payment.service.dto.PaymentDto;
 import java.nio.charset.StandardCharsets;
-import java.time.LocalDateTime;
+import java.time.OffsetDateTime;
 import java.time.format.DateTimeFormatter;
 import java.util.Base64;
 import lombok.RequiredArgsConstructor;
@@ -72,7 +71,7 @@ public class PaymentService {
                 dto.paymentKey(),
                 dto.totalAmount(),
                 planType,
-                LocalDateTime.parse(dto.approvedAt(), DateTimeFormatter.ISO_OFFSET_DATE_TIME)
+                OffsetDateTime.parse(dto.approvedAt(), DateTimeFormatter.ISO_OFFSET_DATE_TIME).toInstant()
         );
         paymentHistoryRepository.save(history);
     }
