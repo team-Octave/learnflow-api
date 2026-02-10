@@ -49,13 +49,14 @@ public class AdminPageController {
         model.addAttribute("newUsersToday", stats.newUsersToday());
         model.addAttribute("churnedUsersTotal", stats.churnedUsersTotal());
         model.addAttribute("dauToday", stats.dauToday());
-        
-        model.addAttribute("referrerDistribution", stats.referrerDistribution());
+
         model.addAttribute("weeklyNewUsers", stats.weeklyNewUsers());
         model.addAttribute("weeklyDau", stats.weeklyDau());
         
         model.addAttribute("recentUsers", List.of()); // 빈 리스트 (TASK 3에서 구현)
-        
+
+        model.addAttribute("referrerDistribution", stats.referrerDistribution());
+        model.addAttribute("exitPageDistribution", stats.exitPageDistribution());
         return "admin/index";
     }
 

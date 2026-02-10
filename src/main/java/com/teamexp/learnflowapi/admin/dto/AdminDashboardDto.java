@@ -9,6 +9,7 @@ public record AdminDashboardDto(
     long churnedUsersTotal,
     long dauToday,
     Map<String, Long> referrerDistribution,
+    Map<String, Long> exitPageDistribution,
     List<DailyStatDto> weeklyNewUsers,
     List<DailyStatDto> weeklyDau
 ) {
