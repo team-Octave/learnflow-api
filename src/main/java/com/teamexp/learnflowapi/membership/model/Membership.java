@@ -9,6 +9,8 @@ import jakarta.persistence.Enumerated;
 import jakarta.persistence.GeneratedValue;
 import jakarta.persistence.GenerationType;
 import jakarta.persistence.Id;
+import java.time.Instant;
+import java.time.ZoneId;
 import lombok.Builder;
 import lombok.Getter;
 import org.springframework.data.annotation.CreatedDate;
@@ -34,24 +36,24 @@ public class Membership {
     private PlanType planType;
 
     @Column(nullable = false)
-    private LocalDateTime startAt;
+    private Instant startAt;
 
     @Column(nullable = false)
-    private LocalDateTime expiredAt;
+    private Instant expiredAt;
 
     @CreatedDate
     @Column(updatable = false)
-    private LocalDateTime createdAt;
+    private Instant createdAt;
 
     @LastModifiedDate
-    private LocalDateTime updatedAt;
+    private Instant updatedAt;
 
     public Membership() {
 
     }
 
     @Builder
-    public Membership(String userId, PlanType planType, LocalDateTime startAt, LocalDateTime expiredAt, LocalDateTime createdAt, LocalDateTime updatedAt) {
+    public Membership(String userId, PlanType planType, Instant startAt, Instant expiredAt, Instant createdAt, Instant updatedAt) {
         this.userId = userId;
         this.planType = planType;
         this.startAt = startAt;
@@ -60,17 +62,19 @@ public class Membership {
         this.updatedAt = updatedAt;
     }
 
-    public static Membership create(String userId, PlanType planType, LocalDateTime startAt) {
+    public static Membership create(String userId, PlanType planType, Instant startAt) {
         return Membership.builder()
                 .userId(userId)
                 .planType(planType)
                 .startAt(startAt)
-                .expiredAt(startAt.plusMonths(planType.getValue()))
+                .expiredAt(startAt.atZone(ZoneId.systemDefault())
+                        .plusMonths(planType.getValue())
+                        .toInstant())
                 .build();
     }
 
     public boolean isActive(){
         if(this.expiredAt == null) return false;
-        return this.expiredAt.isAfter(LocalDateTime.now());
+        return this.expiredAt.isAfter(Instant.now());
     }
 }

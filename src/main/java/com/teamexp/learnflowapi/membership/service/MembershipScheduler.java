@@ -1,6 +1,7 @@
 package com.teamexp.learnflowapi.membership.service;
 
 import com.teamexp.learnflowapi.membership.repository.MembershipRepository;
+import java.time.Instant;
 import lombok.RequiredArgsConstructor;
 import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Component;
@@ -17,6 +18,6 @@ public class MembershipScheduler {
     @Scheduled(cron = "0 0 0 * * *")
     @Transactional
     public void deleteExpiredMemberships() {
-        membershipRepository.deleteAllByExpiredAtBefore(LocalDateTime.now());
+        membershipRepository.deleteAllByExpiredAtBefore(Instant.now());
     }
 }
