@@ -1,4 +1,4 @@
-package com.teamexp.learnflowapi.user;
+package com.teamexp.learnflowapi.user.service;
 
 import com.teamexp.learnflowapi.global.config.PasswordConfig;
 import com.teamexp.learnflowapi.user.controller.dto.UserCreateRequest;
@@ -7,7 +7,6 @@ import com.teamexp.learnflowapi.user.exception.NicknameDuplicateException;
 import com.teamexp.learnflowapi.user.model.User;
 import com.teamexp.learnflowapi.user.model.vo.UserRole;
 import com.teamexp.learnflowapi.user.repository.UserRepository;
-import com.teamexp.learnflowapi.user.service.UserService;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
