@@ -15,4 +15,6 @@ public interface UserRepository extends JpaRepository<User, String> {
     Optional<User> findByEmail(String email);
 
     Optional<User> findByUserIdAndDelFlagFalse(String userId);
+
+    Long countAllByDelFlagIs(boolean delFlag);
 }
