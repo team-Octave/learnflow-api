@@ -3,6 +3,7 @@ package com.teamexp.learnflowapi.admin.service;
 import com.teamexp.learnflowapi.admin.dto.AdminDashboardDto;
 import com.teamexp.learnflowapi.admin.dto.AdminDashboardDto.DailyStatDto;
 import com.teamexp.learnflowapi.auth.repository.LoginHistoryRepository;
+import com.teamexp.learnflowapi.log.repository.TrackingRepository;
 import com.teamexp.learnflowapi.user.repository.UserRepository;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -13,6 +14,7 @@ import java.time.LocalDate;
 import java.time.ZoneId;
 import java.time.format.DateTimeFormatter;
 import java.util.ArrayList;
+import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.stream.Collectors;
@@ -23,11 +25,14 @@ public class AdminDashboardService {
 
     private final UserRepository userRepository;
     private final LoginHistoryRepository loginHistoryRepository;
+    private final TrackingRepository trackingRepository;
 
-    public AdminDashboardService(UserRepository userRepository, LoginHistoryRepository loginHistoryRepository) {
+    public AdminDashboardService(UserRepository userRepository, LoginHistoryRepository loginHistoryRepository, TrackingRepository trackingRepository) {
         this.userRepository = userRepository;
         this.loginHistoryRepository = loginHistoryRepository;
+        this.trackingRepository = trackingRepository;
     }
+
 
     public AdminDashboardDto getDashboardStats() {
         LocalDate today = LocalDate.now();
@@ -57,12 +62,21 @@ public class AdminDashboardService {
         List<Object[]> dauStats = loginHistoryRepository.findDailyActiveUsers(weekStart, todayEnd);
         List<DailyStatDto> weeklyDau = fillMissingDates(dauStats, weekAgoDate, 7);
 
-        // 4. 유입 경로 (더미 - 나중에 User 엔티티에 referrer 추가 시 구현)
-        Map<String, Long> referrerDistribution = Map.of(
-            "직접 유입", 100L,
-            "검색", 50L,
-            "SNS", 20L
-        );
+        // DB에서 {referrer, count} 리스트 조회
+        List<Object[]> referrerStats = trackingRepository.findReferrerStats();
+
+
+        // List<Object[]> -> Map<String, Long> 변환
+        Map<String, Long> referrerDistribution = referrerStats.stream()
+                .collect(Collectors.toMap(
+                        row -> (String) row[0],                 // Referrer URL
+                        row -> ((Number) row[1]).longValue(),   // Count
+                        (oldVal, newVal) -> oldVal,             // 키 중복 시 기존 값 유지
+                        LinkedHashMap::new                      // 순서 보장 (쿼리에서 DESC 정렬했으므로)
+                ));
+        if (referrerDistribution.isEmpty()) {
+            referrerDistribution.put("데이터 수집 중", 0L);
+        }
 
         return new AdminDashboardDto(
             totalUsers,

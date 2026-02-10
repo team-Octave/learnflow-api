@@ -46,7 +46,48 @@
         <h3 class="text-xl font-bold text-gray-900 dark:text-white mb-4">주간 가입자 추이</h3>
         <div id="new-users-chart"></div>
     </div>
+    <div class="mt-4 p-4 bg-white border border-gray-200 rounded-lg shadow-sm dark:border-gray-700 sm:p-6 dark:bg-gray-800">
+        <div class="flex items-center justify-between mb-4">
+            <h3 class="text-xl font-bold text-gray-900 dark:text-white">유입 경로 분석 (Top 5)</h3>
+            <a href="#" class="text-sm font-medium text-blue-600 hover:underline dark:text-blue-500">
+                전체 보기
+            </a>
+        </div>
 
+        <div class="relative overflow-x-auto">
+            <table class="w-full text-sm text-left text-gray-500 dark:text-gray-400">
+                <thead class="text-xs text-gray-700 uppercase bg-gray-50 dark:bg-gray-700 dark:text-gray-400">
+                <tr>
+                    <th scope="col" class="px-4 py-3 rounded-l-lg">순위</th>
+                    <th scope="col" class="px-4 py-3">유입 URL (Referrer)</th>
+                    <th scope="col" class="px-4 py-3 rounded-r-lg text-right">방문 수</th>
+                </tr>
+                </thead>
+                <tbody>
+                <tr th:each="entry, stat : ${referrerDistribution}" class="bg-white dark:bg-gray-800 hover:bg-gray-50 dark:hover:bg-gray-600 border-b dark:border-gray-700">
+                    <td class="px-4 py-3 font-medium text-gray-900 dark:text-white">
+                        <span th:text="${stat.count}">1</span>
+                    </td>
+                    <td class="px-4 py-3">
+                        <div class="flex items-center">
+                            <div class="h-2.5 w-2.5 rounded-full bg-green-400 mr-2"></div>
+                            <span th:text="${entry.key}">https://google.com</span>
+                        </div>
+                    </td>
+                    <td class="px-4 py-3 text-right font-semibold text-gray-900 dark:text-white">
+                        <span th:text="${#numbers.formatInteger(entry.value, 0, 'COMMA')}">1,234</span>명
+                    </td>
+                </tr>
+
+                <tr th:if="${#maps.isEmpty(referrerDistribution)}">
+                    <td colspan="3" class="px-4 py-8 text-center text-gray-500">
+                        아직 수집된 유입 데이터가 없습니다.
+                    </td>
+                </tr>
+                </tbody>
+            </table>
+        </div>
+    </div>
     <!-- ApexCharts 스크립트 -->
     <script th:inline="javascript">
         document.addEventListener("DOMContentLoaded", function () {
