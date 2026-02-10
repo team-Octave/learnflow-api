@@ -65,9 +65,6 @@ public class ApprovalService {
             .distinct()
             .toList();
 
-        // 닉네임 Map 생성
-        // 값이 없으면 빈 문자열("")로 매핑 (Collectors.toMap은 value가 null일 경우 NPE 발생 방지)
-        // 실제 "알 수 없음" 변환 로직은 ApprovalDto의 Compact Constructor가 담당함 (책임 분리)
         Map<String, String> nicknameMap = userRepository.findAllById(instructorIds).stream()
             .collect(Collectors.toMap(
                 User::getUserId,
@@ -126,7 +123,8 @@ public class ApprovalService {
 
     @Transactional
     public ApprovalUpdateResponse updateApproval(Long lectureId, ApprovalUpdateRequest request) {
-        Lecture foundedLecture = lectureAdminRepository.findByIdWithChaptersAndLessonsAndQuizzes(lectureId).orElseThrow(
+        // [최적화 반영] 승인 시에는 퀴즈 정보가 필요 없으므로 findByIdWithChaptersAndLessons 사용
+        Lecture foundedLecture = lectureAdminRepository.findByIdWithChaptersAndLessons(lectureId).orElseThrow(
             LectureNotFoundException::new
         );
 
@@ -141,7 +139,7 @@ public class ApprovalService {
         String status = switch (approvalStatus) {
             case APPROVED -> {
                 lectureAdminService.allowPublishLecture(lectureId);
-                triggerAiTasks(foundedLecture); // AI 작업 트리거 로직 분리
+                triggerAiTasks(foundedLecture); // AI 작업 트리거 시 Lesson 정보만 활용
                 yield "PUBLISHED";
             }
             case REJECTED -> {
@@ -157,10 +155,6 @@ public class ApprovalService {
         );
     }
 
-    /**
-     * 강의 승인 시 AI 요약 작업을 트리거합니다.
-     * 이미 작업이 존재하는 경우 중복 생성을 방지합니다.
-     */
     private void triggerAiTasks(Lecture lecture) {
         List<Lesson> videoLessons = lecture.getChapters().stream()
             .flatMap(chapter -> chapter.getLessons().stream())
@@ -169,7 +163,6 @@ public class ApprovalService {
 
         if (!videoLessons.isEmpty()) {
             List<Long> lessonIds = videoLessons.stream().map(Lesson::getId).toList();
-            // 이미 생성된 태스크가 있는지 확인하여 중복 방지
             List<Long> existingTaskLessonIds = aiTaskRepository.findAllLessonIdsByLessonIdIn(lessonIds);
 
             List<AiTask> newTasks = videoLessons.stream()
