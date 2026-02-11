@@ -6,7 +6,7 @@ import java.time.Instant;
 import lombok.Builder;
 
 public record UserReadResponse(
-        String id,
+        String userId,
         String nickname,
         String email,
         String role,
@@ -14,9 +14,9 @@ public record UserReadResponse(
         Instant membershipExpired
 ) {
     @Builder
-    public UserReadResponse(String id, String nickname, String email, String role, boolean isMembershipActive,
+    public UserReadResponse(String userId, String nickname, String email, String role, boolean isMembershipActive,
                             Instant membershipExpired) {
-        this.id = id;
+        this.userId = userId;
         this.nickname = nickname;
         this.email = email;
         this.role = role;
@@ -26,7 +26,7 @@ public record UserReadResponse(
 
     public static UserReadResponse of(User user, MembershipStatus status) {
         return UserReadResponse.builder()
-                .id(user.getUserId())
+                .userId(user.getUserId())
                 .nickname(user.getNickname())
                 .email(user.getEmail())
                 .role(user.getRole().name())

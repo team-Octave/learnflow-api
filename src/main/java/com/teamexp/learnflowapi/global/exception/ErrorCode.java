@@ -15,6 +15,7 @@ public enum ErrorCode {
     REFRESH_TOKEN_INVALID(HttpStatus.UNAUTHORIZED, "리프레시 토큰이 유효하지 않습니다."),
     USER_NOT_FOUND(HttpStatus.NOT_FOUND, "사용자를 찾을 수 없습니다."),
     NICKNAME_DUPLICATED(HttpStatus.CONFLICT, "이미 사용 중인 닉네임입니다."),
+    ALREADY_WITHDRAW(HttpStatus.BAD_REQUEST,"이미 탈되한 사용자 입니다."),
 
     // Lecture 도메인 관련
     LECTURE_NOT_FOUND(HttpStatus.NOT_FOUND, "존재하지 않는 강좌입니다."),
@@ -81,6 +82,7 @@ public enum ErrorCode {
     PAYMENT_AMOUNT_MISMATCH(HttpStatus.BAD_REQUEST,"토스 서버의 결제 금액과 입력된 결제 금액이 다릅니다."),
     PAYMENT_ALREADY_PROCESSED(HttpStatus.BAD_REQUEST,"이미 처리된 결제 입니다."),
     INVALID_PLAN_TYPE(HttpStatus.BAD_REQUEST, "유효하지 않은 요금제입니다."),
+    ;
 
 
     // AI 도메인 관련
