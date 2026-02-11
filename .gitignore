@@ -16,13 +16,16 @@ build/
 bin/
 !**/src/main/**/bin/
 !**/src/test/**/bin/
-
+.sisyphus
 ### IntelliJ IDEA ###
 .idea
 *.iws
 *.iml
 *.ipr
+*.yml
+*.env
 out/
+src/main/resources/probable-skill-480215-i2-e03bdc4d0d4d.json
 !**/src/main/**/out/
 !**/src/test/**/out/
 

@@ -1,0 +1,99 @@
+package com.teamexp.learnflowapi.payment.service;
+
+import com.teamexp.learnflowapi.membership.service.dto.PaymentCompletedEvent;
+import com.teamexp.learnflowapi.payment.dto.request.PaymentConfirmRequest;
+import com.teamexp.learnflowapi.payment.dto.response.PaymentConfirmResponse;
+import com.teamexp.learnflowapi.payment.exception.PaymentAlreadyProcessedException;
+import com.teamexp.learnflowapi.payment.exception.PaymentAmountMismatchException;
+import com.teamexp.learnflowapi.payment.exception.TossErrorException;
+import com.teamexp.learnflowapi.payment.model.PaymentHistory;
+import com.teamexp.learnflowapi.payment.model.constant.PlanType;
+import com.teamexp.learnflowapi.payment.repository.PaymentHistoryRepository;
+import com.teamexp.learnflowapi.payment.service.dto.PaymentDto;
+import java.nio.charset.StandardCharsets;
+import java.time.OffsetDateTime;
+import java.time.format.DateTimeFormatter;
+import java.util.Base64;
+import lombok.RequiredArgsConstructor;
+import org.springframework.context.ApplicationEventPublisher;
+import org.springframework.http.HttpHeaders;
+import org.springframework.http.HttpStatusCode;
+import org.springframework.http.MediaType;
+import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
+import org.springframework.web.client.RestClient;
+
+@Service
+@RequiredArgsConstructor
+@Transactional
+public class PaymentService {
+    private final RestClient tossRestClient;
+    private final TossProps tossProps;
+    private final PaymentHistoryRepository paymentHistoryRepository;
+    private final ApplicationEventPublisher eventPublisher;
+
+    @Transactional
+    public PaymentConfirmResponse tossConfirm(PaymentConfirmRequest request, String userId) {
+        if (paymentHistoryRepository.existsByOrderId(request.orderId())) {
+            throw new PaymentAlreadyProcessedException();
+        }
+
+        PaymentDto paymentDto = callTossConfirmApi(request);
+
+        if (!request.amount().equals(paymentDto.totalAmount())) {
+            throw new PaymentAmountMismatchException();
+        }
+
+        PlanType planType = resolvePlanType(paymentDto.orderName());
+
+        savePaymentHistory(userId, paymentDto, planType);
+
+        eventPublisher.publishEvent(new PaymentCompletedEvent(userId, planType));
+
+        return PaymentConfirmResponse.from(paymentDto);
+    }
+
+    private PaymentDto callTossConfirmApi(PaymentConfirmRequest request) {
+        String encodedKey = Base64.getEncoder()
+                .encodeToString((tossProps.getSecretKey() + ":").getBytes(StandardCharsets.UTF_8));
+
+        return tossRestClient.post()
+                .uri(tossProps.getConfirmUrl())
+                .header(HttpHeaders.AUTHORIZATION, "Basic " + encodedKey)
+                .contentType(MediaType.APPLICATION_JSON)
+                .body(request)
+                .retrieve()
+                .onStatus(HttpStatusCode::isError, (req, res) -> {
+                    throw new TossErrorException();
+                })
+                .body(PaymentDto.class);
+    }
+
+    private void savePaymentHistory(String userId, PaymentDto dto, PlanType planType) {
+        PaymentHistory history = PaymentHistory.create(
+                userId,
+                dto.orderId(),
+                dto.paymentKey(),
+                dto.totalAmount(),
+                planType,
+                OffsetDateTime.parse(dto.approvedAt(), DateTimeFormatter.ISO_OFFSET_DATE_TIME).toInstant()
+        );
+        paymentHistoryRepository.save(history);
+    }
+
+    private PlanType resolvePlanType(String orderName) {
+        if (orderName.contains("12개월")) {
+            return PlanType.YEAR;
+        }
+        if (orderName.contains("1개월")) {
+            return PlanType.ONE_MONTH;
+        }
+        if (orderName.contains("3개월")) {
+            return PlanType.THREE_MONTHS;
+        }
+        if (orderName.contains("6개월")) {
+            return PlanType.HALF_YEAR;
+        }
+        return PlanType.ONE_MONTH;
+    }
+}
