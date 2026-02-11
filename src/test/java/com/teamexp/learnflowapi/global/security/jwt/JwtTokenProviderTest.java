@@ -60,8 +60,8 @@ class JwtTokenProviderTest {
     @Test
     @DisplayName("토큰 검증 실패 - 만료")
     void tc11_validate_token_fail() throws InterruptedException {
-        // givne: 만료 토큰
-        ReflectionTestUtils.setField(jwtTokenProvider, "accessTokenValidityInMs", 0L);; // 즉시 만료
+        // given: 만료 토큰
+        ReflectionTestUtils.setField(jwtTokenProvider, "accessTokenValidityInMs", 0L); // 즉시 만료
 
         String accessToken = jwtTokenProvider.createAccessToken(USER_ID, EMAIL, ROLE, NICKNAME);
 
