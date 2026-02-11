@@ -12,11 +12,11 @@ public interface TrackingRepository  extends JpaRepository<TrackingLog, Long> {
     @Query("SELECT  t.referrer, COUNT(t) FROM TrackingLog t " +
            "WHERE t.event = 'landing' AND t.referrer IS NOT NULL AND t.referrer != '' " +
            "GROUP BY t.referrer ORDER BY COUNT(t) DESC")
-    List<TrackingStatsProjection> findReferrerStats();
+    List<Object[]> findReferrerStats();
 
 
     @Query("SELECT t.path, COUNT(t) FROM TrackingLog t " +
             "WHERE t.event = 'exit' " +
             "GROUP BY t.path ORDER BY COUNT(t) DESC")
-    List<TrackingStatsProjection> findExitPageStats();
+    List<Object[]> findExitPageStats();
 }

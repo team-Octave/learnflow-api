@@ -6,6 +6,7 @@ import com.teamexp.learnflowapi.auth.repository.LoginHistoryRepository;
 import com.teamexp.learnflowapi.log.repository.TrackingRepository;
 import com.teamexp.learnflowapi.log.repository.TrackingStatsProjection;
 import com.teamexp.learnflowapi.user.repository.UserRepository;
+import com.teamexp.learnflowapi.user.service.UserService;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
