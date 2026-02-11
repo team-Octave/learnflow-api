@@ -7,9 +7,10 @@ public record PaymentQueryResponse(
         Long id,
         Instant paymentDate,
         String planType,
+        Long amount,
         String status
 ) {
     public static PaymentQueryResponse of(PaymentQueryDto dto){
-        return new PaymentQueryResponse(dto.id(), dto.paymentDate(), dto.planType().getValue() +"개월", dto.status().getResult());
+        return new PaymentQueryResponse(dto.id(), dto.paymentDate(), dto.planType().getValue() +"개월", dto.amount(), dto.status().getResult());
     }
 }
