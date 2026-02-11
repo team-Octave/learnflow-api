@@ -171,7 +171,7 @@ public class LessonService {
         }
 
         validateVideoLessonAccess(lecture, lectureId, lesson, userId);
-        validateEnrolledMembership(userId);
+        validateEnrolledMembership(userId,lecture);
         String signedUrl = contentMediaService.getStreamingUrl(lessonId);
         return LessonResponse.withoutQuiz(
             lesson.getId(),
