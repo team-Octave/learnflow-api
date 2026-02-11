@@ -11,6 +11,7 @@ jobs:
       - name: Checkout code
         uses: actions/checkout@v4
 
+      # 1. 빌드/테스트를 위한 설정 파일 복원
       - name: Create Config Files from Secrets
         run: |
           mkdir -p src/main/resources
@@ -33,6 +34,7 @@ jobs:
       - name: Build with Gradle
         run: ./gradlew clean bootJar -x test
 
+      # 2. JAR 파일 전송
       - name: Upload to GCP VM
         uses: appleboy/scp-action@v1.0.0
         with:
@@ -43,6 +45,7 @@ jobs:
           target: "/opt/app"
           strip_components: 2
 
+      # 3. 설정 파일 갱신, 백업 정리 및 애플리케이션 재시작
       - name: Restart Application
         uses: appleboy/ssh-action@v1.2.4
         with:
@@ -52,13 +55,17 @@ jobs:
           script: |
             cd /opt/app || { echo "Error: Failed to cd to /opt/app"; exit 1; }
 
+            # 서버 설정 파일 동기화
             sudo rm -f application-dev.yml
             sudo tee application-dev.yml > /dev/null <<EOF
             ${{ secrets.APPLICATION_DEV_YML }}
             EOF
             sudo chown deployer:deployer application-dev.yml
+
+            # GCP JSON 키 파일 권한 설정
             sudo chmod 644 /opt/app/probable-skill-480215-i2-e03bdc4d0d4d.json
 
+            # [Graceful Shutdown] 기존 프로세스 종료
             PID=$(sudo lsof -ti:8080 || true)
             if [ -n "$PID" ]; then
               sudo kill -15 $PID || true
@@ -69,21 +76,30 @@ jobs:
               sudo fuser -k 8080/tcp || true
             fi
 
+            # [JAR 교체 및 백업 관리]
             mkdir -p backup
             if [ -f "app.jar" ]; then
               sudo mv app.jar backup/app.jar.$(date +%Y%m%d%H%M%S)
             fi
             
-            # [용량 해결] 백업 폴더 내 최신 3개만 남기고 삭제
+            # 용량 관리: 백업 폴더 내에서 최신 3개 파일만 남기고 삭제
             if [ -d "backup" ]; then
               cd backup && ls -t | tail -n +4 | xargs -I {} rm -f -- {}
-              cd ..
+              cd /opt/app
             fi
 
-            LATEST_JAR=$(find . -maxdepth 1 -name "*.jar" -type f -printf '%T@ %p\n' | sort -rn | head -1 | cut -d' ' -f2-)
+            # [안정적인 JAR 찾기] ls -t를 사용하여 가장 최근 파일을 변수에 할당
+            LATEST_JAR=$(ls -t *.jar | head -1)
+            
+            if [ -z "$LATEST_JAR" ]; then
+              echo "Error: No JAR file found in /opt/app"
+              exit 1
+            fi
+            
+            echo "Deploying LATEST_JAR: $LATEST_JAR"
             sudo mv "$LATEST_JAR" app.jar
 
-            # [통합 실행] 중복 제거 및 환경 변수 단일 주입
+            # [Run] 통합 실행 (중복 실행 제거 및 모든 환경 변수 주입)
             nohup java -jar \
               -Dspring.profiles.active=dev \
               -DADMIN_EMAIL=${{ secrets.ADMIN_EMAIL }} \
@@ -93,6 +109,7 @@ jobs:
               -Dtoss.payments.client-key=${{ secrets.TOSS_CLIENT_KEY }} \
               app.jar > app.log 2>&1 &
             
+            # [Health Check]
             echo "Waiting for application to start..."
             for i in {1..30}; do
               if curl -f http://localhost:8080/actuator/health > /dev/null 2>&1; then
