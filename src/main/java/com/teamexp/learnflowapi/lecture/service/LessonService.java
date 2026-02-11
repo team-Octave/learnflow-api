@@ -16,6 +16,7 @@ import com.teamexp.learnflowapi.lecture.exception.LessonNotFoundException;
 import com.teamexp.learnflowapi.lecture.exception.LessonQuizCountInvalidException;
 import com.teamexp.learnflowapi.lecture.exception.LessonTypeInvalidException;
 import com.teamexp.learnflowapi.lecture.exception.LessonVideoUrlInvalidException;
+import com.teamexp.learnflowapi.lecture.exception.MembershipNotFoundException;
 import com.teamexp.learnflowapi.lecture.exception.QuizLessonMismatchException;
 import com.teamexp.learnflowapi.lecture.exception.QuizNotFoundException;
 import com.teamexp.learnflowapi.lecture.model.Chapter;
@@ -27,6 +28,8 @@ import com.teamexp.learnflowapi.lecture.model.Quiz;
 import com.teamexp.learnflowapi.lecture.repository.LectureRepository;
 import com.teamexp.learnflowapi.lecture.repository.LessonRepository;
 import com.teamexp.learnflowapi.lecture.repository.QuizRepository;
+import com.teamexp.learnflowapi.membership.model.Membership;
+import com.teamexp.learnflowapi.membership.repository.MembershipRepository;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -51,14 +54,15 @@ public class LessonService {
     private final LectureAccessValidator lectureAccessValidator;
     private final ContentMediaService contentMediaService;
     private final EnrollmentRepository enrollmentRepository;
+    private final MembershipRepository  membershipRepository;
 
     public LessonService(
-        LectureRepository lectureRepository,
-        LessonRepository lessonRepository,
-        QuizRepository quizRepository,
-        LectureAccessValidator lectureAccessValidator,
-        ContentMediaService contentMediaService,
-        EnrollmentRepository enrollmentRepository
+            LectureRepository lectureRepository,
+            LessonRepository lessonRepository,
+            QuizRepository quizRepository,
+            LectureAccessValidator lectureAccessValidator,
+            ContentMediaService contentMediaService,
+            EnrollmentRepository enrollmentRepository, MembershipRepository membershipRepository
     ) {
         this.lectureRepository = lectureRepository;
         this.lessonRepository = lessonRepository;
@@ -66,6 +70,7 @@ public class LessonService {
         this.lectureAccessValidator = lectureAccessValidator;
         this.contentMediaService = contentMediaService;
         this.enrollmentRepository = enrollmentRepository;
+        this.membershipRepository = membershipRepository;
     }
 
     @Transactional
@@ -149,7 +154,6 @@ public class LessonService {
      *
      * <p>NOTE: VIDEO 레슨의 videoUrl은 보안을 위해 signedUrl로 내려준다.
      * 강의 상세/목록 응답에서는 VIDEO의 videoUrl을 내려주지 않는다.
-     * TODO-membership : Check User Principal's Membership
      */
     public LessonResponse getLesson(Long lectureId, Long lessonId, String userId) {
         if (userId == null || userId.isBlank()) {
@@ -364,16 +368,22 @@ public class LessonService {
      * - 그 외: 강의 소유 강사 또는 수강(enrollment) 중인 유저만 허용
      */
     private void validateVideoLessonAccess(Lecture lecture, Long lectureId, Lesson lesson, String userId) {
+        Membership membership = membershipRepository.findByUserId(userId).orElseThrow(MembershipNotFoundException::new);
+
         if (Boolean.TRUE.equals(lecture.isFreeLecture())) {
             return;
         }
         if (lecture.getInstructorId() != null && lecture.getInstructorId().equals(userId)) { // 강의 소유자 여부 확인
             return;
         }
+        if(!membership.isActive()){
+            return;
+        }
         // 기존: 수강(enrollment) 중인 유저 여부 확인 -> 수정: 수강생 여부 확인+ membership 활성 상태 확인
         if (enrollmentRepository.existsByUserIdAndLectureId(userId, lectureId)) { // 수강생 여부 확인
             return;
         }
+
         throw new LessonAccessDeniedException();
     }
 }
