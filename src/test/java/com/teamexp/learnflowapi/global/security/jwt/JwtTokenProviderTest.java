@@ -41,10 +41,10 @@ class JwtTokenProviderTest {
 
         Claims claims = jwtTokenProvider.parseToken(accessToken);
 
-        assert claims.getSubject().equals(USER_ID);
-        assert claims.get("email", String.class).equals(EMAIL);
-        assert claims.get("role", String.class).equals(ROLE);
-        assert claims.get("nickname", String.class).equals(NICKNAME);
+        assertThat(claims.getSubject()).isEqualTo(USER_ID);
+        assertThat(claims.get("email", String.class).equals(EMAIL));
+        assertThat(claims.get("role", String.class).equals(ROLE));
+        assertThat(claims.get("nickname", String.class)).isEqualTo(NICKNAME);
     }
 
     @Test
@@ -89,11 +89,10 @@ class JwtTokenProviderTest {
     @DisplayName("토큰 파싱 - 유저 ID 추출")
     void tc13_parse_userid_from_subject() {
         String accessToken = jwtTokenProvider.createAccessToken(USER_ID, EMAIL, ROLE, NICKNAME);
-        // 변조된 토큰 생성
 
         Claims claims = jwtTokenProvider.parseToken(accessToken);
 
-        assert claims.getSubject().equals(USER_ID);
+        assertThat(claims.getSubject()).isEqualTo(USER_ID);
     }
 
     @Test
@@ -103,6 +102,6 @@ class JwtTokenProviderTest {
 
         Claims claims = jwtTokenProvider.parseToken(accessToken);
 
-        assert claims.get("role", String.class).equals(ROLE);
+        assertThat(claims.get("role", String.class)).isEqualTo(ROLE);
     }
 }

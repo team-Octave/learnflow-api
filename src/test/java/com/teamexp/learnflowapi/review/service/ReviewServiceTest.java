@@ -121,7 +121,7 @@ class ReviewServiceTest {
 
 
     @Test
-    @DisplayName("리뷰 삭제 실패(내 리뷰 아님")
+    @DisplayName("리뷰 삭제 실패(내 리뷰 아님)")
     void tc28_delete_review_fail_not_mine() {
         // given
         String userId = "user-1";
