@@ -40,6 +40,9 @@ spring:
       max-request-size: 10MB
 
 app:
+
+  internal-api-key: "test-secret-key"
+
   cors:
     allowed-origins: http://localhost:3000
 

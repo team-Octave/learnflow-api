@@ -7,9 +7,23 @@ public class BaseResponse<T> {
     private String code;
     private String message;
     private T data;
-    private String traceId; // <-- 추적 ID 필드 추가
+    private String traceId; // 추적 ID
 
-    // 생성자에 traceId 추가
+    /**
+     * ✨ [수정] Controller에서 new BaseResponse<>(data) 형태로 호출할 때 필요한 생성자
+     * 성공(SUCCESS) 상태로 초기화하며, MDC에서 traceId를 자동으로 가져옵니다.
+     */
+    public BaseResponse(T data) {
+        this.success = true;
+        this.code = "SUCCESS";
+        this.message = "요청이 성공했습니다.";
+        this.data = data;
+        this.traceId = MDC.get("traceId"); // 현재 스레드의 TraceID 주입
+    }
+
+    /**
+     * 내부 전용 생성자 (모든 필드 초기화)
+     */
     private BaseResponse(boolean success, String code, String message, T data, String traceId) {
         this.success = success;
         this.code = code;
@@ -18,25 +32,27 @@ public class BaseResponse<T> {
         this.traceId = traceId;
     }
 
-    // 성공 응답: MDC에서 자동으로 traceId를 가져와 주입합니다.
+    // --- Static Factory Methods ---
+
+    // 성공 응답 (Static 메서드 사용 시)
     public static <T> BaseResponse<T> ok(T data) {
         return new BaseResponse<>(true, "SUCCESS", "요청이 성공했습니다.", data, MDC.get("traceId"));
     }
 
-    // 에러 응답 1: traceId를 외부(ExceptionHandler)에서 받아 처리
+    // 에러 응답 1: 데이터 없음
     public static <T> BaseResponse<T> error(String code, String message, String traceId) {
         return new BaseResponse<>(false, code, message, null, traceId);
     }
 
-    // 에러 응답 2: 데이터가 포함된 경우
+    // 에러 응답 2: 데이터 포함
     public static <T> BaseResponse<T> error(String code, String message, T data, String traceId) {
         return new BaseResponse<>(false, code, message, data, traceId);
     }
 
-    // Getter들
+    // --- Getter Methods ---
     public boolean isSuccess() { return success; }
     public String getCode() { return code; }
     public String getMessage() { return message; }
     public T getData() { return data; }
-    public String getTraceId() { return traceId; } // <-- Getter 추가
+    public String getTraceId() { return traceId; }
 }
