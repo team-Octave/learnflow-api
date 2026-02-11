@@ -38,7 +38,7 @@ public class GlobalExceptionHandler {
 
     // 2. 예상하지 못한 에러 처리 (가장 중요 ⭐)
     @ExceptionHandler(Exception.class)
-    public ResponseEntity<BaseResponse<String>> handleException(Exception e) {
+    public ResponseEntity<BaseResponse<?>> handleException(Exception e) {
         String traceId = MDC.get("traceId");
 
         // e.printStackTrace() 대신 log.error 사용 (Loki로 스택 트레이스 전체 전송)
