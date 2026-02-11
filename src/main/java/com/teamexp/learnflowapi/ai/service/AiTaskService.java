@@ -56,7 +56,7 @@ public class AiTaskService {
 
         // 태스크가 없으면 주기적으로 재시도
         long startTime = System.currentTimeMillis();
-        long timeoutMs = timeout * 1000L; 
+        long timeoutMs = timeout * 1000L;
 
         scheduler.scheduleAtFixedRate(() -> {
             try {
