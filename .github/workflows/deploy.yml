@@ -86,7 +86,18 @@ jobs:
 
             # [Run] 실행 옵션 강화
             nohup java -jar -Dspring.profiles.active=dev app.jar > app.log 2>&1 &
-
+            
+            #환경 변수 주입
+            nohup java -jar \
+              -Dspring.profiles.active=dev \
+              -DADMIN_EMAIL=${{ secrets.ADMIN_EMAIL }} \
+              -DADMIN_PASSWORD=${{ secrets.ADMIN_PASSWORD }} \
+              -Dtoss.api.url=${{ secrets.TOSS_URL }} \
+              -Dtoss.client.key=${{ secrets.TOSS_CLIENT_KEY }} \
+              -Dtoss.secret.key=${{ secrets.TOSS_SECRET_KEY }} \
+              -
+              app.jar > app.log 2>&1 &
+            
             # [Health Check]
             echo "Waiting for application to start..."
             for i in {1..30}; do
