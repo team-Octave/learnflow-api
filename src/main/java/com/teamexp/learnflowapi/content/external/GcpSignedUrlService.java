@@ -69,4 +69,22 @@ public class GcpSignedUrlService {
 
         return url.toString();
     }
+
+    /**
+     *   AI 워커 다운로드용 Signed URL 생성
+     * - 재생 시간이 아닌 단순 만료 시간(초)을 기준으로 URL 생성
+     */
+    public String generateDownloadUrl(String fileKey, long expirationSeconds) {
+        BlobInfo blobInfo = BlobInfo.newBuilder(bucketName, fileKey).build();
+
+        URL url = storage.signUrl(
+            blobInfo,
+            expirationSeconds,
+            TimeUnit.SECONDS, // 초 단위 설정
+            Storage.SignUrlOption.httpMethod(HttpMethod.GET),
+            Storage.SignUrlOption.withV4Signature()
+        );
+
+        return url.toString();
+    }
 }

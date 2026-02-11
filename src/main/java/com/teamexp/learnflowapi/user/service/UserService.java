@@ -1,6 +1,8 @@
 package com.teamexp.learnflowapi.user.service;
 
+import com.teamexp.learnflowapi.auth.controller.dto.MembershipStatus;
 import com.teamexp.learnflowapi.global.config.PasswordConfig;
+import com.teamexp.learnflowapi.membership.repository.MembershipRepository;
 import com.teamexp.learnflowapi.user.controller.dto.NicknameCheckResponse;
 import com.teamexp.learnflowapi.user.controller.dto.UserCreateRequest;
 import com.teamexp.learnflowapi.user.controller.dto.UserReadResponse;
@@ -19,11 +21,13 @@ import org.springframework.transaction.annotation.Transactional;
 public class UserService {
 
     private final UserRepository userRepository;
+    private final MembershipRepository membershipRepository;
     private final PasswordConfig passwordConfig;
 
     @Autowired
-    public UserService(UserRepository userRepository, PasswordConfig passwordConfig) {
+    public UserService(UserRepository userRepository, MembershipRepository membershipRepository, PasswordConfig passwordConfig) {
         this.userRepository = userRepository;
+        this.membershipRepository = membershipRepository;
         this.passwordConfig = passwordConfig;
     }
 
@@ -64,6 +68,15 @@ public class UserService {
         User user = userRepository.findById(userId).orElseThrow(
             UserNotFoundException::new
         );
-        return new UserReadResponse(user.getNickname(), user.getEmail(), user.getRole().name());
+
+        MembershipStatus status = getMembershipStatus(user.getUserId());
+        return UserReadResponse.of(user,status);
+    }
+
+
+    private MembershipStatus getMembershipStatus(String userId) {
+        return membershipRepository.findByUserId(userId)
+                .map(status -> new MembershipStatus(true, status.getExpiredAt()))
+                .orElseGet(() -> new MembershipStatus(false, null));
     }
 }

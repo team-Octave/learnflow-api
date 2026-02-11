@@ -1,8 +1,9 @@
 package com.teamexp.learnflowapi.global.config;
 
 import com.teamexp.learnflowapi.global.common.filter.LogTraceFilter;
-import com.teamexp.learnflowapi.global.common.filter.RequestResponseLoggingFilter; // 1. 필터 임포트 추가
+import com.teamexp.learnflowapi.global.common.filter.RequestResponseLoggingFilter;
 import com.teamexp.learnflowapi.global.security.exception.JwtAuthenticationEntryPoint;
+import com.teamexp.learnflowapi.global.security.filter.InternalApiKeyFilter; // Import 추가
 import com.teamexp.learnflowapi.global.security.jwt.JwtAuthenticationFilter;
 import com.teamexp.learnflowapi.user.service.CustomUserDetailsService;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -26,16 +27,19 @@ public class SecurityConfig {
     private final PasswordConfig passwordConfig;
     private final JwtAuthenticationFilter jwtAuthenticationFilter;
     private final JwtAuthenticationEntryPoint jwtAuthenticationEntryPoint;
+    private final InternalApiKeyFilter internalApiKeyFilter;
 
     @Autowired
     public SecurityConfig(CustomUserDetailsService userDetailsService,
                           PasswordConfig passwordConfig,
                           JwtAuthenticationFilter jwtAuthenticationFilter,
-                          JwtAuthenticationEntryPoint jwtAuthenticationEntryPoint) {
+                          JwtAuthenticationEntryPoint jwtAuthenticationEntryPoint,
+                          InternalApiKeyFilter internalApiKeyFilter) {
         this.userDetailsService = userDetailsService;
         this.passwordConfig = passwordConfig;
         this.jwtAuthenticationFilter = jwtAuthenticationFilter;
         this.jwtAuthenticationEntryPoint = jwtAuthenticationEntryPoint;
+        this.internalApiKeyFilter = internalApiKeyFilter;
     }
 
     @Bean
@@ -43,10 +47,6 @@ public class SecurityConfig {
         return new LogTraceFilter();
     }
 
-    /**
-     * 바디 로깅 필터를 빈으로 등록합니다.
-     * LogTraceFilter와 동일한 이유로 중복 등록 방지를 위해 수동 등록합니다.
-     */
     @Bean
     public RequestResponseLoggingFilter requestResponseLoggingFilter() {
         return new RequestResponseLoggingFilter();
@@ -60,11 +60,19 @@ public class SecurityConfig {
             .sessionManagement(session ->
                 session.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
             .exceptionHandling(exception -> exception.authenticationEntryPoint(jwtAuthenticationEntryPoint))
+
             .authorizeHttpRequests(auth -> auth
                 .requestMatchers("/actuator/**").permitAll()
                 .requestMatchers("/api/v1/auth/**").permitAll()
                 .requestMatchers(HttpMethod.POST, "/api/v1/users").permitAll()
                 .requestMatchers(HttpMethod.GET, "/api/v1/users/check").permitAll()
+
+                // 내부 API는 인증된 요청만 허용 (InternalApiKeyFilter에서 ROLE_SYSTEM 부여)
+                .requestMatchers("/api/internal/**").authenticated()
+
+                .requestMatchers("/api/ai/summary/**").permitAll() // AI 요약 조회는 공개
+
+                // ... 기존 권한 설정 유지 ...
                 .requestMatchers(HttpMethod.GET, "/api/v1/lectures/my").hasRole("MEMBER")
                 .requestMatchers(HttpMethod.GET, "/api/v1/users/me").hasAnyRole("MEMBER", "ADMIN")
                 .requestMatchers("/api/v1/admin/**").hasRole("ADMIN")
@@ -79,17 +87,16 @@ public class SecurityConfig {
                 .requestMatchers(HttpMethod.GET, "/api/v1/lectures/**").permitAll()
                 .requestMatchers(HttpMethod.GET, "/api/v1/reviews/**").permitAll()
                 .requestMatchers(HttpMethod.GET, "/api/v1/reviews/lectures/**").permitAll()
-                .anyRequest().authenticated()
-            )
-            .userDetailsService(userDetailsService);
 
-        // 🎯 필터 실행 순서 정의
+                .anyRequest().authenticated()
+            );
+
+        // 🎯 필터 실행 순서: InternalAPIKey -> LogTrace -> Logging -> JWT
+        // InternalApiKeyFilter를 별도 클래스로 생성하여 등록
         http
-            // 1. 가장 먼저 TraceID 생성 (MDC 주입)
+            .addFilterBefore(internalApiKeyFilter, UsernamePasswordAuthenticationFilter.class)
             .addFilterBefore(logTraceFilter(), UsernamePasswordAuthenticationFilter.class)
-            // 2. 생성된 ID를 가지고 요청/응답 Body 로깅 실행
             .addFilterAfter(requestResponseLoggingFilter(), LogTraceFilter.class)
-            // 3. 이후 JWT 인증 진행
             .addFilterBefore(jwtAuthenticationFilter, UsernamePasswordAuthenticationFilter.class);
 
         return http.build();
