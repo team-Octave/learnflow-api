@@ -92,10 +92,9 @@ jobs:
               -Dspring.profiles.active=dev \
               -DADMIN_EMAIL=${{ secrets.ADMIN_EMAIL }} \
               -DADMIN_PASSWORD=${{ secrets.ADMIN_PASSWORD }} \
-              -Dtoss.api.url=${{ secrets.TOSS_URL }} \
-              -Dtoss.client.key=${{ secrets.TOSS_CLIENT_KEY }} \
-              -Dtoss.secret.key=${{ secrets.TOSS_SECRET_KEY }} \
-              -
+              -Dtoss.payments.confirm-url=${{ secrets.TOSS_URL }} \
+              -Dtoss.payments.secret-key=${{ secrets.TOSS_SECRET_KEY }} \
+              -Dtoss.payments.client-key=${{ secrets.TOSS_CLIENT_KEY }} \
               app.jar > app.log 2>&1 &
             
             # [Health Check]
