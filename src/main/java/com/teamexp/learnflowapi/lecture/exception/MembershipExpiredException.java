@@ -5,6 +5,6 @@ import com.teamexp.learnflowapi.global.exception.ErrorCode;
 
 public class MembershipExpiredException extends BaseException {
     public MembershipExpiredException() {
-        super(ErrorCode.MEMBERSHIP_NOT_FOUND_IN_LECTURE);
+        super(ErrorCode.MEMBERSHIP_EXPIRED);
     }
 }
