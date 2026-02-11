@@ -54,7 +54,7 @@ public class AdminPageController {
         model.addAttribute("weeklyDau", stats.weeklyDau());
         
         model.addAttribute("recentUsers", List.of()); // 빈 리스트 (TASK 3에서 구현)
-        model.addAttribute("userStats", stats.userStats());
+        model.addAttribute("membershipStats", stats.userRateMembershipDto());
         model.addAttribute("referrerDistribution", stats.referrerDistribution());
         model.addAttribute("exitPageDistribution", stats.exitPageDistribution());
         return "admin/index";

@@ -236,13 +236,12 @@
             if (document.getElementById("subscription-chart") && typeof ApexCharts !== 'undefined') {
 
                 /*<![CDATA[*/
-                // Controller에서 model.addAttribute("userStats", ...)로 넘겨줘야 함
-                const userStats = /*[[${userStats}]]*/ null;
+                const membershipStats = /*[[${membershipStats}]]*/ null;
                 /*]]>*/
 
-                if (userStats) {
+                if (membershipStats) {
                     const subOptions = {
-                        series: [userStats.subscribedUsers, userStats.nonSubscribedUsers],
+                        series: [membershipStats.membershipUserAmount, membershipStats.normalCount],
                         labels: ['구독 회원', '일반 회원'],
                         chart: {
                             type: 'donut',
@@ -267,7 +266,7 @@
                                             fontWeight: 600,
                                             color: '#6B7280',
                                             formatter: function (w) {
-                                                return userStats.totalActiveUsers + "명";
+                                                return membershipStats.totalUserAmount + "명";
                                             }
                                         }
                                     }
