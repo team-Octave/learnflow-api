@@ -161,8 +161,6 @@ public class LessonService {
             throw new BaseException(ErrorCode.UNAUTHORIZED);
         }
 
-        validateEnrolledMembership(userId);
-
         Lecture lecture = findLectureWithChaptersAndLessons(lectureId);
 
         Chapter chapter = findChapterContainingLesson(lecture, lessonId);
@@ -173,7 +171,7 @@ public class LessonService {
         }
 
         validateVideoLessonAccess(lecture, lectureId, lesson, userId);
-
+        validateEnrolledMembership(userId);
         String signedUrl = contentMediaService.getStreamingUrl(lessonId);
         return LessonResponse.withoutQuiz(
             lesson.getId(),
@@ -372,9 +370,6 @@ public class LessonService {
      */
     private void validateVideoLessonAccess(Lecture lecture, Long lectureId, Lesson lesson, String userId) {
 
-        if (Boolean.TRUE.equals(lecture.isFreeLecture())) {
-            return;
-        }
         if (lecture.getInstructorId() != null && lecture.getInstructorId().equals(userId)) { // 강의 소유자 여부 확인
             return;
         }
@@ -386,9 +381,10 @@ public class LessonService {
         throw new LessonAccessDeniedException();
     }
 
-    private void validateEnrolledMembership(String userId){
+    private void validateEnrolledMembership(String userId,Lecture lecture){
         Membership membership = membershipRepository.findByUserId(userId).orElseThrow(MembershipNotFoundException::new);
-        if(!membership.isActive()){
+
+        if(!membership.isActive() && !lecture.isFreeLecture()){
             throw new MembershipExpiredException();
         }
     }
