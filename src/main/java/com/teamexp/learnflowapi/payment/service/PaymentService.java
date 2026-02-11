@@ -34,9 +34,7 @@ public class PaymentService {
 
     @Transactional
     public PaymentConfirmResponse tossConfirm(PaymentConfirmRequest request, String userId) {
-        if (paymentHistoryRepository.existsByOrderId(request.orderId())) {
-            throw new PaymentAlreadyProcessedException();
-        }
+        validateDuplicateOrder(request.orderId(), userId);
 
         PaymentDto paymentDto = callTossConfirmApi(request);
 
@@ -56,7 +54,12 @@ public class PaymentService {
     private PaymentDto callTossConfirmApi(PaymentConfirmRequest request) {
         String encodedKey = Base64.getEncoder()
                 .encodeToString((tossProps.getSecretKey() + ":").getBytes(StandardCharsets.UTF_8));
-
+        System.out.println("@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@");
+        System.out.println(tossProps.getSecretKey());
+        System.out.println(tossProps.getConfirmUrl());
+        System.out.println(request.paymentKey());
+        System.out.println(request.orderId());
+        System.out.println(request.amount());
         return tossRestClient.post()
                 .uri(tossProps.getConfirmUrl())
                 .header(HttpHeaders.AUTHORIZATION, "Basic " + encodedKey)
@@ -95,5 +98,15 @@ public class PaymentService {
             return PlanType.HALF_YEAR;
         }
         return PlanType.ONE_MONTH;
+    }
+
+    private void validateDuplicateOrder(String orderId, String userId) {
+        if (paymentHistoryRepository.existsByOrderId(orderId)) {
+            throw new PaymentAlreadyProcessedException();
+        }
+
+        if (paymentHistoryRepository.existsByUserId(userId)) {
+            throw new PaymentAlreadyProcessedException();
+        }
     }
 }
