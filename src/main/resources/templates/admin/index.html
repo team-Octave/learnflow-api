@@ -91,10 +91,12 @@
                 <h3 class="text-xl font-bold text-gray-900 dark:text-white">이탈 페이지 분석 (Top 5)</h3>
             </div>
             <div id="exit-pages-chart"></div>
-        </div>
-
+        </div> </div> <div class="mt-4 p-4 bg-white border border-gray-200 rounded-lg shadow-sm dark:border-gray-700 sm:p-6 dark:bg-gray-800">
+    <div class="flex items-center justify-between mb-4">
+        <h3 class="text-xl font-bold text-gray-900 dark:text-white">회원 구독 현황</h3>
     </div>
-
+    <div id="subscription-chart"></div>
+</div>
     <script th:inline="javascript">
         document.addEventListener("DOMContentLoaded", function () {
 
@@ -228,8 +230,65 @@
                 const exitChart = new ApexCharts(document.getElementById("exit-pages-chart"), exitOptions);
                 exitChart.render();
             }
+            // ==========================================
+            // 3. [추가됨] 구독자 비율 (Donut Chart)
+            // ==========================================
+            if (document.getElementById("subscription-chart") && typeof ApexCharts !== 'undefined') {
+
+                /*<![CDATA[*/
+                // Controller에서 model.addAttribute("userStats", ...)로 넘겨줘야 함
+                const userStats = /*[[${userStats}]]*/ null;
+                /*]]>*/
+
+                if (userStats) {
+                    const subOptions = {
+                        series: [userStats.subscribedUsers, userStats.nonSubscribedUsers],
+                        labels: ['구독 회원', '일반 회원'],
+                        chart: {
+                            type: 'donut',
+                            height: 300,
+                            fontFamily: "Inter, sans-serif",
+                            toolbar: { show: false }
+                        },
+                        colors: ['#0E9F6E', '#E5E7EB'], // 초록색(구독), 회색(일반)
+                        plotOptions: {
+                            pie: {
+                                donut: {
+                                    size: '75%',
+                                    labels: {
+                                        show: true,
+                                        name: { show: true, fontSize: '14px', fontFamily: "Inter, sans-serif", color: undefined, offsetY: -10 },
+                                        value: { show: true, fontSize: '20px', fontFamily: "Inter, sans-serif", color: undefined, fontWeight: 700, offsetY: 5 },
+                                        total: {
+                                            show: true,
+                                            showAlways: true,
+                                            label: '전체 회원',
+                                            fontSize: '14px',
+                                            fontWeight: 600,
+                                            color: '#6B7280',
+                                            formatter: function (w) {
+                                                return userStats.totalActiveUsers + "명";
+                                            }
+                                        }
+                                    }
+                                }
+                            }
+                        },
+                        stroke: { colors: ['transparent'], lineCap: '' },
+                        dataLabels: { enabled: false },
+                        legend: { position: 'bottom', fontFamily: "Inter, sans-serif", }
+                    };
+
+                    const subChart = new ApexCharts(document.getElementById("subscription-chart"), subOptions);
+                    subChart.render();
+                }
+            }
+
+            // ▲▲▲▲▲ [여기!] 코드 끝 ▲▲▲▲▲
+
         });
     </script>
 
 </div>
+
 </html>
