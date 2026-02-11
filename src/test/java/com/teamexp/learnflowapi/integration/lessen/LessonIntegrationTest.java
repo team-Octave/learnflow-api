@@ -13,6 +13,7 @@ import com.teamexp.learnflowapi.lecture.model.LectureLevel;
 import com.teamexp.learnflowapi.lecture.model.LectureStatistic;
 import com.teamexp.learnflowapi.lecture.model.Lesson;
 import com.teamexp.learnflowapi.lecture.model.LessonType;
+import com.teamexp.learnflowapi.lecture.model.PaymentType;
 import com.teamexp.learnflowapi.lecture.repository.ChapterRepository;
 import com.teamexp.learnflowapi.lecture.repository.LectureRepository;
 import com.teamexp.learnflowapi.lecture.repository.LectureStatisticRepository;
@@ -107,7 +108,8 @@ public class LessonIntegrationTest {
                 LectureLevel.BEGINNER,
                 1,
                 instructor.getUserId(),
-                "http://example.com/thumbA.jpg"
+                "http://example.com/thumbA.jpg",
+                PaymentType.FREE
         );
         lectureA.allowPublish();
         lectureA = lectureRepository.saveAndFlush(lectureA);
@@ -140,6 +142,7 @@ public class LessonIntegrationTest {
                 1,
                 instructor.getUserId(),
                 "http://example.com/thumbB.jpg"
+                , PaymentType.FREE
         );
         lectureB.allowPublish();
         lectureB = lectureRepository.saveAndFlush(lectureB);
@@ -189,7 +192,7 @@ public class LessonIntegrationTest {
                         get("/api/v2/lectures/{lectureId}/lessons/{lessonId}", lectureB.getId(), lessonB1.getId())
                                 .header("Authorization", "Bearer " + accessToken)
                 )
-                .andExpect(status().isForbidden());
+                .andExpect(status().isNotFound());
     }
 
     @Test

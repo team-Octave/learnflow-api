@@ -8,6 +8,7 @@ import com.teamexp.learnflowapi.lecture.model.Lecture;
 import com.teamexp.learnflowapi.lecture.model.LectureLevel;
 import com.teamexp.learnflowapi.lecture.model.LectureStatistic;
 import com.teamexp.learnflowapi.lecture.model.LectureStatus;
+import com.teamexp.learnflowapi.lecture.model.PaymentType;
 import com.teamexp.learnflowapi.lecture.repository.LectureRepository;
 import com.teamexp.learnflowapi.lecture.repository.LectureStatisticRepository;
 import com.teamexp.learnflowapi.user.model.User;
@@ -89,7 +90,8 @@ public class AdminIntegrationTest {
                 LectureLevel.BEGINNER,
                 1,
                 instructor.getUserId(),
-                "http://example.com/thumb.jpg"
+                "http://example.com/thumb.jpg",
+                PaymentType.FREE
         );
 
         ReflectionTestUtils.setField(lecture, "status", LectureStatus.SUBMITTED);

@@ -12,6 +12,7 @@ import com.teamexp.learnflowapi.lecture.model.LectureLevel;
 import com.teamexp.learnflowapi.lecture.model.LectureStatistic;
 import com.teamexp.learnflowapi.lecture.model.Lesson;
 import com.teamexp.learnflowapi.lecture.model.LessonType;
+import com.teamexp.learnflowapi.lecture.model.PaymentType;
 import com.teamexp.learnflowapi.lecture.repository.LectureRepository;
 import com.teamexp.learnflowapi.lecture.repository.LectureStatisticRepository;
 import com.teamexp.learnflowapi.lecture.repository.LessonRepository;
@@ -102,7 +103,8 @@ public class ReviewIntegrationTest {
                 LectureLevel.BEGINNER,
                 1,
                 instructor.getUserId(),
-                "http://example.com/thumbnail.jpg"
+                "http://example.com/thumbnail.jpg",
+                PaymentType.FREE
         );
 
         availableLecture.allowPublish();

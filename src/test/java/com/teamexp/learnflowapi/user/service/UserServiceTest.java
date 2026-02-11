@@ -1,6 +1,7 @@
 package com.teamexp.learnflowapi.user.service;
 
 import com.teamexp.learnflowapi.global.config.PasswordConfig;
+import com.teamexp.learnflowapi.membership.repository.MembershipRepository;
 import com.teamexp.learnflowapi.user.controller.dto.UserCreateRequest;
 import com.teamexp.learnflowapi.user.exception.EmailDuplicatedException;
 import com.teamexp.learnflowapi.user.exception.NicknameDuplicateException;
@@ -14,6 +15,7 @@ import org.mockito.ArgumentCaptor;
 import org.mockito.Captor;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
+import org.mockito.Mockito;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.security.crypto.password.PasswordEncoder;
 
@@ -22,6 +24,7 @@ import java.util.Optional;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.BDDMockito.given;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
@@ -43,6 +46,9 @@ public class UserServiceTest {
 
     @Captor
     ArgumentCaptor<User> userCaptor;
+
+    @Mock
+    MembershipRepository membershipRepository;
 
     @Test
     @DisplayName("회원가입 실패 - 이메일 중복")
@@ -148,13 +154,20 @@ public class UserServiceTest {
         given(userRepository.findById(userId))
                 .willReturn(Optional.of(user));
 
+        given(membershipRepository.findByUserId(Mockito.any()))
+                .willReturn(Optional.empty());
+
         var response = userService.getUserInfo(userId);
 
         assertThat(response.email()).isEqualTo("test@test.com");
         assertThat(response.nickname()).isEqualTo("nickname1");
         assertThat(response.role()).isEqualTo("MEMBER");
+
         verify(userRepository).findById(userId);
+        verify(membershipRepository).findByUserId(Mockito.any());
     }
+
+
 
     @Test
     @DisplayName("회원탈퇴 - deleteById 호출")

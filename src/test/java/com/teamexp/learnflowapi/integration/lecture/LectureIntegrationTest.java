@@ -65,7 +65,8 @@ public class LectureIntegrationTest {
                  "description": "테스트용",
                  "categoryId": 1,
                  "level": "BEGINNER",
-                 "thumbnailUrl": "https://example.com/thumb.png"
+                 "thumbnailUrl": "https://example.com/thumb.png",
+                 "paymentType": "FREE"
                 }
                 """;
 
@@ -78,7 +79,8 @@ public class LectureIntegrationTest {
                 .andExpect(jsonPath("$.data.description").value("테스트용"))
                 .andExpect(jsonPath("$.data.categoryId").value(1))
                 .andExpect(jsonPath("$.data.level").value("BEGINNER"))
-                .andExpect(jsonPath("$.data.thumbnailUrl").value("https://example.com/thumb.png"));
+                .andExpect(jsonPath("$.data.thumbnailUrl").value("https://example.com/thumb.png"))
+                .andExpect(jsonPath("$.data.paymentType").value("FREE"));
     }
 
     @Test

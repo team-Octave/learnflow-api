@@ -60,7 +60,7 @@ class ApprovalServiceTest {
         Long lectureId = 9999L;
         ApprovalUpdateRequest request = new ApprovalUpdateRequest(ApprovalStatus.APPROVED, List.of(), null);
 
-        when(lectureAdminRepository.findById(lectureId)).thenReturn(Optional.empty());
+        when(lectureAdminRepository.findByIdWithChaptersAndLessons(lectureId)).thenReturn(Optional.empty());
 
         assertThatThrownBy(() -> approvalService.updateApproval(lectureId, request))
                 .isInstanceOf(LectureNotFoundException.class);
@@ -77,7 +77,7 @@ class ApprovalServiceTest {
         Lecture lecture = mock(Lecture.class);
         ApprovalUpdateRequest request = new ApprovalUpdateRequest(ApprovalStatus.APPROVED, List.of(), null);
 
-        when(lectureAdminRepository.findById(lectureId)).thenReturn(Optional.of(lecture));
+        when(lectureAdminRepository.findByIdWithChaptersAndLessons(lectureId)).thenReturn(Optional.of(lecture));
 
         when(approvalRepository.saveAndFlush(any(Approval.class))).thenAnswer(inv -> inv.getArgument(0));
 
@@ -109,7 +109,7 @@ class ApprovalServiceTest {
                 reason
         );
 
-        when(lectureAdminRepository.findById(lectureId)).thenReturn(Optional.of(lecture));
+        when(lectureAdminRepository.findByIdWithChaptersAndLessons(lectureId)).thenReturn(Optional.of(lecture));
         when(approvalRepository.saveAndFlush(any(Approval.class))).thenAnswer(inv -> inv.getArgument(0));
 
         ApprovalUpdateResponse response = approvalService.updateApproval(lectureId, request);
