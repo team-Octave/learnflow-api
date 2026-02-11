@@ -3,11 +3,12 @@ package com.teamexp.learnflowapi.content.external;
 import com.google.cloud.storage.BlobInfo;
 import com.google.cloud.storage.Storage;
 import org.springframework.beans.factory.annotation.Value;
+import org.springframework.context.annotation.Profile;
 import org.springframework.stereotype.Service;
 import org.springframework.web.multipart.MultipartFile;
 
 import java.io.IOException;
-
+@Profile("!test")
 @Service
 public class GcpFileUploadService {
 

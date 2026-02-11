@@ -12,15 +12,6 @@ import org.springframework.test.context.ActiveProfiles;
 @ActiveProfiles("test")
 class LearnflowApiApplicationTests {
 
-    @MockBean
-    private Storage storage;
-
-    @MockBean
-    private GcpSignedUrlService gcpSignedUrlService;
-
-    @MockBean
-    private GcpFileUploadService gcpFileUploadService;
-
     @Test
     void contextLoads() {
     }

@@ -4,11 +4,12 @@ import com.google.cloud.storage.BlobInfo;
 import com.google.cloud.storage.HttpMethod;
 import com.google.cloud.storage.Storage;
 import org.springframework.beans.factory.annotation.Value;
+import org.springframework.context.annotation.Profile;
 import org.springframework.stereotype.Service;
 
 import java.net.URL;
 import java.util.concurrent.TimeUnit;
-
+@Profile("!test")
 @Service
 public class GcpSignedUrlService {
 
