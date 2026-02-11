@@ -2,11 +2,14 @@ package com.teamexp.learnflowapi.auth.service;
 
 import com.teamexp.learnflowapi.auth.controller.dto.LoginRequest;
 import com.teamexp.learnflowapi.auth.controller.dto.LoginResponse;
+import com.teamexp.learnflowapi.auth.controller.dto.MembershipStatus;
 import com.teamexp.learnflowapi.auth.controller.dto.ReissuanceResponse;
 import com.teamexp.learnflowapi.auth.exception.RefreshTokenInvalidException;
 import com.teamexp.learnflowapi.auth.exception.UserNotFoundException;
 import com.teamexp.learnflowapi.global.security.principal.CustomUserPrincipal;
 import com.teamexp.learnflowapi.global.security.jwt.JwtTokenProvider;
+import com.teamexp.learnflowapi.membership.model.Membership;
+import com.teamexp.learnflowapi.membership.repository.MembershipRepository;
 import com.teamexp.learnflowapi.user.model.User;
 import com.teamexp.learnflowapi.user.repository.UserRepository;
 import io.jsonwebtoken.Claims;
@@ -21,14 +24,16 @@ import org.springframework.transaction.annotation.Transactional;
 public class AuthService {
 
     private final AuthenticationManager authenticationManager;
+    private final MembershipRepository  membershipRepository;
     private final JwtTokenProvider jwtTokenProvider;
     private final UserRepository userRepository;
     private final TokenService tokenService;
 
     @Autowired
-    public AuthService(AuthenticationManager authenticationManager, JwtTokenProvider jwtTokenProvider,
+    public AuthService(AuthenticationManager authenticationManager, MembershipRepository membershipRepository, JwtTokenProvider jwtTokenProvider,
                        UserRepository userRepository, TokenService tokenService) {
         this.authenticationManager = authenticationManager;
+        this.membershipRepository = membershipRepository;
         this.jwtTokenProvider = jwtTokenProvider;
         this.userRepository = userRepository;
         this.tokenService = tokenService;
@@ -56,8 +61,9 @@ public class AuthService {
         // 4. 발급한 refresh token DB에 저장하는 로직 필요 (RTR 방식)
         tokenService.issueRefreshToken(user.getId(), refreshToken);
 
+        MembershipStatus status = getMembershipStatus(user.getId());
         // 5. DTO로 맵핑
-        return new LoginResponse(user.getNickname(), user.getEmail(), user.getRole().name(), accessToken, refreshToken);
+        return LoginResponse.create(user, accessToken, refreshToken, status);
     }
 
     @Transactional
@@ -107,4 +113,9 @@ public class AuthService {
         tokenService.revokeRefreshToken(userId, refreshToken);
     }
 
+    private MembershipStatus getMembershipStatus(String userId) {
+        return membershipRepository.findByUserId(userId)
+                .map(status -> new MembershipStatus(true, status.getExpiredAt()))
+                .orElseGet(() -> new MembershipStatus(false, null));
+    }
 }
