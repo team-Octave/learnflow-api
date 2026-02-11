@@ -40,6 +40,7 @@ public enum ErrorCode {
     LECTURE_CANNOT_UPDATE(HttpStatus.BAD_REQUEST, "강의를 수정할 수 없습니다."), // to class as LectureCannotUpdateException
     LESSON_ACCESS_DENIED(HttpStatus.FORBIDDEN, "권한이 없습니다."),// to class as LessonAccessDeniedException
     MEMBERSHIP_NOT_FOUND_IN_LECTURE(HttpStatus.NOT_FOUND,"멤버십에 가입해주세요."),
+    MEMBERSHIP_EXPIRED(HttpStatus.BAD_REQUEST,"멤버십이 만료되었습니다. 새로 가입해주세요."),
 
     // Content 도메인 관련
     UPLOAD_NOT_EXIST(HttpStatus.BAD_REQUEST, "업로드할 파일이 없습니다."),

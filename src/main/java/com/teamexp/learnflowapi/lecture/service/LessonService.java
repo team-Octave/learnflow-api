@@ -16,6 +16,7 @@ import com.teamexp.learnflowapi.lecture.exception.LessonNotFoundException;
 import com.teamexp.learnflowapi.lecture.exception.LessonQuizCountInvalidException;
 import com.teamexp.learnflowapi.lecture.exception.LessonTypeInvalidException;
 import com.teamexp.learnflowapi.lecture.exception.LessonVideoUrlInvalidException;
+import com.teamexp.learnflowapi.lecture.exception.MembershipExpiredException;
 import com.teamexp.learnflowapi.lecture.exception.MembershipNotFoundException;
 import com.teamexp.learnflowapi.lecture.exception.QuizLessonMismatchException;
 import com.teamexp.learnflowapi.lecture.exception.QuizNotFoundException;
@@ -159,6 +160,8 @@ public class LessonService {
         if (userId == null || userId.isBlank()) {
             throw new BaseException(ErrorCode.UNAUTHORIZED);
         }
+
+        validateEnrolledMembership(userId);
 
         Lecture lecture = findLectureWithChaptersAndLessons(lectureId);
 
@@ -368,15 +371,11 @@ public class LessonService {
      * - 그 외: 강의 소유 강사 또는 수강(enrollment) 중인 유저만 허용
      */
     private void validateVideoLessonAccess(Lecture lecture, Long lectureId, Lesson lesson, String userId) {
-        Membership membership = membershipRepository.findByUserId(userId).orElseThrow(MembershipNotFoundException::new);
 
         if (Boolean.TRUE.equals(lecture.isFreeLecture())) {
             return;
         }
         if (lecture.getInstructorId() != null && lecture.getInstructorId().equals(userId)) { // 강의 소유자 여부 확인
-            return;
-        }
-        if(!membership.isActive()){
             return;
         }
         // 기존: 수강(enrollment) 중인 유저 여부 확인 -> 수정: 수강생 여부 확인+ membership 활성 상태 확인
@@ -385,5 +384,12 @@ public class LessonService {
         }
 
         throw new LessonAccessDeniedException();
+    }
+
+    private void validateEnrolledMembership(String userId){
+        Membership membership = membershipRepository.findByUserId(userId).orElseThrow(MembershipNotFoundException::new);
+        if(!membership.isActive()){
+            throw new MembershipExpiredException();
+        }
     }
 }
