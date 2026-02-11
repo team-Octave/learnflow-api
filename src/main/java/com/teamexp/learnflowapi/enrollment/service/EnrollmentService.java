@@ -11,18 +11,23 @@ import com.teamexp.learnflowapi.enrollment.exception.CompletedLessonAlreadyExist
 import com.teamexp.learnflowapi.enrollment.exception.EnrollmentAccessDeniedException;
 import com.teamexp.learnflowapi.enrollment.exception.EnrollmentAlreadyExistsException;
 import com.teamexp.learnflowapi.enrollment.exception.EnrollmentNotFoundException;
+import com.teamexp.learnflowapi.enrollment.exception.MembershipExpiredEnrollmentException;
 import com.teamexp.learnflowapi.enrollment.exception.SelfEnrollmentNotAllowedException;
+import com.teamexp.learnflowapi.enrollment.exception.UserNotPurchaseMembershipException;
 import com.teamexp.learnflowapi.enrollment.model.CompletedLesson;
 import com.teamexp.learnflowapi.enrollment.model.Enrollment;
 import com.teamexp.learnflowapi.enrollment.model.EnrollmentStatus;
 import com.teamexp.learnflowapi.enrollment.repository.CompletedLessonRepository;
 import com.teamexp.learnflowapi.enrollment.repository.EnrollmentRepository;
+import com.teamexp.learnflowapi.global.exception.ErrorCode;
 import com.teamexp.learnflowapi.lecture.exception.LectureNotFoundException;
 import com.teamexp.learnflowapi.lecture.exception.LectureStatusInvalidException;
 import com.teamexp.learnflowapi.lecture.exception.LessonNotFoundException;
 import com.teamexp.learnflowapi.lecture.model.*;
 import com.teamexp.learnflowapi.lecture.repository.LectureRepository;
 import com.teamexp.learnflowapi.lecture.repository.LectureStatisticRepository;
+import com.teamexp.learnflowapi.membership.model.Membership;
+import com.teamexp.learnflowapi.membership.repository.MembershipRepository;
 import jakarta.persistence.OptimisticLockException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -52,18 +57,21 @@ public class EnrollmentService {
     @Deprecated  // thumbnailUrl은 이제 Lecture.thumbnailUrl에서 직접 사용
     private final ThumbnailRepository thumbnailRepository;
     private final ReviewRepository reviewRepository;
+    private final MembershipRepository membershipRepository;
 
     @Autowired
     public EnrollmentService(EnrollmentRepository enrollmentRepository,
                              CompletedLessonRepository completedLessonRepository,
                              LectureRepository lectureRepository,
-                             LectureStatisticRepository lectureStatisticRepository, ThumbnailRepository thumbnailRepository, ReviewRepository reviewRepository) {
+                             LectureStatisticRepository lectureStatisticRepository, ThumbnailRepository thumbnailRepository, ReviewRepository reviewRepository,
+                             MembershipRepository membershipRepository) {
         this.enrollmentRepository = enrollmentRepository;
         this.completedLessonRepository = completedLessonRepository;
         this.lectureRepository = lectureRepository;
         this.lectureStatisticRepository = lectureStatisticRepository;
         this.thumbnailRepository = thumbnailRepository;
         this.reviewRepository = reviewRepository;
+        this.membershipRepository = membershipRepository;
     }
 
     // enrollment 생성
@@ -75,6 +83,8 @@ public class EnrollmentService {
         if (!lecture.getStatus().equals(LectureStatus.AVAILABLE)) throw new LectureStatusInvalidException();
         // 자신의 강좌 수강 방지
         if (userId.equals(lecture.getInstructorId())) throw new SelfEnrollmentNotAllowedException();
+
+        checkUserMembership(userId, lecture);
         // 생성된 수강 확인
         if (enrollmentRepository.existsByUserIdAndLectureId(userId, request.lectureId())) throw new EnrollmentAlreadyExistsException();
 
@@ -350,5 +360,13 @@ public class EnrollmentService {
             }
         }
     }
+    private void checkUserMembership(String userId,Lecture lecture) {
+        Membership membership = membershipRepository.findByUserId(userId).orElseThrow(
+                UserNotPurchaseMembershipException::new);
+        boolean isActiveMembership = membership.isActive();
 
+        if(!isActiveMembership && !lecture.isFreeLecture()) {
+            throw new MembershipExpiredEnrollmentException();
+        }
+    }
 }
