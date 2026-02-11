@@ -4,7 +4,8 @@ import com.teamexp.learnflowapi.admin.dto.AdminDashboardDto;
 import com.teamexp.learnflowapi.admin.dto.AdminDashboardDto.DailyStatDto;
 import com.teamexp.learnflowapi.auth.repository.LoginHistoryRepository;
 import com.teamexp.learnflowapi.log.repository.TrackingRepository;
-import com.teamexp.learnflowapi.log.repository.TrackingStatsProjection;
+
+import com.teamexp.learnflowapi.user.controller.dto.UserDashboardStatDto;
 import com.teamexp.learnflowapi.user.repository.UserRepository;
 import com.teamexp.learnflowapi.user.service.UserService;
 import org.springframework.stereotype.Service;
@@ -27,13 +28,16 @@ public class AdminDashboardService {
     private final UserRepository userRepository;
     private final LoginHistoryRepository loginHistoryRepository;
     private final TrackingRepository trackingRepository;
+    private final UserService userService;
 
     public AdminDashboardService(UserRepository userRepository,
                                  LoginHistoryRepository loginHistoryRepository,
-                                 TrackingRepository trackingRepository) {
+                                 TrackingRepository trackingRepository,
+                                 UserService userService) {
         this.userRepository = userRepository;
         this.loginHistoryRepository = loginHistoryRepository;
         this.trackingRepository = trackingRepository;
+        this.userService = userService;
     }
 
     public AdminDashboardDto getDashboardStats() {
@@ -63,12 +67,14 @@ public class AdminDashboardService {
         List<DailyStatDto> weeklyDau = fillMissingDates(dauStats, weekAgoDate, 7);
 
         //Referrer
-        List<TrackingStatsProjection> referrerStats = trackingRepository.findReferrerStats();
+        List<Object[]> referrerStats = trackingRepository.findReferrerStats();
         Map<String, Long> referrerDistribution = convertStatsToMap(referrerStats);
 
         //이탈 페이지(Exit Page)
-        List<TrackingStatsProjection> exitStats = trackingRepository.findExitPageStats();
+        List<Object[]> exitStats = trackingRepository.findExitPageStats();
         Map<String, Long> exitPageDistribution = convertStatsToMap(exitStats);
+
+        UserDashboardStatDto userStats = userService.getUserStatistics();
 
         return new AdminDashboardDto(
                 totalUsers,
@@ -78,17 +84,18 @@ public class AdminDashboardService {
                 referrerDistribution,
                 exitPageDistribution,
                 weeklyNewUsers,
-                weeklyDau
+                weeklyDau,
+                userStats
         );
     }
 
-    private Map<String, Long> convertStatsToMap(List<TrackingStatsProjection> stats) {
+    private Map<String, Long> convertStatsToMap(List<Object[]> stats) {
         Map<String, Long> result = stats.stream()
                 .collect(Collectors.toMap(
-                        TrackingStatsProjection::getKey,
-                        TrackingStatsProjection::getCount,
-                        (oldVal, newVal) -> oldVal,
-                        LinkedHashMap::new
+                        row -> (String) row[0],                 // Key (URL 또는 Path)
+                        row -> ((Number) row[1]).longValue(),   // Value (Count)
+                        (oldVal, newVal) -> oldVal,             // 키 중복 시 기존 값 유지
+                        LinkedHashMap::new                      // 순서 보장 (쿼리 정렬 유지)
                 ));
 
         // 데이터가 없으면 "데이터 수집 중" 표시

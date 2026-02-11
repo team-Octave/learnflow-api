@@ -2,6 +2,7 @@ package com.teamexp.learnflowapi.admin.service;
 
 import com.teamexp.learnflowapi.admin.dto.SettlementDto;
 import com.teamexp.learnflowapi.enrollment.repository.EnrollmentRepository;
+import com.teamexp.learnflowapi.enrollment.repository.LectureSalesProjection;
 import com.teamexp.learnflowapi.lecture.model.Lecture;
 import com.teamexp.learnflowapi.lecture.repository.LectureRepository;
 import com.teamexp.learnflowapi.user.model.User;
@@ -51,10 +52,10 @@ public class SettlementService {
         List<LectureSalesProjection> salesData = enrollmentRepository.countCompletedEnrollmentsGroupByLectureId();
 
         Map<Long, Long> salesByLectureId = salesData.stream()
-            .collect(Collectors.toMap(
-                row -> (Long) row[0],
-                row -> (Long) row[1]
-            ));
+                .collect(Collectors.toMap(
+                        LectureSalesProjection::getLectureId,
+                        LectureSalesProjection::getCount
+                ));
 
         if (salesByLectureId.isEmpty()) {
             return List.of();
@@ -74,14 +75,17 @@ public class SettlementService {
         }
 
         // 4. 강사 정보 조회 및 DTO 변환
+        Map<String, String> instructorNames = userRepository
+                            .findAllById(salesByInstructor.keySet())
+                            .stream()
+                           .collect(Collectors.toMap(User::getUserId, User::getNickname));
+
         return salesByInstructor.entrySet().stream()
             .map(entry -> {
                 String instructorId = entry.getKey();
                 long totalCount = entry.getValue();
 
-                String instructorName = userRepository.findById(instructorId)
-                    .map(User::getNickname)
-                    .orElse("Unknown Instructor");
+                String instructorName = instructorNames.getOrDefault(instructorId, "Unknown Instructor");
 
                 long totalSalesAmount = totalCount * LECTURE_PRICE;
                 long feeAmount = (long) (totalSalesAmount * FEE_RATE);
