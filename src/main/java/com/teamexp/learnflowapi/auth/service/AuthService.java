@@ -28,19 +28,22 @@ public class AuthService {
     private final JwtTokenProvider jwtTokenProvider;
     private final UserRepository userRepository;
     private final TokenService tokenService;
+    private final LoginHistoryService loginHistoryService;
 
     @Autowired
     public AuthService(AuthenticationManager authenticationManager, MembershipRepository membershipRepository, JwtTokenProvider jwtTokenProvider,
-                       UserRepository userRepository, TokenService tokenService) {
+                       UserRepository userRepository, TokenService tokenService,
+                       LoginHistoryService loginHistoryService) {
         this.authenticationManager = authenticationManager;
         this.membershipRepository = membershipRepository;
         this.jwtTokenProvider = jwtTokenProvider;
         this.userRepository = userRepository;
         this.tokenService = tokenService;
+        this.loginHistoryService = loginHistoryService;
     }
 
     @Transactional
-    public LoginResponse login(LoginRequest request) {
+    public LoginResponse login(LoginRequest request, String ipAddress, String userAgent) {
         // 1. 스프링 시큐리티 인증 시도 (이메일/비번)
         Authentication authentication = authenticationManager.authenticate(
             new UsernamePasswordAuthenticationToken(
@@ -62,6 +65,9 @@ public class AuthService {
         tokenService.issueRefreshToken(user.getId(), refreshToken);
 
         MembershipStatus status = getMembershipStatus(user.getId());
+        // 4.5. 로그인 이력 비동기 저장 (로그인 응답에 영향 없음)
+        loginHistoryService.saveLoginHistory(user.getId(), ipAddress, userAgent);
+
         // 5. DTO로 맵핑
         return LoginResponse.create(user, accessToken, refreshToken, status);
     }
@@ -113,9 +119,4 @@ public class AuthService {
         tokenService.revokeRefreshToken(userId, refreshToken);
     }
 
-    private MembershipStatus getMembershipStatus(String userId) {
-        return membershipRepository.findByUserId(userId)
-                .map(status -> new MembershipStatus(true, status.getExpiredAt()))
-                .orElseGet(() -> new MembershipStatus(false, null));
-    }
 }

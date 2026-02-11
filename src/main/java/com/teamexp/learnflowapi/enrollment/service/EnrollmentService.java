@@ -1,6 +1,7 @@
 package com.teamexp.learnflowapi.enrollment.service;
 
 
+import com.teamexp.learnflowapi.auth.exception.UserNotFoundException;
 import com.teamexp.learnflowapi.content.repository.ThumbnailRepository;
 import com.teamexp.learnflowapi.enrollment.dto.CreateCompletedLessonRequest;
 import com.teamexp.learnflowapi.enrollment.dto.CreateEnrollmentRequest;
@@ -23,6 +24,8 @@ import com.teamexp.learnflowapi.lecture.exception.LessonNotFoundException;
 import com.teamexp.learnflowapi.lecture.model.*;
 import com.teamexp.learnflowapi.lecture.repository.LectureRepository;
 import com.teamexp.learnflowapi.lecture.repository.LectureStatisticRepository;
+import com.teamexp.learnflowapi.user.model.User;
+import com.teamexp.learnflowapi.user.repository.UserRepository;
 import jakarta.persistence.OptimisticLockException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -52,18 +55,20 @@ public class EnrollmentService {
     @Deprecated  // thumbnailUrl은 이제 Lecture.thumbnailUrl에서 직접 사용
     private final ThumbnailRepository thumbnailRepository;
     private final ReviewRepository reviewRepository;
+    private final UserRepository userRepository;
 
     @Autowired
     public EnrollmentService(EnrollmentRepository enrollmentRepository,
                              CompletedLessonRepository completedLessonRepository,
                              LectureRepository lectureRepository,
-                             LectureStatisticRepository lectureStatisticRepository, ThumbnailRepository thumbnailRepository, ReviewRepository reviewRepository) {
+                             LectureStatisticRepository lectureStatisticRepository, ThumbnailRepository thumbnailRepository, ReviewRepository reviewRepository,UserRepository userRepository) {
         this.enrollmentRepository = enrollmentRepository;
         this.completedLessonRepository = completedLessonRepository;
         this.lectureRepository = lectureRepository;
         this.lectureStatisticRepository = lectureStatisticRepository;
         this.thumbnailRepository = thumbnailRepository;
         this.reviewRepository = reviewRepository;
+        this.userRepository = userRepository;
     }
 
     // enrollment 생성
@@ -133,8 +138,12 @@ public class EnrollmentService {
             return List.of();
         }
 
-        List<Long> enrollmentIds = enrollments.stream().map(Enrollment::getId).toList();
+        // TODO: User 엔티티에 hasActiveMembership() 메서드가 생기면 아래 주석 해제
+        // User user = userRepository.findById(userId)
+        //         .orElseThrow(UserNotFoundException::new);
+        // boolean hasActiveMembership = checkUserMembership(user);
 
+        List<Long> enrollmentIds = enrollments.stream().map(Enrollment::getId).toList();
         List<Long> lectureIds = enrollments.stream().map(Enrollment::getLectureId).distinct().toList();
 
         Map<Long, Lecture> lectureMap = lectureRepository.findAllById(lectureIds).stream()
@@ -159,6 +168,10 @@ public class EnrollmentService {
                     if(lecture == null) {
                         throw new LectureNotFoundException();
                     }
+                    // [1] 임시 변수 선언 (이 줄이 없어서 에러가 난 겁니다!)
+                    // 나중에 User 도메인이 완성되면 실제 로직으로 교체할 예정
+                    boolean hasActiveMembership = true; // 일단 '멤버십 있음(true)'으로 가정
+
 
                     Review review = reviewMap.get(enrollment.getId());
                     List<CompletedLesson> myCompletedLessons = completedLessonMap.getOrDefault(enrollment.getId(), List.of());
@@ -170,14 +183,18 @@ public class EnrollmentService {
                     Long firstChapterId = getFirstChapterId(lecture);
                     Long firstLessonId = getFirstLessonId(lecture);
 
+                    boolean isAccessible = lecture.isFreeLecture() || hasActiveMembership;
+
                     return new MyEnrollmentResponse(
                             lecture.getId(),
                             enrollment.getId(),
+                            lecture.getPaymentType(),
                             review != null ? review.getId() : null,
                             lecture.getThumbnailUrl(),  // Lecture 엔티티에서 직접 thumbnailUrl 사용
                             lecture.getTitle(),
                             enrollment.getStatus(),
                             enrollment.getProgress(),
+                            isAccessible,
                             enrollment.getEnrolledAt(),
                             enrollment.getUpdatedAt(),
                             review != null ? review.getRating() : null,
@@ -194,6 +211,12 @@ public class EnrollmentService {
                 .collect(Collectors.toList());
 
     }
+    private boolean checkUserMembership(User user) {
+        // 예: return user.getMembershipStatus() == MembershipStatus.ACTIVE;
+        // 지금은 User 코드를 수정할 수 없으므로, 우선 false(모두 잠금) 또는 true(모두 오픈)로 테스트하세요.
+        return true; // 일단 테스트를 위해 true로 둡니다.
+    }
+
     private Long calculateLastCompletedChapterId(Lecture lecture, List<CompletedLesson> completedLessons) {
         if (completedLessons.isEmpty()) return null;
 

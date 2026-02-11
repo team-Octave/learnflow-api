@@ -1,0 +1,235 @@
+<!DOCTYPE html>
+<html layout:decorate="~{admin/layout/base}" xmlns:layout="http://www.ultraq.net.nz/thymeleaf/layout" xmlns:th="http://www.thymeleaf.org">
+
+<div layout:fragment="content">
+
+    <div class="grid gap-4 xl:grid-cols-2 2xl:grid-cols-3">
+        <div class="p-4 bg-white border border-gray-200 rounded-lg shadow-sm dark:border-gray-700 sm:p-6 dark:bg-gray-800">
+            <div class="flex items-center justify-between mb-4">
+                <div class="flex-shrink-0">
+                    <span class="text-xl font-bold leading-none text-gray-900 sm:text-2xl dark:text-white"
+                          th:text="${#numbers.formatInteger(totalUsers, 0, 'COMMA')} + '명'">0명</span>
+                    <h3 class="text-base font-light text-gray-500 dark:text-gray-400">전체 회원 수</h3>
+                </div>
+            </div>
+        </div>
+
+        <div class="p-4 bg-white border border-gray-200 rounded-lg shadow-sm dark:border-gray-700 sm:p-6 dark:bg-gray-800">
+            <div class="flex items-center justify-between mb-4">
+                <div class="flex-shrink-0">
+                    <span class="text-xl font-bold leading-none text-gray-900 sm:text-2xl dark:text-white"
+                          th:text="${#numbers.formatInteger(newUsersToday, 0, 'COMMA')} + '명'">0명</span>
+                    <h3 class="text-base font-light text-gray-500 dark:text-gray-400">오늘 가입자</h3>
+                </div>
+                <div class="flex items-center justify-end flex-1 text-green-500 text-base font-bold" th:if="${newUsersToday > 0}">
+                    +<span th:text="${newUsersToday}"></span>
+                </div>
+            </div>
+        </div>
+
+        <div class="p-4 bg-white border border-gray-200 rounded-lg shadow-sm dark:border-gray-700 sm:p-6 dark:bg-gray-800">
+            <div class="flex items-center justify-between mb-4">
+                <div class="flex-shrink-0">
+                    <span class="text-xl font-bold leading-none text-gray-900 sm:text-2xl dark:text-white"
+                          th:text="${#numbers.formatInteger(dauToday, 0, 'COMMA')} + '명'">0명</span>
+                    <h3 class="text-base font-light text-gray-500 dark:text-gray-400">오늘 접속자 (DAU)</h3>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="mt-4 p-4 bg-white border border-gray-200 rounded-lg shadow-sm dark:border-gray-700 sm:p-6 dark:bg-gray-800">
+        <h3 class="text-xl font-bold text-gray-900 dark:text-white mb-4">주간 가입자 추이</h3>
+        <div id="new-users-chart"></div>
+    </div>
+
+    <div class="grid grid-cols-1 xl:grid-cols-2 gap-4 mt-4">
+
+        <div class="p-4 bg-white border border-gray-200 rounded-lg shadow-sm dark:border-gray-700 sm:p-6 dark:bg-gray-800">
+            <div class="flex items-center justify-between mb-4">
+                <h3 class="text-xl font-bold text-gray-900 dark:text-white">유입 경로 분석 (Top 5)</h3>
+                <a href="#" class="text-sm font-medium text-blue-600 hover:underline dark:text-blue-500">
+                    전체 보기
+                </a>
+            </div>
+            <div class="relative overflow-x-auto">
+                <table class="w-full text-sm text-left text-gray-500 dark:text-gray-400">
+                    <thead class="text-xs text-gray-700 uppercase bg-gray-50 dark:bg-gray-700 dark:text-gray-400">
+                    <tr>
+                        <th scope="col" class="px-4 py-3 rounded-l-lg">순위</th>
+                        <th scope="col" class="px-4 py-3">유입 URL (Referrer)</th>
+                        <th scope="col" class="px-4 py-3 rounded-r-lg text-right">방문 수</th>
+                    </tr>
+                    </thead>
+                    <tbody>
+                    <tr th:each="entry, stat : ${referrerDistribution}" class="bg-white dark:bg-gray-800 hover:bg-gray-50 dark:hover:bg-gray-600 border-b dark:border-gray-700">
+                        <td class="px-4 py-3 font-medium text-gray-900 dark:text-white">
+                            <span th:text="${stat.count}">1</span>
+                        </td>
+                        <td class="px-4 py-3">
+                            <div class="flex items-center">
+                                <div class="h-2.5 w-2.5 rounded-full bg-green-400 mr-2"></div>
+                                <span th:text="${entry.key}">https://google.com</span>
+                            </div>
+                        </td>
+                        <td class="px-4 py-3 text-right font-semibold text-gray-900 dark:text-white">
+                            <span th:text="${#numbers.formatInteger(entry.value, 0, 'COMMA')}">1,234</span>명
+                        </td>
+                    </tr>
+                    <tr th:if="${#maps.isEmpty(referrerDistribution)}">
+                        <td colspan="3" class="px-4 py-8 text-center text-gray-500">
+                            아직 수집된 유입 데이터가 없습니다.
+                        </td>
+                    </tr>
+                    </tbody>
+                </table>
+            </div>
+        </div>
+
+        <div class="p-4 bg-white border border-gray-200 rounded-lg shadow-sm dark:border-gray-700 sm:p-6 dark:bg-gray-800">
+            <div class="flex items-center justify-between mb-4">
+                <h3 class="text-xl font-bold text-gray-900 dark:text-white">이탈 페이지 분석 (Top 5)</h3>
+            </div>
+            <div id="exit-pages-chart"></div>
+        </div>
+
+    </div>
+
+    <script th:inline="javascript">
+        document.addEventListener("DOMContentLoaded", function () {
+
+            // ==========================================
+            // 1. 기존 차트: 주간 신규 가입자 (Area Chart)
+            // ==========================================
+            if (document.getElementById("new-users-chart") && typeof ApexCharts !== 'undefined') {
+
+                /*<![CDATA[*/
+                const weeklyStats = /*[[${weeklyNewUsers}]]*/ [];
+                /*]]>*/
+
+                const dates = weeklyStats.map(stat => stat.date);
+                const counts = weeklyStats.map(stat => stat.count);
+
+                const options = {
+                    chart: {
+                        height: "100%",
+                        maxWidth: "100%",
+                        type: "area",
+                        fontFamily: "Inter, sans-serif",
+                        dropShadow: { enabled: false },
+                        toolbar: { show: false },
+                    },
+                    tooltip: { enabled: true, x: { show: true } },
+                    fill: {
+                        type: "gradient",
+                        gradient: { opacityFrom: 0.55, opacityTo: 0, shade: "#1C64F2", gradientToColors: ["#1C64F2"] },
+                    },
+                    dataLabels: { enabled: false },
+                    stroke: { width: 6 },
+                    grid: { show: true, strokeDashArray: 4, padding: { left: 2, right: 2, top: 0 } },
+                    series: [{
+                        name: "신규 가입자",
+                        data: counts,
+                        color: "#1A56DB",
+                    }],
+                    xaxis: {
+                        categories: dates,
+                        labels: { show: true },
+                        axisBorder: { show: false },
+                        axisTicks: { show: false },
+                    },
+                    yaxis: { show: false },
+                }
+
+                const chart = new ApexCharts(document.getElementById("new-users-chart"), options);
+                chart.render();
+            }
+
+            // ==========================================
+            // 2. 이탈 페이지 분석 (Bar Chart)
+            // ==========================================
+            if (document.getElementById("exit-pages-chart") && typeof ApexCharts !== 'undefined') {
+
+                // 1. Thymeleaf Map 데이터를 자바스크립트 객체로 변환
+                /*<![CDATA[*/
+                const exitMap = /*[[${exitPageDistribution}]]*/ {};
+                /*]]>*/
+
+                // 2. 데이터 가공 (Map -> Array)
+                const paths = Object.keys(exitMap);
+                const counts = Object.values(exitMap);
+
+                const exitOptions = {
+                    chart: {
+                        type: 'bar',
+                        height: 350,
+                        fontFamily: "Inter, sans-serif",
+                        toolbar: { show: false }
+                    },
+                    plotOptions: {
+                        bar: {
+                            horizontal: true,       // 가로 막대
+                            borderRadius: 4,
+                            barHeight: '50%',
+                            distributed: true       // 막대마다 색상 다르게
+                        }
+                    },
+                    dataLabels: {
+                        enabled: true,
+                        textAnchor: 'start',
+                        style: { colors: ['#fff'] },
+                        formatter: function (val, opt) {
+                            return val + "명";
+                        },
+                        offsetX: 0,
+                    },
+                    series: [{
+                        name: '이탈 수',
+                        data: counts
+                    }],
+                    xaxis: {
+                        categories: paths,
+                        labels: {
+                            style: {
+                                colors: '#6B7280',
+                                fontSize: '12px'
+                            }
+                        }
+                    },
+                    yaxis: {
+                        labels: {
+                            show: true,
+                            style: {
+                                colors: '#6B7280',
+                                fontSize: '12px',
+                                fontFamily: "Inter, sans-serif",
+                            },
+                            maxWidth: 200 // 긴 URL 라벨 너비 제한
+                        }
+                    },
+                    grid: {
+                        show: true,
+                        strokeDashArray: 4,
+                        padding: { top: 0, right: 0, bottom: 0, left: 10 }
+                    },
+                    // 빨간색 계열 그라데이션 색상
+                    colors: ['#F05252', '#E02424', '#C81E1E', '#9B1C1C', '#771D1D'],
+                    legend: { show: false },
+                    tooltip: {
+                        theme: 'dark',
+                        y: {
+                            formatter: function (val) {
+                                return val + "명 이탈";
+                            }
+                        }
+                    }
+                };
+
+                const exitChart = new ApexCharts(document.getElementById("exit-pages-chart"), exitOptions);
+                exitChart.render();
+            }
+        });
+    </script>
+
+</div>
+</html>

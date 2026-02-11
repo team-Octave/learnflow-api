@@ -16,7 +16,7 @@ build/
 bin/
 !**/src/main/**/bin/
 !**/src/test/**/bin/
-
+.sisyphus
 ### IntelliJ IDEA ###
 .idea
 *.iws

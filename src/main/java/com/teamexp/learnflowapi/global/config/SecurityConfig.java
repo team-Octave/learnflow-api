@@ -9,6 +9,7 @@ import com.teamexp.learnflowapi.user.service.CustomUserDetailsService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
+import org.springframework.core.annotation.Order;
 import org.springframework.http.HttpMethod;
 import org.springframework.security.authentication.AuthenticationManager;
 import org.springframework.security.config.annotation.authentication.builders.AuthenticationManagerBuilder;
@@ -52,9 +53,44 @@ public class SecurityConfig {
         return new RequestResponseLoggingFilter();
     }
 
+    /**
+     * Admin 페이지용 SecurityFilterChain (Form Login + Session 기반)
+     * Order(1)로 /admin/** 경로를 먼저 매칭
+     */
     @Bean
-    public SecurityFilterChain securityFilterChain(HttpSecurity http) throws Exception {
+    @Order(1)
+    public SecurityFilterChain adminSecurityFilterChain(HttpSecurity http) throws Exception {
+        return http
+            .securityMatcher("/admin/**", "/admin-login")
+            .csrf(AbstractHttpConfigurer::disable)  // Phase 1에서는 CSRF 비활성화
+            .formLogin(form -> form
+                .loginPage("/admin-login")
+                .loginProcessingUrl("/admin-login")
+                .defaultSuccessUrl("/admin/dashboard", true)
+                .permitAll())
+            .logout(logout -> logout
+                .logoutUrl("/admin/logout")
+                .logoutSuccessUrl("/admin-login")
+                .permitAll())
+            .sessionManagement(session -> session
+                .sessionCreationPolicy(SessionCreationPolicy.IF_REQUIRED))
+            .authorizeHttpRequests(auth -> auth
+                .requestMatchers("/admin-login").permitAll()
+                .requestMatchers("/admin/**").hasRole("ADMIN") // 복구됨
+                .anyRequest().authenticated())
+            .userDetailsService(userDetailsService)
+            .build();
+    }
+
+    /**
+     * REST API용 SecurityFilterChain (JWT 기반)
+     * Order(2)로 /api/** 경로를 나중에 매칭
+     */
+    @Bean
+    @Order(2)
+    public SecurityFilterChain apiSecurityFilterChain(HttpSecurity http) throws Exception {
         http
+            .securityMatcher("/api/**", "/actuator/**")
             .cors(cors -> {})
             .csrf(AbstractHttpConfigurer::disable)
             .sessionManagement(session ->
@@ -64,6 +100,7 @@ public class SecurityConfig {
             .authorizeHttpRequests(auth -> auth
                 .requestMatchers("/actuator/**").permitAll()
                 .requestMatchers("/api/v1/auth/**").permitAll()
+                .requestMatchers("/api/v1/track").permitAll()
                 .requestMatchers(HttpMethod.POST, "/api/v1/users").permitAll()
                 .requestMatchers(HttpMethod.GET, "/api/v1/users/check").permitAll()
 
