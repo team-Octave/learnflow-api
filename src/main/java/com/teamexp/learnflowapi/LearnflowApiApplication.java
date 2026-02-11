@@ -8,7 +8,6 @@ import org.springframework.scheduling.annotation.EnableScheduling;
 @EnableScheduling
 @SpringBootApplication
 @EnableJpaAuditing
-@EnableScheduling
 public class LearnflowApiApplication {
 
     public static void main(String[] args) {

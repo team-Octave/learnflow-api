@@ -38,7 +38,7 @@ public class GlobalExceptionHandler {
 
     // 2. 예상하지 못한 에러 처리 (가장 중요 ⭐)
     @ExceptionHandler(Exception.class)
-    public ResponseEntity<BaseResponse<?>> handleException(Exception e) {
+    public ResponseEntity<String> handleException(Exception e) {
         String traceId = MDC.get("traceId");
 
         // e.printStackTrace() 대신 log.error 사용 (Loki로 스택 트레이스 전체 전송)
@@ -48,7 +48,7 @@ public class GlobalExceptionHandler {
 
         return ResponseEntity
             .status(error.getStatus())
-            .body(BaseResponse.error(error.name(), error.getMessage(), traceId));
+            .body(e.getMessage());
     }
 
     // 3. 로그인 실패 에러 처리
