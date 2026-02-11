@@ -73,13 +73,15 @@ public class EnrollmentService {
 
     // enrollment 생성
     public void createEnrollment(String userId, CreateEnrollmentRequest request) {
-        checkUserMembership(userId);
+
         // Lecture 확인
         Lecture lecture = lectureRepository.findById(request.lectureId()).orElseThrow(LectureNotFoundException::new);
         // Lecture Status확인
         if (!lecture.getStatus().equals(LectureStatus.AVAILABLE)) throw new LectureStatusInvalidException();
         // 자신의 강좌 수강 방지
         if (userId.equals(lecture.getInstructorId())) throw new SelfEnrollmentNotAllowedException();
+
+        checkUserMembership(userId, lecture);
         // 생성된 수강 확인
         if (enrollmentRepository.existsByUserIdAndLectureId(userId, request.lectureId()))
             throw new EnrollmentAlreadyExistsException();
@@ -169,7 +171,7 @@ public class EnrollmentService {
                     }
                     // [1] 임시 변수 선언 (이 줄이 없어서 에러가 난 겁니다!)
                     // 나중에 User 도메인이 완성되면 실제 로직으로 교체할 예정
-                    boolean hasActiveMembership = checkUserMembership(user.getUserId()); // 일단 '멤버십 있음(true)'으로 가정
+                    boolean hasActiveMembership = checkUserMembership(user.getUserId(),lecture); // 일단 '멤버십 있음(true)'으로 가정
 
 
                     Review review = reviewMap.get(enrollment.getId());
@@ -211,12 +213,12 @@ public class EnrollmentService {
 
     }
 
-    private boolean checkUserMembership(String userId) {
+    private boolean checkUserMembership(String userId,Lecture lecture) {
         Membership membership = membershipRepository.findByUserId(userId).orElseThrow(UserNotEnrolledException::new);
         boolean isActiveMembership = membership.isActive();
 
-        if(!isActiveMembership){
-            throw new MembershipExpiredException();
+        if(!isActiveMembership && !lecture.isFreeLecture()) {
+            throw new MembershipExpiredEnrollmentException();
         }
 
         return isActiveMembership; // 일단 테스트를 위해 true로 둡니다.
@@ -376,12 +378,6 @@ public class EnrollmentService {
                     throw new RuntimeException(ie);
                 }
             }
-        }
-    }
-
-    private void validateEnrolledMembership(boolean isEnrolled) {
-        if (!isEnrolled) {
-            throw new UserNotEnrolledException();
         }
     }
 }

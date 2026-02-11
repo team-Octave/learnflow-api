@@ -65,7 +65,7 @@ public enum ErrorCode {
     COMPLETED_LESSON_ALREADY_EXISTS(HttpStatus.CONFLICT, "이미 완료 처리된 강의입니다."),
     SELF_ENROLLMENT_NOT_ALLOWED(HttpStatus.BAD_REQUEST, "강좌를 개설한 사람은 자신의 강좌를 수강할 수 없습니다."),
     USER_NOT_ENROLLED(HttpStatus.BAD_REQUEST,"멤버십에 가입되지않은 사용자 입니다."),
-    MEMBERSHIP_EXPIRED(HttpStatus.BAD_REQUEST,"멤버십이 만료 되었습니다."),
+    MEMBERSHIP_EXPIRED_ENROLLMENT(HttpStatus.BAD_REQUEST,"멤버십이 만료 되었습니다."),
 
     // Review 도메인 관련
     REVIEW_ALREADY_EXISTS(HttpStatus.CONFLICT, "이미 해당 강의에 대한 리뷰를 작성했습니다."),
@@ -82,7 +82,6 @@ public enum ErrorCode {
     PAYMENT_AMOUNT_MISMATCH(HttpStatus.BAD_REQUEST,"토스 서버의 결제 금액과 입력된 결제 금액이 다릅니다."),
     PAYMENT_ALREADY_PROCESSED(HttpStatus.BAD_REQUEST,"이미 처리된 결제 입니다."),
     INVALID_PLAN_TYPE(HttpStatus.BAD_REQUEST, "유효하지 않은 요금제입니다."),
-    ;
 
 
     // AI 도메인 관련
