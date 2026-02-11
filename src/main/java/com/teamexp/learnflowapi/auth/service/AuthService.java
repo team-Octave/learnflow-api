@@ -2,11 +2,14 @@ package com.teamexp.learnflowapi.auth.service;
 
 import com.teamexp.learnflowapi.auth.controller.dto.LoginRequest;
 import com.teamexp.learnflowapi.auth.controller.dto.LoginResponse;
+import com.teamexp.learnflowapi.auth.controller.dto.MembershipStatus;
 import com.teamexp.learnflowapi.auth.controller.dto.ReissuanceResponse;
 import com.teamexp.learnflowapi.auth.exception.RefreshTokenInvalidException;
 import com.teamexp.learnflowapi.auth.exception.UserNotFoundException;
 import com.teamexp.learnflowapi.global.security.principal.CustomUserPrincipal;
 import com.teamexp.learnflowapi.global.security.jwt.JwtTokenProvider;
+import com.teamexp.learnflowapi.membership.model.Membership;
+import com.teamexp.learnflowapi.membership.repository.MembershipRepository;
 import com.teamexp.learnflowapi.user.model.User;
 import com.teamexp.learnflowapi.user.repository.UserRepository;
 import io.jsonwebtoken.Claims;
@@ -21,6 +24,7 @@ import org.springframework.transaction.annotation.Transactional;
 public class AuthService {
 
     private final AuthenticationManager authenticationManager;
+    private final MembershipRepository  membershipRepository;
     private final JwtTokenProvider jwtTokenProvider;
     private final UserRepository userRepository;
     private final TokenService tokenService;
@@ -31,6 +35,7 @@ public class AuthService {
                        UserRepository userRepository, TokenService tokenService,
                        LoginHistoryService loginHistoryService) {
         this.authenticationManager = authenticationManager;
+        this.membershipRepository = membershipRepository;
         this.jwtTokenProvider = jwtTokenProvider;
         this.userRepository = userRepository;
         this.tokenService = tokenService;
@@ -113,4 +118,9 @@ public class AuthService {
         tokenService.revokeRefreshToken(userId, refreshToken);
     }
 
+    private MembershipStatus getMembershipStatus(String userId) {
+        return membershipRepository.findByUserId(userId)
+                .map(status -> new MembershipStatus(true, status.getExpiredAt()))
+                .orElseGet(() -> new MembershipStatus(false, null));
+    }
 }

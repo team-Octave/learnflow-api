@@ -70,8 +70,4 @@ public class AuthController {
             .status(HttpStatus.OK)
             .body(BaseResponse.ok(null));
     }
-
-
-
-
 }

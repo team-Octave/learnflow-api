@@ -6,4 +6,11 @@ public record MembershipStatus(
         boolean isMembershipActive,
         Instant membershipExpiryDate
 ) {
+    public static MembershipStatus exists(Instant membershipExpiryDate){
+        return new MembershipStatus(true, membershipExpiryDate);
+    }
+
+    public static MembershipStatus noneExist(){
+        return new MembershipStatus(false, null);
+    }
 }

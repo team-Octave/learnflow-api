@@ -7,7 +7,6 @@ import com.teamexp.learnflowapi.global.security.filter.InternalApiKeyFilter; // 
 import com.teamexp.learnflowapi.global.security.jwt.JwtAuthenticationFilter;
 import com.teamexp.learnflowapi.user.service.CustomUserDetailsService;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.core.annotation.Order;
@@ -29,19 +28,19 @@ public class SecurityConfig {
     private final PasswordConfig passwordConfig;
     private final JwtAuthenticationFilter jwtAuthenticationFilter;
     private final JwtAuthenticationEntryPoint jwtAuthenticationEntryPoint;
-
-    @Value("${app.internal-api-key}")
-    private String internalApiKey;
+    private final InternalApiKeyFilter internalApiKeyFilter;
 
     @Autowired
     public SecurityConfig(CustomUserDetailsService userDetailsService,
                           PasswordConfig passwordConfig,
                           JwtAuthenticationFilter jwtAuthenticationFilter,
-                          JwtAuthenticationEntryPoint jwtAuthenticationEntryPoint) {
+                          JwtAuthenticationEntryPoint jwtAuthenticationEntryPoint,
+                          InternalApiKeyFilter internalApiKeyFilter) {
         this.userDetailsService = userDetailsService;
         this.passwordConfig = passwordConfig;
         this.jwtAuthenticationFilter = jwtAuthenticationFilter;
         this.jwtAuthenticationEntryPoint = jwtAuthenticationEntryPoint;
+        this.internalApiKeyFilter = internalApiKeyFilter;
     }
 
     @Bean
@@ -132,7 +131,7 @@ public class SecurityConfig {
         // 🎯 필터 실행 순서: InternalAPIKey -> LogTrace -> Logging -> JWT
         // InternalApiKeyFilter를 별도 클래스로 생성하여 등록
         http
-            .addFilterBefore(new InternalApiKeyFilter(internalApiKey), UsernamePasswordAuthenticationFilter.class)
+            .addFilterBefore(internalApiKeyFilter, UsernamePasswordAuthenticationFilter.class)
             .addFilterBefore(logTraceFilter(), UsernamePasswordAuthenticationFilter.class)
             .addFilterAfter(requestResponseLoggingFilter(), LogTraceFilter.class)
             .addFilterBefore(jwtAuthenticationFilter, UsernamePasswordAuthenticationFilter.class);
