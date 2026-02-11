@@ -8,7 +8,7 @@ import org.springframework.stereotype.Repository;
 
 @Repository
 public interface PaymentHistoryRepository extends JpaRepository<PaymentHistory, Long> {
-    List<PaymentHistory> findByUserId(String userId);
+    List<PaymentHistory> findByUserIdOrderByApprovedAtDesc(String userId);
 
     Optional<PaymentHistory> findById(Long paymentId);
 

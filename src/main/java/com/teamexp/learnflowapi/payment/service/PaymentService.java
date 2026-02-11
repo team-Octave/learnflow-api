@@ -1,9 +1,12 @@
 package com.teamexp.learnflowapi.payment.service;
 
+import com.teamexp.learnflowapi.membership.model.Membership;
+import com.teamexp.learnflowapi.membership.repository.MembershipRepository;
 import com.teamexp.learnflowapi.membership.service.dto.PaymentCompletedEvent;
 import com.teamexp.learnflowapi.payment.dto.request.PaymentConfirmRequest;
 import com.teamexp.learnflowapi.payment.dto.response.PaymentConfirmResponse;
 import com.teamexp.learnflowapi.payment.exception.PaymentAlreadyProcessedException;
+import com.teamexp.learnflowapi.payment.exception.PaymentAlreadyUsingException;
 import com.teamexp.learnflowapi.payment.exception.PaymentAmountMismatchException;
 import com.teamexp.learnflowapi.payment.exception.TossErrorException;
 import com.teamexp.learnflowapi.payment.model.PaymentHistory;
@@ -30,6 +33,7 @@ public class PaymentService {
     private final RestClient tossRestClient;
     private final TossProps tossProps;
     private final PaymentHistoryRepository paymentHistoryRepository;
+    private final MembershipRepository  membershipRepository;
     private final ApplicationEventPublisher eventPublisher;
 
     @Transactional
@@ -54,12 +58,6 @@ public class PaymentService {
     private PaymentDto callTossConfirmApi(PaymentConfirmRequest request) {
         String encodedKey = Base64.getEncoder()
                 .encodeToString((tossProps.getSecretKey() + ":").getBytes(StandardCharsets.UTF_8));
-        System.out.println("@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@");
-        System.out.println(tossProps.getSecretKey());
-        System.out.println(tossProps.getConfirmUrl());
-        System.out.println(request.paymentKey());
-        System.out.println(request.orderId());
-        System.out.println(request.amount());
         return tossRestClient.post()
                 .uri(tossProps.getConfirmUrl())
                 .header(HttpHeaders.AUTHORIZATION, "Basic " + encodedKey)
@@ -106,7 +104,7 @@ public class PaymentService {
         }
 
         if (paymentHistoryRepository.existsByUserId(userId)) {
-            throw new PaymentAlreadyProcessedException();
+            throw new PaymentAlreadyUsingException();
         }
     }
 }

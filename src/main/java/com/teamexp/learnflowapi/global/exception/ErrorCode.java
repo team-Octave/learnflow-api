@@ -79,6 +79,7 @@ public enum ErrorCode {
     PAYMENT_NETWORK_ERROR(HttpStatus.INTERNAL_SERVER_ERROR, "결제 대행사와의 통신 중 오류가 발생했습니다."),
     PAYMENT_AMOUNT_MISMATCH(HttpStatus.BAD_REQUEST,"토스 서버의 결제 금액과 입력된 결제 금액이 다릅니다."),
     PAYMENT_ALREADY_PROCESSED(HttpStatus.BAD_REQUEST,"이미 처리된 결제 입니다."),
+    ALREADY_ON_MEMBERSHIP(HttpStatus.BAD_REQUEST,"이미 멤버십에 가입되어 있습니다. 기간 종료후 결제 해주세요."),
     INVALID_PLAN_TYPE(HttpStatus.BAD_REQUEST, "유효하지 않은 요금제입니다."),
     ;
 
