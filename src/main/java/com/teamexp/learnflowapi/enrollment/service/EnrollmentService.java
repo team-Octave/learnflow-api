@@ -73,7 +73,7 @@ public class EnrollmentService {
 
     // enrollment 생성
     public void createEnrollment(String userId, CreateEnrollmentRequest request) {
-
+        checkUserMembership(userId);
         // Lecture 확인
         Lecture lecture = lectureRepository.findById(request.lectureId()).orElseThrow(LectureNotFoundException::new);
         // Lecture Status확인
@@ -213,12 +213,13 @@ public class EnrollmentService {
 
     private boolean checkUserMembership(String userId) {
         Membership membership = membershipRepository.findByUserId(userId).orElseThrow(UserNotEnrolledException::new);
+        boolean isActiveMembership = membership.isActive();
 
-        if(!membership.isActive()){
+        if(!isActiveMembership){
             throw new MembershipExpiredException();
         }
 
-        return true; // 일단 테스트를 위해 true로 둡니다.
+        return isActiveMembership; // 일단 테스트를 위해 true로 둡니다.
     }
 
     private Long calculateLastCompletedChapterId(Lecture lecture, List<CompletedLesson> completedLessons) {
