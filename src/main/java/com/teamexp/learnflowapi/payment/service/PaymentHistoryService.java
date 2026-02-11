@@ -14,7 +14,7 @@ public class PaymentHistoryService {
     private final PaymentHistoryRepository paymentHistoryRepository;
 
     public List<PaymentQueryDto> getAllPaymentHistoryByUserId(String userId) {
-        return paymentHistoryRepository.findByUserId(userId).stream().map(PaymentQueryDto::from).toList();
+        return paymentHistoryRepository.findByUserIdOrderByDesc(userId).stream().map(PaymentQueryDto::from).toList();
     }
 
 }
