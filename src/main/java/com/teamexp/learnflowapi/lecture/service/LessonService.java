@@ -162,24 +162,24 @@ public class LessonService {
         }
 
         Lecture lecture = findLectureWithChaptersAndLessons(lectureId);
-
         Chapter chapter = findChapterContainingLesson(lecture, lessonId);
         Lesson lesson = chapter.findByLessonId(lessonId);
+
+        validateLessonAccess(lecture, lectureId, lesson, userId);
+        validateEnrolledMembership(userId, lecture);
 
         if (lesson.getLessonType() == LessonType.QUIZ) {
             return toLessonResponse(lesson);
         }
 
-        validateVideoLessonAccess(lecture, lectureId, lesson, userId);
-        validateEnrolledMembership(userId,lecture);
         String signedUrl = contentMediaService.getStreamingUrl(lessonId);
         return LessonResponse.withoutQuiz(
-            lesson.getId(),
-            lesson.getLessonTitle(),
-            lesson.getLessonType().getDisplayName(),
-            lesson.getLessonOrder(),
-            lesson.getIsFreePreview(),
-            signedUrl
+                lesson.getId(),
+                lesson.getLessonTitle(),
+                lesson.getLessonType().getDisplayName(),
+                lesson.getLessonOrder(),
+                lesson.getIsFreePreview(),
+                signedUrl
         );
     }
 
@@ -387,5 +387,17 @@ public class LessonService {
         if(!membership.isActive() && !lecture.isFreeLecture()){
             throw new MembershipExpiredException();
         }
+    }
+
+    private void validateLessonAccess(Lecture lecture, Long lectureId, Lesson lesson, String userId) {
+        if (lecture.getInstructorId() != null && lecture.getInstructorId().equals(userId)) {
+            return;
+        }
+
+        if (enrollmentRepository.existsByUserIdAndLectureId(userId, lectureId)) {
+            return;
+        }
+
+        throw new LessonAccessDeniedException();
     }
 }
