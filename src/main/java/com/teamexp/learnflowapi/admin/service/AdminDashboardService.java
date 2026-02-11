@@ -2,12 +2,10 @@ package com.teamexp.learnflowapi.admin.service;
 
 import com.teamexp.learnflowapi.admin.dto.AdminDashboardDto;
 import com.teamexp.learnflowapi.admin.dto.AdminDashboardDto.DailyStatDto;
+import com.teamexp.learnflowapi.admin.service.dto.UserRateMembershipDto;
 import com.teamexp.learnflowapi.auth.repository.LoginHistoryRepository;
 import com.teamexp.learnflowapi.log.repository.TrackingRepository;
-
-import com.teamexp.learnflowapi.user.controller.dto.UserDashboardStatDto;
 import com.teamexp.learnflowapi.user.repository.UserRepository;
-import com.teamexp.learnflowapi.user.service.UserService;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -28,16 +26,16 @@ public class AdminDashboardService {
     private final UserRepository userRepository;
     private final LoginHistoryRepository loginHistoryRepository;
     private final TrackingRepository trackingRepository;
-    private final UserService userService;
+    private final BackLogService backLogService;
 
     public AdminDashboardService(UserRepository userRepository,
                                  LoginHistoryRepository loginHistoryRepository,
                                  TrackingRepository trackingRepository,
-                                 UserService userService) {
+                                 BackLogService backLogService) {
         this.userRepository = userRepository;
         this.loginHistoryRepository = loginHistoryRepository;
         this.trackingRepository = trackingRepository;
-        this.userService = userService;
+        this.backLogService = backLogService;
     }
 
     public AdminDashboardDto getDashboardStats() {
@@ -74,7 +72,7 @@ public class AdminDashboardService {
         List<Object[]> exitStats = trackingRepository.findExitPageStats();
         Map<String, Long> exitPageDistribution = convertStatsToMap(exitStats);
 
-        UserDashboardStatDto userStats = userService.getUserStatistics();
+        UserRateMembershipDto dto = backLogService.getRateMembershipUser();
 
         return new AdminDashboardDto(
                 totalUsers,
@@ -85,7 +83,9 @@ public class AdminDashboardService {
                 exitPageDistribution,
                 weeklyNewUsers,
                 weeklyDau,
-                userStats
+                rate
+
+
         );
     }
 
