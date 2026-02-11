@@ -1,5 +1,6 @@
 package com.teamexp.learnflowapi.user.model;
 
+import com.teamexp.learnflowapi.user.exception.UserAlreadyWithDrawException;
 import com.teamexp.learnflowapi.user.model.vo.UserRole;
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
@@ -14,7 +15,6 @@ import java.time.Instant;
 import java.util.Collection;
 import java.util.List;
 
-import org.hibernate.annotations.SQLDelete;
 import org.springframework.data.annotation.CreatedDate;
 import org.springframework.data.annotation.LastModifiedDate;
 import org.springframework.data.jpa.domain.support.AuditingEntityListener;
@@ -25,7 +25,6 @@ import org.springframework.security.core.userdetails.UserDetails;
 @Entity
 @EntityListeners(AuditingEntityListener.class)
 @Table(name = "users")
-@SQLDelete(sql = "UPDATE users SET del_flag = true WHERE user_id = ?")
 public class User implements UserDetails {
 
     @Id
@@ -57,6 +56,9 @@ public class User implements UserDetails {
     @Column(name = "del_flag", nullable = false)
     private boolean delFlag = false;
 
+    @Column(name = "deleted_at", columnDefinition = "TIMESTAMP")
+    private Instant deletedAt;
+
     // JPA를 위한 기본 생성자
     protected User() {}
 
@@ -70,6 +72,18 @@ public class User implements UserDetails {
 
     public static User createUser( String email, String password, String nickname, UserRole role) {
         return new User(email, password, nickname, role);
+    }
+
+    public void withDrawUser() {
+        isWithDrawUser();
+        this.delFlag = true;
+        this.deletedAt = Instant.now();
+    }
+
+    public void isWithDrawUser() {
+        if(delFlag){
+            throw new UserAlreadyWithDrawException();
+        }
     }
 
     // UserDetails의 메서드들

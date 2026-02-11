@@ -13,4 +13,6 @@ public interface MembershipRepository extends JpaRepository<Membership, Long> {
     Optional<Membership> findFirstByUserIdOrderByExpiredAtDesc(String userId);
 
     void deleteAllByExpiredAtBefore(Instant expiredAt);
+
+    Long countAllByExpiredAtAfter(Instant now);
 }

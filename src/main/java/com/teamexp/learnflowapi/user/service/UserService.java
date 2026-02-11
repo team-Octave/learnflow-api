@@ -61,13 +61,17 @@ public class UserService {
 
     @Transactional
     public void withdrawUser(String userId) {
-        userRepository.deleteById(userId);
+        User user = userRepository.findById(userId).orElseThrow(UserNotFoundException::new);
+
+        user.withDrawUser();
     }
 
     public UserReadResponse getUserInfo(String userId) {
         User user = userRepository.findById(userId).orElseThrow(
             UserNotFoundException::new
         );
+
+        user.isWithDrawUser();
 
         MembershipStatus status = getMembershipStatus(user.getUserId());
         return UserReadResponse.of(user,status);
