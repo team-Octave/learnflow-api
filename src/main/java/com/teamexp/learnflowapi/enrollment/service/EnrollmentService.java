@@ -8,11 +8,7 @@ import com.teamexp.learnflowapi.enrollment.dto.CreateEnrollmentRequest;
 import com.teamexp.learnflowapi.enrollment.dto.MyEnrollmentResponse;
 import com.teamexp.learnflowapi.enrollment.dto.SelectEnrollmentRequest;
 import com.teamexp.learnflowapi.enrollment.dto.SelectEnrollmentResponse;
-import com.teamexp.learnflowapi.enrollment.exception.CompletedLessonAlreadyExistsException;
-import com.teamexp.learnflowapi.enrollment.exception.EnrollmentAccessDeniedException;
-import com.teamexp.learnflowapi.enrollment.exception.EnrollmentAlreadyExistsException;
-import com.teamexp.learnflowapi.enrollment.exception.EnrollmentNotFoundException;
-import com.teamexp.learnflowapi.enrollment.exception.SelfEnrollmentNotAllowedException;
+import com.teamexp.learnflowapi.enrollment.exception.*;
 import com.teamexp.learnflowapi.enrollment.model.CompletedLesson;
 import com.teamexp.learnflowapi.enrollment.model.Enrollment;
 import com.teamexp.learnflowapi.enrollment.model.EnrollmentStatus;
@@ -24,6 +20,8 @@ import com.teamexp.learnflowapi.lecture.exception.LessonNotFoundException;
 import com.teamexp.learnflowapi.lecture.model.*;
 import com.teamexp.learnflowapi.lecture.repository.LectureRepository;
 import com.teamexp.learnflowapi.lecture.repository.LectureStatisticRepository;
+import com.teamexp.learnflowapi.membership.model.Membership;
+import com.teamexp.learnflowapi.membership.repository.MembershipRepository;
 import com.teamexp.learnflowapi.user.model.User;
 import com.teamexp.learnflowapi.user.repository.UserRepository;
 import jakarta.persistence.OptimisticLockException;
@@ -56,12 +54,13 @@ public class EnrollmentService {
     private final ThumbnailRepository thumbnailRepository;
     private final ReviewRepository reviewRepository;
     private final UserRepository userRepository;
+    private final MembershipRepository membershipRepository;
 
     @Autowired
     public EnrollmentService(EnrollmentRepository enrollmentRepository,
                              CompletedLessonRepository completedLessonRepository,
                              LectureRepository lectureRepository,
-                             LectureStatisticRepository lectureStatisticRepository, ThumbnailRepository thumbnailRepository, ReviewRepository reviewRepository,UserRepository userRepository) {
+                             LectureStatisticRepository lectureStatisticRepository, ThumbnailRepository thumbnailRepository, ReviewRepository reviewRepository, UserRepository userRepository, MembershipRepository membershipRepository) {
         this.enrollmentRepository = enrollmentRepository;
         this.completedLessonRepository = completedLessonRepository;
         this.lectureRepository = lectureRepository;
@@ -69,10 +68,11 @@ public class EnrollmentService {
         this.thumbnailRepository = thumbnailRepository;
         this.reviewRepository = reviewRepository;
         this.userRepository = userRepository;
+        this.membershipRepository = membershipRepository;
     }
 
     // enrollment 생성
-    public void createEnrollment(String userId , CreateEnrollmentRequest request) {
+    public void createEnrollment(String userId, CreateEnrollmentRequest request) {
 
         // Lecture 확인
         Lecture lecture = lectureRepository.findById(request.lectureId()).orElseThrow(LectureNotFoundException::new);
@@ -81,7 +81,8 @@ public class EnrollmentService {
         // 자신의 강좌 수강 방지
         if (userId.equals(lecture.getInstructorId())) throw new SelfEnrollmentNotAllowedException();
         // 생성된 수강 확인
-        if (enrollmentRepository.existsByUserIdAndLectureId(userId, request.lectureId())) throw new EnrollmentAlreadyExistsException();
+        if (enrollmentRepository.existsByUserIdAndLectureId(userId, request.lectureId()))
+            throw new EnrollmentAlreadyExistsException();
 
         enrollmentRepository.save(Enrollment.create(userId, request.lectureId()));
 
@@ -90,7 +91,7 @@ public class EnrollmentService {
     }
 
     // lesson 완료
-    public void createCompletedLesson(String userId , CreateCompletedLessonRequest request) {
+    public void createCompletedLesson(String userId, CreateCompletedLessonRequest request) {
 
         // 1. Enrollment 조회 (기존 existsById 대신 findById로 엔티티를 한 번에 가져옵니다)
         Enrollment enrollment = enrollmentRepository.findById(request.enrollmentId())
@@ -134,14 +135,12 @@ public class EnrollmentService {
 
         List<Enrollment> enrollments = enrollmentRepository.findByUserId(userId);
 
-        if(enrollments.isEmpty()){
+        if (enrollments.isEmpty()) {
             return List.of();
         }
 
-        // TODO: User 엔티티에 hasActiveMembership() 메서드가 생기면 아래 주석 해제
-        // User user = userRepository.findById(userId)
-        //         .orElseThrow(UserNotFoundException::new);
-        // boolean hasActiveMembership = checkUserMembership(user);
+        User user = userRepository.findById(userId)
+                .orElseThrow(UserNotFoundException::new);
 
         List<Long> enrollmentIds = enrollments.stream().map(Enrollment::getId).toList();
         List<Long> lectureIds = enrollments.stream().map(Enrollment::getLectureId).distinct().toList();
@@ -165,12 +164,12 @@ public class EnrollmentService {
         return enrollments.stream()
                 .map(enrollment -> {
                     Lecture lecture = lectureMap.get(enrollment.getLectureId());
-                    if(lecture == null) {
+                    if (lecture == null) {
                         throw new LectureNotFoundException();
                     }
                     // [1] 임시 변수 선언 (이 줄이 없어서 에러가 난 겁니다!)
                     // 나중에 User 도메인이 완성되면 실제 로직으로 교체할 예정
-                    boolean hasActiveMembership = true; // 일단 '멤버십 있음(true)'으로 가정
+                    boolean hasActiveMembership = checkUserMembership(user.getUserId()); // 일단 '멤버십 있음(true)'으로 가정
 
 
                     Review review = reviewMap.get(enrollment.getId());
@@ -211,9 +210,14 @@ public class EnrollmentService {
                 .collect(Collectors.toList());
 
     }
-    private boolean checkUserMembership(User user) {
-        // 예: return user.getMembershipStatus() == MembershipStatus.ACTIVE;
-        // 지금은 User 코드를 수정할 수 없으므로, 우선 false(모두 잠금) 또는 true(모두 오픈)로 테스트하세요.
+
+    private boolean checkUserMembership(String userId) {
+        Membership membership = membershipRepository.findByUserId(userId).orElseThrow(UserNotEnrolledException::new);
+
+        if(!membership.isActive()){
+            throw new MembershipExpiredException();
+        }
+
         return true; // 일단 테스트를 위해 true로 둡니다.
     }
 
@@ -285,8 +289,8 @@ public class EnrollmentService {
 
         // 유저 검증 및 lectureId 조회
         Enrollment enrollment = enrollmentRepository.findById(request.enrollmentId())
-            .orElseThrow(EnrollmentNotFoundException::new);
-        
+                .orElseThrow(EnrollmentNotFoundException::new);
+
         if (!Objects.equals(enrollment.getUserId(), userId)) {
             throw new EnrollmentAccessDeniedException();
         }
@@ -317,7 +321,7 @@ public class EnrollmentService {
                 .orElseThrow(EnrollmentNotFoundException::new);
 
         Lecture lecture = lectureRepository.findById(requestEnrollment.getLectureId())
-                        .orElseThrow(LectureNotFoundException::new);
+                .orElseThrow(LectureNotFoundException::new);
 
         int totalLessonCount = lecture.getTotalLessonCount();
 
@@ -345,7 +349,7 @@ public class EnrollmentService {
         while (retryCount < MAX_RETRIES) {
             try {
                 LectureStatistic statistic = lectureStatisticRepository.findById(lectureId)
-                    .orElseThrow(LectureNotFoundException::new);
+                        .orElseThrow(LectureNotFoundException::new);
 
                 // 통계 업데이트
                 if (isAdd) {
@@ -359,8 +363,8 @@ public class EnrollmentService {
             } catch (OptimisticLockException e) {
                 retryCount++;
                 if (retryCount >= MAX_RETRIES) {
-                    log.error("Failed to update LectureStatistic enrollment count after {} retries for lectureId: {}", 
-                        MAX_RETRIES, lectureId, e);
+                    log.error("Failed to update LectureStatistic enrollment count after {} retries for lectureId: {}",
+                            MAX_RETRIES, lectureId, e);
                     throw e;
                 }
                 // 짧은 대기 후 재시도
@@ -374,4 +378,9 @@ public class EnrollmentService {
         }
     }
 
+    private void validateEnrolledMembership(boolean isEnrolled) {
+        if (!isEnrolled) {
+            throw new UserNotEnrolledException();
+        }
+    }
 }
