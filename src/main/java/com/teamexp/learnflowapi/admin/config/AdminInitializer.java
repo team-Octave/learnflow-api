@@ -17,6 +17,12 @@ import org.springframework.security.crypto.password.PasswordEncoder;
 @Profile({"local", "dev","test"}) // default 프로필에서도 실행되도록 추가
 public class AdminInitializer {
 
+    @Value("${admin.email}")
+    private String adminEmail;
+
+    @Value("${admin.password}")
+    private String adminPassword;
+
     @Bean
     public CommandLineRunner initAdmin(UserRepository userRepository, PasswordEncoder passwordEncoder) {
         return args -> {
@@ -25,12 +31,12 @@ public class AdminInitializer {
             if (userRepository.findByEmail(adminEmail).isEmpty()) {
                 User admin = User.createUser(
                         adminEmail,
-                        passwordEncoder.encode("password"),
+                        passwordEncoder.encode("adminPassword"),
                         "Admin",
                         UserRole.ADMIN
                 );
                 userRepository.save(admin);
-                System.out.println("✅ ADMIN 계정 생성/초기화 완료");
+                System.out.println("✅ ADMIN 계정 생성/초기화 완료 (Email : " + adminEmail + ")");
             } else {
                 System.out.println("ℹ️ ADMIN 계정이 이미 존재합니다: " + adminEmail);
             }
