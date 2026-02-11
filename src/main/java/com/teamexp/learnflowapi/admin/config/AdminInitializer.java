@@ -15,7 +15,7 @@ import org.springframework.security.crypto.password.PasswordEncoder;
  * production 환경에서는 이 빈이 로드되지 않음
  */
 @Configuration
-@Profile({"local", "dev","test"}) // default 프로필에서도 실행되도록 추가
+@Profile({"local", "dev","test","default"}) // default 프로필에서도 실행되도록 추가
 public class AdminInitializer {
 
     @Value("${admin.email}")
@@ -31,7 +31,7 @@ public class AdminInitializer {
             if (userRepository.findByEmail(adminEmail).isEmpty()) {
                 User admin = User.createUser(
                         adminEmail,
-                        passwordEncoder.encode("adminPassword"),
+                        passwordEncoder.encode(adminPassword),
                         "Admin",
                         UserRole.ADMIN
                 );

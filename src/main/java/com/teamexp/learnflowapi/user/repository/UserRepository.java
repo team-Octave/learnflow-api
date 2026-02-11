@@ -38,4 +38,7 @@ public interface UserRepository extends JpaRepository<User, String> {
            "GROUP BY FUNCTION('DATE', u.createdAt) " +
            "ORDER BY date ASC")
     List<Object[]> findDailySignupStats(@Param("start") Instant start, @Param("end") Instant end);
+
+    // BackLogService용 - delFlag 기준 카운트
+    Long countAllByDelFlagIs(boolean delFlag);
 }

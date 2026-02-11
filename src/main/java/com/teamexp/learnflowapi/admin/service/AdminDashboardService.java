@@ -72,7 +72,8 @@ public class AdminDashboardService {
         List<Object[]> exitStats = trackingRepository.findExitPageStats();
         Map<String, Long> exitPageDistribution = convertStatsToMap(exitStats);
 
-        UserRateMembershipDto dto = backLogService.getRateMembershipUser();
+        // 구독 현황 (BackLogService에서 계산)
+        UserRateMembershipDto membershipDto = backLogService.getRateMembershipUser();
 
         return new AdminDashboardDto(
                 totalUsers,
@@ -83,9 +84,7 @@ public class AdminDashboardService {
                 exitPageDistribution,
                 weeklyNewUsers,
                 weeklyDau,
-                rate
-
-
+                membershipDto
         );
     }
 
@@ -106,8 +105,11 @@ public class AdminDashboardService {
         return result;
     }
 
-    // (기존 메서드 유지) 날짜 채우기
+
     private List<DailyStatDto> fillMissingDates(List<Object[]> rawData, LocalDate startDate, int days) {
+        if (rawData == null) {
+            rawData = new ArrayList<>();
+        }
         Map<String, Long> statMap = rawData.stream()
                 .collect(Collectors.toMap(
                         row -> row[0].toString(),
