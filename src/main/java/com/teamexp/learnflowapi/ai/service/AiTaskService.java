@@ -1,0 +1,274 @@
+package com.teamexp.learnflowapi.ai.service;
+
+import com.fasterxml.jackson.databind.ObjectMapper;
+import com.teamexp.learnflowapi.ai.dto.*;
+import com.teamexp.learnflowapi.ai.exception.AiTaskNotFoundException;
+import com.teamexp.learnflowapi.ai.model.*;
+import com.teamexp.learnflowapi.ai.repository.AiContentRepository;
+import com.teamexp.learnflowapi.ai.repository.AiTaskRepository;
+import com.teamexp.learnflowapi.content.exception.MediaNotFoundException;
+import com.teamexp.learnflowapi.content.external.GcpSignedUrlService;
+import com.teamexp.learnflowapi.content.model.ContentMedia;
+import com.teamexp.learnflowapi.content.repository.ContentMediaRepository;
+import com.teamexp.learnflowapi.global.response.BaseResponse;
+import com.teamexp.learnflowapi.lecture.exception.LessonNotFoundException;
+import com.teamexp.learnflowapi.lecture.model.Lesson;
+import com.teamexp.learnflowapi.lecture.repository.LessonRepository;
+import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
+import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
+import org.springframework.transaction.support.TransactionTemplate;
+import org.springframework.web.context.request.async.DeferredResult;
+
+import java.time.Instant;
+import java.time.temporal.ChronoUnit;
+import java.util.concurrent.Executors;
+import java.util.concurrent.ScheduledExecutorService;
+import java.util.concurrent.TimeUnit;
+
+@Slf4j
+@Service
+@RequiredArgsConstructor
+public class AiTaskService {
+
+    private final AiTaskRepository aiTaskRepository;
+    private final AiContentRepository aiContentRepository;
+    private final ContentMediaRepository contentMediaRepository;
+    private final LessonRepository lessonRepository;
+    private final GcpSignedUrlService gcpSignedUrlService;
+    private final ObjectMapper objectMapper;
+    private final TransactionTemplate transactionTemplate;
+
+    private static final int SIGNED_URL_EXPIRATION_SEC = 3600;
+    private static final ScheduledExecutorService scheduler = Executors.newScheduledThreadPool(2);
+
+    /**
+     * Long polling으로 태스크 조회
+     */
+    public void pollTaskAsync(String workerId, int timeout, DeferredResult<BaseResponse<AiTaskPollResponse>> result) {
+        // 즉시 태스크 확인
+        AiTaskPollResponse task = tryFetchTask(workerId);
+        if (task != null) {
+            result.setResult(new BaseResponse<>(task));
+            return;
+        }
+
+        // 태스크가 없으면 주기적으로 재시도
+        long startTime = System.currentTimeMillis();
+        long timeoutMs = timeout * 1000L; 
+
+        scheduler.scheduleAtFixedRate(() -> {
+            try {
+                if (result.isSetOrExpired()) {
+                    return;
+                }
+
+                long elapsed = System.currentTimeMillis() - startTime;
+                if (elapsed >= timeoutMs) {
+                    result.setResult(new BaseResponse<>(AiTaskPollResponse.empty()));
+                    return;
+                }
+
+                AiTaskPollResponse fetchedTask = tryFetchTask(workerId);
+                if (fetchedTask != null) {
+                    result.setResult(new BaseResponse<>(fetchedTask));
+                }
+            } catch (Exception e) {
+                log.error("태스크 폴링 중 오류 발생: workerId={}", workerId, e);
+            }
+        }, 0, 2, TimeUnit.SECONDS);
+    }
+
+    private AiTaskPollResponse tryFetchTask(String workerId) {
+        return transactionTemplate.execute(status -> {
+            return aiTaskRepository.findOneTaskToProcess(TaskStatus.READY)
+                .map(task -> {
+                    try {
+                        ContentMedia media = contentMediaRepository.findByLessonId(task.getLessonId())
+                            .orElseThrow(MediaNotFoundException::new);
+
+                        Lesson lesson = lessonRepository.findById(task.getLessonId())
+                            .orElseThrow(LessonNotFoundException::new);
+
+                        String signedUrl = gcpSignedUrlService.generateDownloadUrl(
+                            media.getFileKey(), SIGNED_URL_EXPIRATION_SEC);
+
+                        Instant expiresAt = Instant.now().plusSeconds(SIGNED_URL_EXPIRATION_SEC);
+
+                        task.assignToWorker(workerId);
+
+                        log.info("AI Worker에게 작업 할당: taskId={}, lessonId={}, workerId={}",
+                            task.getId(), task.getLessonId(), workerId);
+
+                        return AiTaskPollResponse.of(
+                            task.getId(),
+                            task.getLessonId(),
+                            signedUrl,
+                            expiresAt,
+                            lesson.getLessonTitle(),
+                            task.getRetryCount(),
+                            task.getCreatedAt()
+                        );
+                    } catch (Exception e) {
+                        log.error("작업 할당 실패: taskId={}", task.getId(), e);
+                        return null;
+                    }
+                })
+                .orElse(null);
+        });
+    }
+
+    /**
+     * 태스크 완료 처리
+     */
+    @Transactional
+    public AiTaskCompleteResponse completeTask(Long taskId, AiTaskCompleteRequest request) {
+        AiTask task = aiTaskRepository.findById(taskId)
+            .orElseThrow(AiTaskNotFoundException::new);
+
+        // 이미 완료된 태스크
+        if (task.getStatus() == TaskStatus.COMPLETED) {
+            log.info("이미 완료된 태스크: taskId={}", taskId);
+            return AiTaskCompleteResponse.alreadyCompleted(taskId, task.getLessonId());
+        }
+
+        // PROCESSING 상태가 아닌 경우
+        if (task.getStatus() != TaskStatus.PROCESSING) {
+            log.warn("PROCESSING 상태가 아닌 태스크에 완료 시도: taskId={}, status={}",
+                taskId, task.getStatus());
+            throw new IllegalStateException("Task is not in PROCESSING state");
+        }
+
+        // 워커 ID 검증
+        if (!request.workerId().equals(task.getWorkerId())) {
+            log.warn("워커 ID 불일치: taskId={}, expected={}, actual={}",
+                taskId, task.getWorkerId(), request.workerId());
+            throw new IllegalStateException("Worker ID mismatch");
+        }
+
+        // fullAnalysis를 FullAnalysisContent로 변환
+        FullAnalysisContent fullAnalysis;
+        try {
+            fullAnalysis = objectMapper.convertValue(request.fullAnalysis(), FullAnalysisContent.class);
+        } catch (Exception e) {
+            log.error("fullAnalysis 변환 실패: taskId={}", taskId, e);
+            throw new IllegalArgumentException("Invalid fullAnalysis format", e);
+        }
+
+        // AiContent 저장
+        if (!aiContentRepository.existsByLessonId(task.getLessonId())) {
+            AiContent content = AiContent.create(
+                task.getLessonId(),
+                request.durationSeconds(),
+                request.durationFormatted(),
+                request.transcript(),
+                fullAnalysis,
+                request.summary(),
+                request.modelVersion(),
+                request.processingTimeSeconds()
+            );
+            aiContentRepository.save(content);
+        }
+
+        // 태스크 완료
+        task.complete();
+        log.info("AI 작업 완료: taskId={}, lessonId={}", taskId, task.getLessonId());
+
+        return AiTaskCompleteResponse.of(taskId, task.getLessonId(), "COMPLETED");
+    }
+
+    /**
+     * 태스크 실패 처리
+     */
+    @Transactional
+    public AiTaskFailResponse failTask(Long taskId, AiTaskFailRequest request) {
+        AiTask task = aiTaskRepository.findById(taskId)
+            .orElseThrow(AiTaskNotFoundException::new);
+
+        // 이미 처리된 태스크
+        if (task.getStatus() == TaskStatus.COMPLETED || task.getStatus() == TaskStatus.FAILED) {
+            log.info("이미 처리된 태스크: taskId={}, status={}", taskId, task.getStatus());
+            return AiTaskFailResponse.alreadyProcessed(taskId, task.getStatus().name(), task.getRetryCount());
+        }
+
+        // PROCESSING 상태가 아닌 경우
+        if (task.getStatus() != TaskStatus.PROCESSING) {
+            log.warn("PROCESSING 상태가 아닌 태스크에 실패 시도: taskId={}, status={}",
+                taskId, task.getStatus());
+            throw new IllegalStateException("Task is not in PROCESSING state");
+        }
+
+        // 에러 정보 설정
+        task.setError(request.errorCode(), request.errorMessage());
+        task.clearWorker();
+
+        // 재시도 여부 결정
+        if (!request.isRetryable()) {
+            task.changeStatus(TaskStatus.FAILED);
+            log.warn("재시도 불가 실패: taskId={}, errorCode={}", taskId, request.errorCode());
+            return AiTaskFailResponse.of(taskId, "FAILED", task.getRetryCount(), null);
+        }
+
+        task.incrementRetryCount();
+
+        if (task.isRetryLimitExceeded()) {
+            task.changeStatus(TaskStatus.FAILED);
+            log.error("최대 재시도 초과 -> FAILED 처리: taskId={}", taskId);
+            return AiTaskFailResponse.of(taskId, "FAILED", task.getRetryCount(), null);
+        }
+
+        // 재시도 예약
+        long waitMinutes = switch (task.getRetryCount()) {
+            case 1 -> 1;
+            case 2 -> 5;
+            default -> 60;
+        };
+        Instant nextAttemptAt = Instant.now().plus(waitMinutes, ChronoUnit.MINUTES);
+        task.setNextAttemptAt(nextAttemptAt);
+        task.changeStatus(TaskStatus.READY);
+
+        log.info("재시도 예약 완료: taskId={}, retryCount={}, nextAttemptAt={}",
+            taskId, task.getRetryCount(), nextAttemptAt);
+
+        return AiTaskFailResponse.of(taskId, "READY", task.getRetryCount(), nextAttemptAt);
+    }
+
+    /**
+     * 하트비트 처리
+     */
+    @Transactional
+    public AiTaskHeartbeatResponse heartbeat(Long taskId, AiTaskHeartbeatRequest request) {
+        AiTask task = aiTaskRepository.findById(taskId)
+            .orElseThrow(AiTaskNotFoundException::new);
+
+        // PROCESSING 상태가 아닌 경우 (취소됨)
+        if (task.getStatus() != TaskStatus.PROCESSING) {
+            log.info("처리 중이 아닌 태스크에 하트비트: taskId={}, status={}",
+                taskId, task.getStatus());
+            return AiTaskHeartbeatResponse.stopProcessing("TASK_NOT_PROCESSING");
+        }
+
+        // 워커 ID 불일치 (다른 워커가 처리 중)
+        if (!request.workerId().equals(task.getWorkerId())) {
+            log.warn("워커 ID 불일치 하트비트: taskId={}, expected={}, actual={}",
+                taskId, task.getWorkerId(), request.workerId());
+            return AiTaskHeartbeatResponse.stopProcessing("WORKER_MISMATCH");
+        }
+
+        // 레슨 삭제 확인
+        if (!lessonRepository.existsById(task.getLessonId())) {
+            log.info("레슨이 삭제됨, 태스크 취소: taskId={}, lessonId={}",
+                taskId, task.getLessonId());
+            task.changeStatus(TaskStatus.CANCELLED);
+            return AiTaskHeartbeatResponse.stopProcessing("LESSON_DELETED");
+        }
+
+        // 하트비트 업데이트
+        task.updateHeartbeat(request.currentStep(), request.progress());
+        log.debug("하트비트 업데이트: taskId={}, step={}, progress={}",
+            taskId, request.currentStep(), request.progress());
+
+        return AiTaskHeartbeatResponse.continueProcessing();
+    }
+}
