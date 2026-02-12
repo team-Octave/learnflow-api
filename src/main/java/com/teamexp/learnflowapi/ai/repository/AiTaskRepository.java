@@ -7,7 +7,6 @@ import jakarta.persistence.QueryHint;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Lock;
-import org.springframework.data.jpa.repository.Modifying;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.jpa.repository.QueryHints;
 import org.springframework.data.repository.query.Param;
@@ -34,6 +33,10 @@ public interface AiTaskRepository extends JpaRepository<AiTask, Long> {
         "ORDER BY t.createdAt ASC")
     List<AiTask> findTasksToProcess(@Param("status") TaskStatus status, Pageable pageable);
 
+    /**
+     * @deprecated 하트비트 기반 좀비 감지로 대체됨. {@link #findByStatusAndLastHeartbeatAtBefore} 사용
+     */
+    @Deprecated
     List<AiTask> findByStatusAndUpdatedAtBefore(TaskStatus status, Instant updatedAt);
 
     Optional<AiTask> findByLessonId(Long lessonId);
@@ -42,25 +45,14 @@ public interface AiTaskRepository extends JpaRepository<AiTask, Long> {
     List<Long> findAllLessonIdsByLessonIdIn(@Param("lessonIds") List<Long> lessonIds);
 
     /**
-     * 하트비트 업데이트 (워커 ID 검증 포함)
-     */
-    @Modifying
-    @Query("UPDATE AiTask t SET t.lastHeartbeatAt = :timestamp, t.currentStep = :step, t.progress = :progress " +
-           "WHERE t.id = :taskId AND t.workerId = :workerId AND t.status = :status")
-    int updateHeartbeat(@Param("taskId") Long taskId, @Param("workerId") String workerId,
-                        @Param("status") TaskStatus status,
-                        @Param("timestamp") Instant timestamp, @Param("step") String step,
-                        @Param("progress") Integer progress);
-
-    /**
-     * 좀비 태스크 감지 (하트비트 기반)
+     * 좀비 태스크 감지 (하트비트 기반 - 신 시스템)
      */
     List<AiTask> findByStatusAndLastHeartbeatAtBefore(TaskStatus status, Instant threshold);
 
     /**
-     * 태스크 ID와 상태로 조회
+     * 좀비 태스크 감지 (하트비트 null + updatedAt 기반 - 구 시스템 호환)
      */
-    Optional<AiTask> findByIdAndStatus(Long id, TaskStatus status);
+    List<AiTask> findByStatusAndLastHeartbeatAtIsNullAndUpdatedAtBefore(TaskStatus status, Instant updatedAt);
 
     /**
      * 단일 태스크 조회 (Long Polling용) - 락 적용

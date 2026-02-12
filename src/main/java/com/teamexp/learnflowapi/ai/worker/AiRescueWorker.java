@@ -20,31 +20,48 @@ public class AiRescueWorker {
 
     private final AiTaskRepository aiTaskRepository;
 
+    private static final int ZOMBIE_THRESHOLD_MINUTES = 10;
+
+    /**
+     * 좀비 태스크 복구
+     * - 하트비트가 10분 이상 없는 PROCESSING 태스크를 감지
+     * - 재시도 횟수에 따라 READY 또는 FAILED로 변경
+     */
     @Scheduled(fixedDelay = 600000)
     @Transactional
     public void rescueZombies() {
-        // 10분 전
-        Instant limitTime = Instant.now().minus(10, ChronoUnit.MINUTES);
+        Instant heartbeatThreshold = Instant.now().minus(ZOMBIE_THRESHOLD_MINUTES, ChronoUnit.MINUTES);
 
-        List<AiTask> zombies = aiTaskRepository.findByStatusAndUpdatedAtBefore(
-            TaskStatus.PROCESSING,
-            limitTime
+        // 하트비트 기반으로 좀비 감지 (신 시스템)
+        List<AiTask> zombies = new java.util.ArrayList<>(
+            aiTaskRepository.findByStatusAndLastHeartbeatAtBefore(TaskStatus.PROCESSING, heartbeatThreshold)
         );
 
-        if (!zombies.isEmpty()) {
-            log.warn("🧟 좀비 작업 {}개 발견! 구조 시작...", zombies.size());
-            for (AiTask zombie : zombies) {
-                // 무조건 READY로 돌리지 않고, 재시도 횟수 체크
-                zombie.incrementRetryCount();
+        // 하트비트가 null인 경우도 좀비로 처리 (구 시스템 호환)
+        Instant updatedAtThreshold = Instant.now().minus(ZOMBIE_THRESHOLD_MINUTES, ChronoUnit.MINUTES);
+        zombies.addAll(
+            aiTaskRepository.findByStatusAndLastHeartbeatAtIsNullAndUpdatedAtBefore(TaskStatus.PROCESSING, updatedAtThreshold)
+        );
 
-                if (zombie.getRetryCount() > 3) {
-                    log.error("Zombie task {} exceeded retry limit. Marking as FAILED.", zombie.getId());
-                    zombie.changeStatus(TaskStatus.FAILED);
-                } else {
-                    zombie.changeStatus(TaskStatus.READY);
-                    zombie.setNextAttemptAt(Instant.now()); // 즉시 재시도
-                    log.info("Task {} 심폐소생 완료 (READY로 변경, retryCount={})", zombie.getId(), zombie.getRetryCount());
-                }
+        if (zombies.isEmpty()) {
+            return;
+        }
+
+        log.warn("좀비 작업 {}개 발견, 복구 시작...", zombies.size());
+
+        for (AiTask zombie : zombies) {
+            zombie.incrementRetryCount();
+            zombie.clearWorker();
+
+            if (zombie.isRetryLimitExceeded()) {
+                zombie.changeStatus(TaskStatus.FAILED);
+                log.error("좀비 태스크 최대 재시도 초과 -> FAILED: taskId={}, retryCount={}",
+                    zombie.getId(), zombie.getRetryCount());
+            } else {
+                zombie.changeStatus(TaskStatus.READY);
+                zombie.setNextAttemptAt(Instant.now());
+                log.info("좀비 태스크 복구 -> READY: taskId={}, retryCount={}",
+                    zombie.getId(), zombie.getRetryCount());
             }
         }
     }

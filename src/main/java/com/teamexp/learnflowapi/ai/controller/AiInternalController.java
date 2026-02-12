@@ -13,11 +13,16 @@ import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
 
+/**
+ * @deprecated AiTaskController로 대체됨.
+ * 신규 Worker는 /api/internal/ai/tasks/* 엔드포인트 사용 권장.
+ */
+@Deprecated
 @Slf4j
 @RestController
 @RequestMapping("/api/internal/ai")
 @RequiredArgsConstructor
-@Validated // 검증 활성화
+@Validated
 public class AiInternalController {
 
     private final AiWorkService aiWorkService;

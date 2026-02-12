@@ -10,6 +10,4 @@ import java.util.Optional;
 public interface AiContentRepository extends JpaRepository<AiContent, Long> {
 
     Optional<AiContent> findByLessonId(Long lessonId);
-
-    boolean existsByLessonId(Long lessonId);
 }

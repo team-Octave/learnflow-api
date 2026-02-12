@@ -18,7 +18,12 @@ import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.stereotype.Service;
+
+import static com.teamexp.learnflowapi.ai.util.AiDatabaseUtils.isDuplicateKeyError;
+import org.springframework.transaction.PlatformTransactionManager;
+import org.springframework.transaction.TransactionDefinition;
 import org.springframework.transaction.annotation.Transactional;
+import org.springframework.transaction.support.DefaultTransactionDefinition;
 import org.springframework.transaction.support.TransactionTemplate;
 import org.springframework.web.context.request.async.DeferredResult;
 
@@ -41,6 +46,7 @@ public class AiTaskService {
     private final GcpSignedUrlService gcpSignedUrlService;
     private final ObjectMapper objectMapper;
     private final TransactionTemplate transactionTemplate;
+    private final PlatformTransactionManager transactionManager;
     private final ScheduledExecutorService aiPollingScheduler;
 
     private static final int SIGNED_URL_EXPIRATION_SEC = 3600;
@@ -182,15 +188,7 @@ public class AiTaskService {
             request.modelVersion(),
             request.processingTimeSeconds()
         );
-        try {
-            aiContentRepository.saveAndFlush(content);
-        } catch (DataIntegrityViolationException e) {
-            if (isDuplicateKey(e)) {
-                log.info("AiContent already exists for lessonId={}, treating as success", task.getLessonId());
-            } else {
-                throw e;
-            }
-        }
+        saveContentInNewTransaction(content, task.getLessonId());
 
         // 태스크 완료
         task.complete();
@@ -293,12 +291,24 @@ public class AiTaskService {
         return AiTaskHeartbeatResponse.continueProcessing();
     }
 
-    private static boolean isDuplicateKey(DataIntegrityViolationException e) {
-        String msg = e.getMessage();
-        if (msg != null && msg.contains("Duplicate entry")) {
-            return true;
-        }
-        Throwable cause = e.getCause();
-        return cause != null && cause.getMessage() != null && cause.getMessage().contains("Duplicate entry");
+    /**
+     * AiContent 저장을 별도 트랜잭션(REQUIRES_NEW)에서 실행하여,
+     * 중복 키 예외 시 외부 트랜잭션이 rollback-only로 마킹되지 않도록 함.
+     */
+    private void saveContentInNewTransaction(AiContent content, Long lessonId) {
+        DefaultTransactionDefinition def = new DefaultTransactionDefinition();
+        def.setPropagationBehavior(TransactionDefinition.PROPAGATION_REQUIRES_NEW);
+        new TransactionTemplate(transactionManager, def).execute(status -> {
+            try {
+                aiContentRepository.saveAndFlush(content);
+                return null;
+            } catch (DataIntegrityViolationException e) {
+                if (isDuplicateKeyError(e)) {
+                    log.info("AiContent already exists for lessonId={}, treating as success", lessonId);
+                    return null;
+                }
+                throw e;
+            }
+        });
     }
 }
