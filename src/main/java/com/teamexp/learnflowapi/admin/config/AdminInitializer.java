@@ -17,7 +17,7 @@ import org.springframework.security.crypto.password.PasswordEncoder;
  */
 @Slf4j
 @Configuration
-@Profile({"local", "dev","test"}) // default 프로필에서도 실행되도록 추가
+@Profile({"local", "dev","test"})
 public class AdminInitializer {
 
     @Value("${admin.email}")
