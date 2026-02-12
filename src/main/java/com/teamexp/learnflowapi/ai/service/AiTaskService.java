@@ -101,7 +101,7 @@ public class AiTaskService {
 
     /**
      * 처리 가능한 태스크 존재 여부 확인 (락 없이 빠르게 확인)
-     * 커넥션 풀 고갈 방지를 위해 트랜잭션 없이 실행
+     * 짧은 읽기 전용 트랜잭션으로 실행되어 커넥션 점유 시간 최소화
      */
     private boolean hasReadyTask() {
         return aiTaskRepository.existsTaskToProcess(TaskStatus.READY);
