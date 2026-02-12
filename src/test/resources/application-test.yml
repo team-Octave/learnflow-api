@@ -49,3 +49,7 @@ app:
 slack:
   webhook:
     url: http://localhost:8080/dummy
+
+admin:
+  email: test-admin@test.com
+  password: test-password

@@ -16,10 +16,8 @@ import com.teamexp.learnflowapi.user.model.User;
 import com.teamexp.learnflowapi.user.model.vo.UserRole;
 import com.teamexp.learnflowapi.user.repository.UserRepository;
 import org.junit.jupiter.api.BeforeEach;
-import org.junit.jupiter.api.Disabled;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
-import org.mockito.Mock;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMockMvc;
 import org.springframework.boot.test.context.SpringBootTest;
@@ -113,7 +111,6 @@ public class AdminIntegrationTest {
         approvalRepository.saveAndFlush(Approval.create(lecture.getId()));
     }
 
-    @Disabled("adminInit 충돌")
     @Test
     @DisplayName("어드민 승인 성공")
     void tc17_admin_approve_success() throws Exception {
@@ -132,7 +129,6 @@ public class AdminIntegrationTest {
                 .andExpect(status().isOk());
     }
 
-    @Disabled("adminInit 충돌")
     @Test
     @DisplayName("어드민 반려 성공")
     void tc18_admin_reject_success() throws Exception {
@@ -152,7 +148,6 @@ public class AdminIntegrationTest {
                 .andExpect(status().isOk());
     }
 
-    @Disabled("adminInit 충돌")
     @Test
     @DisplayName("어드민 권한 없는 계정으로 승인 실패")
     void tc19_not_admin_approve_fail() throws Exception {
