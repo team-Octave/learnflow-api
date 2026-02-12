@@ -33,10 +33,36 @@ public interface AiTaskRepository extends JpaRepository<AiTask, Long> {
         "ORDER BY t.createdAt ASC")
     List<AiTask> findTasksToProcess(@Param("status") TaskStatus status, Pageable pageable);
 
+    /**
+     * @deprecated 하트비트 기반 좀비 감지로 대체됨. {@link #findByStatusAndLastHeartbeatAtBefore} 사용
+     */
+    @Deprecated
     List<AiTask> findByStatusAndUpdatedAtBefore(TaskStatus status, Instant updatedAt);
 
     Optional<AiTask> findByLessonId(Long lessonId);
 
     @Query("SELECT t.lessonId FROM AiTask t WHERE t.lessonId IN :lessonIds")
     List<Long> findAllLessonIdsByLessonIdIn(@Param("lessonIds") List<Long> lessonIds);
+
+    /**
+     * 좀비 태스크 감지 (하트비트 기반 - 신 시스템)
+     */
+    List<AiTask> findByStatusAndLastHeartbeatAtBefore(TaskStatus status, Instant threshold);
+
+    /**
+     * 좀비 태스크 감지 (하트비트 null + updatedAt 기반 - 구 시스템 호환)
+     */
+    List<AiTask> findByStatusAndLastHeartbeatAtIsNullAndUpdatedAtBefore(TaskStatus status, Instant updatedAt);
+
+    /**
+     * 단일 태스크 조회 (Long Polling용) - 락 적용
+     */
+    @Lock(LockModeType.PESSIMISTIC_WRITE)
+    @QueryHints({@QueryHint(name = "jakarta.persistence.lock.timeout", value = "-2")})
+    @Query("SELECT t FROM AiTask t " +
+           "WHERE t.status = :status " +
+           "AND (t.nextAttemptAt IS NULL OR t.nextAttemptAt <= CURRENT_TIMESTAMP) " +
+           "ORDER BY t.createdAt ASC " +
+           "LIMIT 1")
+    Optional<AiTask> findOneTaskToProcess(@Param("status") TaskStatus status);
 }

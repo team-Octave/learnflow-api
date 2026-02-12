@@ -19,10 +19,16 @@ import com.teamexp.learnflowapi.lecture.model.Lesson;
 import com.teamexp.learnflowapi.lecture.repository.LessonRepository;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.stereotype.Service;
+
+import static com.teamexp.learnflowapi.ai.util.AiDatabaseUtils.isDuplicateKeyError;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.transaction.support.TransactionTemplate;
+import org.springframework.transaction.PlatformTransactionManager;
+import org.springframework.transaction.TransactionDefinition;
+import org.springframework.transaction.support.DefaultTransactionDefinition;
 
 import java.time.Instant;
 import java.time.temporal.ChronoUnit;
@@ -30,6 +36,12 @@ import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
 
+/**
+ * @deprecated AiTaskService로 대체됨.
+ * 신규 Worker는 AiTaskController(/api/internal/ai/tasks/*) 사용 권장.
+ * 이 서비스는 레거시 Worker 호환을 위해 유지됨.
+ */
+@Deprecated
 @Slf4j
 @Service
 @RequiredArgsConstructor
@@ -42,6 +54,7 @@ public class AiWorkService {
     private final GcpSignedUrlService gcpSignedUrlService;
     private final ObjectMapper objectMapper;
     private final TransactionTemplate transactionTemplate;
+    private final PlatformTransactionManager transactionManager;
 
     private static final int SIGNED_URL_EXPIRATION_SEC = 3600;
 
@@ -106,9 +119,8 @@ public class AiWorkService {
         if (request.success()) {
             try {
                 AiSummaryContent content = objectMapper.readValue(request.summaryJson(), AiSummaryContent.class);
-                if (!aiSummaryRepository.existsByLessonId(task.getLessonId())) {
-                    aiSummaryRepository.save(new AiSummary(task.getLessonId(), content));
-                }
+                AiSummary summary = new AiSummary(task.getLessonId(), content);
+                saveSummaryInNewTransaction(summary, task.getLessonId());
                 task.changeStatus(TaskStatus.COMPLETED);
                 log.info("AI 작업 완료: taskId={}", task.getId());
             } catch (Exception e) {
@@ -121,6 +133,27 @@ public class AiWorkService {
             log.warn("AI 작업 실패 보고 수신: taskId={}", task.getId());
             handleFailureWithNewTransaction(task.getId());
         }
+    }
+
+    /**
+     * AiSummary 저장을 별도 트랜잭션(REQUIRES_NEW)에서 실행하여,
+     * 중복 키 예외 시 외부 트랜잭션이 rollback-only로 마킹되지 않도록 함.
+     */
+    private void saveSummaryInNewTransaction(AiSummary summary, Long lessonId) {
+        DefaultTransactionDefinition def = new DefaultTransactionDefinition();
+        def.setPropagationBehavior(TransactionDefinition.PROPAGATION_REQUIRES_NEW);
+        new TransactionTemplate(transactionManager, def).execute(status -> {
+            try {
+                aiSummaryRepository.saveAndFlush(summary);
+                return null;
+            } catch (DataIntegrityViolationException e) {
+                if (isDuplicateKeyError(e)) {
+                    log.info("AiSummary already exists for lessonId={}, treating as success", lessonId);
+                    return null;
+                }
+                throw e;
+            }
+        });
     }
 
     private void handleFailureWithNewTransaction(Long taskId) {

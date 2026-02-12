@@ -16,7 +16,8 @@ import java.time.Instant;
 @Table(name = "ai_outbox",
     indexes = {
         @Index(name = "idx_ai_task_poll", columnList = "status, next_attempt_at, created_at"),
-        @Index(name = "idx_ai_task_lesson_id", columnList = "lesson_id", unique = true)
+        @Index(name = "idx_ai_task_lesson_id", columnList = "lesson_id", unique = true),
+        @Index(name = "idx_ai_task_heartbeat", columnList = "status, last_heartbeat_at")
     }
 )
 @EntityListeners(AuditingEntityListener.class)
@@ -40,6 +41,26 @@ public class AiTask {
 
     @Column(name = "next_attempt_at")
     private Instant nextAttemptAt;
+
+    // Heartbeat tracking
+    @Column(name = "worker_id", length = 100)
+    private String workerId;
+
+    @Column(name = "last_heartbeat_at")
+    private Instant lastHeartbeatAt;
+
+    @Column(name = "current_step", length = 50)
+    private String currentStep;
+
+    @Column(name = "progress")
+    private Integer progress;
+
+    // Error tracking
+    @Column(name = "error_code", length = 50)
+    private String errorCode;
+
+    @Column(name = "error_message", length = 1000)
+    private String errorMessage;
 
     @Version
     private Long version;
@@ -82,5 +103,52 @@ public class AiTask {
      */
     public boolean isRetryLimitExceeded() {
         return this.retryCount > MAX_RETRY_COUNT;
+    }
+
+    /**
+     * 워커에게 작업 할당
+     */
+    public void assignToWorker(String workerId) {
+        this.workerId = workerId;
+        this.lastHeartbeatAt = Instant.now();
+        this.currentStep = "assigned";
+        this.progress = 0;
+        this.status = TaskStatus.PROCESSING;
+    }
+
+    /**
+     * 하트비트 업데이트
+     */
+    public void updateHeartbeat(String currentStep, Integer progress) {
+        this.lastHeartbeatAt = Instant.now();
+        this.currentStep = currentStep;
+        this.progress = progress;
+    }
+
+    /**
+     * 에러 정보 설정
+     */
+    public void setError(String errorCode, String errorMessage) {
+        this.errorCode = errorCode;
+        this.errorMessage = errorMessage;
+    }
+
+    /**
+     * 완료 시 클리어
+     */
+    public void complete() {
+        this.status = TaskStatus.COMPLETED;
+        this.currentStep = "completed";
+        this.progress = 100;
+    }
+
+    /**
+     * 워커 할당 해제 (재시도 또는 취소 시)
+     */
+    public void clearWorker() {
+        this.workerId = null;
+        this.lastHeartbeatAt = null;
+        this.currentStep = null;
+        this.progress = null;
     }
 }
