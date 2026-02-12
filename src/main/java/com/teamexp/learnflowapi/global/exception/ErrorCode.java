@@ -38,9 +38,7 @@ public enum ErrorCode {
     LECTURE_DELETED(HttpStatus.GONE, "이미 삭제된 강의입니다."), // to class as LectureDeletedException
     LECTURE_NOT_DELETED(HttpStatus.BAD_REQUEST, "삭제되지 않은 강의입니다."), // to class as LectureNotDeletedException
     LECTURE_CANNOT_UPDATE(HttpStatus.BAD_REQUEST, "강의를 수정할 수 없습니다."), // to class as LectureCannotUpdateException
-    LESSON_ACCESS_DENIED(HttpStatus.FORBIDDEN, "권한이 없습니다."),// to class as LessonAccessDeniedException
-    MEMBERSHIP_NOT_FOUND_IN_LECTURE(HttpStatus.NOT_FOUND,"멤버십에 가입해주세요."),
-    MEMBERSHIP_EXPIRED(HttpStatus.BAD_REQUEST,"멤버십이 만료되었습니다. 새로 가입해주세요."),
+    LESSON_ACCESS_DENIED(HttpStatus.FORBIDDEN, "권한이 없습니다."), // to class as LessonAccessDeniedException
 
     // Content 도메인 관련
     UPLOAD_NOT_EXIST(HttpStatus.BAD_REQUEST, "업로드할 파일이 없습니다."),
@@ -66,6 +64,9 @@ public enum ErrorCode {
     ENROLLMENT_NOT_FOUND(HttpStatus.NOT_FOUND, "수강 정보를 찾을 수 없습니다."),
     COMPLETED_LESSON_ALREADY_EXISTS(HttpStatus.CONFLICT, "이미 완료 처리된 강의입니다."),
     SELF_ENROLLMENT_NOT_ALLOWED(HttpStatus.BAD_REQUEST, "강좌를 개설한 사람은 자신의 강좌를 수강할 수 없습니다."),
+    USER_NOT_ENROLLED(HttpStatus.BAD_REQUEST,"멤버십에 가입되지않은 사용자 입니다."),
+    MEMBERSHIP_EXPIRED(HttpStatus.BAD_REQUEST,"멤버십이 만료되었습니다. 새로 가입해주세요."),
+    MEMBERSHIP_NOT_FOUND_IN_LECTURE(HttpStatus.FORBIDDEN, "해당 강의에 접근하려면 멤버십이 필요합니다."),
 
     // Review 도메인 관련
     REVIEW_ALREADY_EXISTS(HttpStatus.CONFLICT, "이미 해당 강의에 대한 리뷰를 작성했습니다."),
