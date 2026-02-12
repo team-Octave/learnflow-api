@@ -11,10 +11,9 @@ import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.validation.annotation.Validated;
 import org.springframework.web.bind.annotation.*;
-import org.springframework.web.context.request.async.DeferredResult;
 
 /**
- * AI 태스크 관리 API (Long Polling)
+ * AI 태스크 관리 API
  *
  * 인증: X-Internal-Api-Key 헤더 (InternalApiKeyFilter에서 처리)
  */
@@ -35,16 +34,16 @@ public class AiTaskController {
      * @return 태스크 정보 또는 빈 응답
      */
     @GetMapping("/poll")
-    public DeferredResult<BaseResponse<AiTaskPollResponse>> pollTask(
+    public BaseResponse<AiTaskPollResponse> pollTask(
         @RequestParam("worker_id") @NotBlank String workerId,
         @RequestParam(value = "timeout", defaultValue = "30") @Min(1) @Max(60) int timeout
     ) {
-        DeferredResult<BaseResponse<AiTaskPollResponse>> result =
-            new DeferredResult<>(timeout * 1000L + 5000L, // 약간의 여유 시간
-                () -> new BaseResponse<>(AiTaskPollResponse.empty()));
-
-        aiTaskService.pollTaskAsync(workerId, timeout, result);
-        return result;
+        // 즉시 응답 방식 (DeferredResult 대신)
+        AiTaskPollResponse task = aiTaskService.tryFetchTaskPublic(workerId);
+        if (task != null) {
+            return new BaseResponse<>(task);
+        }
+        return new BaseResponse<>(AiTaskPollResponse.empty());
     }
 
     /**
