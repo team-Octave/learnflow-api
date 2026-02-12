@@ -104,8 +104,8 @@ public class SecurityConfig {
                 .requestMatchers(HttpMethod.POST, "/api/v1/users").permitAll()
                 .requestMatchers(HttpMethod.GET, "/api/v1/users/check").permitAll()
 
-                // 내부 API는 인증된 요청만 허용 (InternalApiKeyFilter에서 ROLE_SYSTEM 부여)
-                .requestMatchers("/api/internal/**").authenticated()
+                // 내부 API는 InternalApiKeyFilter에서 직접 인증 처리 (DeferredResult 호환)
+                .requestMatchers("/api/internal/**").permitAll()
 
                 .requestMatchers("/api/ai/summary/**").permitAll() // AI 요약 조회는 공개
 
