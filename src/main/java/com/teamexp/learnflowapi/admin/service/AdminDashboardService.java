@@ -109,20 +109,13 @@ public class AdminDashboardService {
     }
 
     private Map<String, Long> convertStatsToMap(List<KeyCountProjection> stats) {
-        Map<String, Long> result = stats.stream()
+        return stats.stream()
                 .collect(Collectors.toMap(
                         KeyCountProjection::getKey,
                         KeyCountProjection::getCount,
                         (oldVal, newVal) -> oldVal,             // 키 중복 시 기존 값 유지
                         LinkedHashMap::new                      // 순서 보장 (쿼리 정렬 유지)
                 ));
-
-        // 데이터가 없으면 "데이터 수집 중" 표시
-        if (result.isEmpty()) {
-            result.put("데이터 수집 중", 0L);
-        }
-
-        return result;
     }
 
 
