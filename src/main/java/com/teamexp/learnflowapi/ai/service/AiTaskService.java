@@ -50,7 +50,7 @@ public class AiTaskService {
     private final ScheduledExecutorService aiPollingScheduler;
 
     private static final int SIGNED_URL_EXPIRATION_SEC = 3600;
-    private static final int POLL_INTERVAL_SEC = 2;  // DB 부하 감소 (2초 → 10초)
+    private static final int POLL_INTERVAL_SEC = 10;  // DB 부하 감소
 
     /**
      * Long polling으로 태스크 조회
