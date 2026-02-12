@@ -43,7 +43,7 @@ public class AdminDashboardService {
 
     public AdminDashboardDto getDashboardStats() {
         LocalDate today = LocalDate.now();
-        ZoneId zoneId = ZoneId.systemDefault();
+        ZoneId zoneId = ZoneId.of("Asia/Seoul");
 
         Instant todayStart = today.atStartOfDay(zoneId).toInstant();
         Instant todayEnd = today.plusDays(1).atStartOfDay(zoneId).toInstant();
@@ -78,17 +78,17 @@ public class AdminDashboardService {
         // 구독 현황
         UserRateMembershipDto membershipDto = calculateMembershipStats();
 
-        return new AdminDashboardDto(
-                totalUsers,
-                newUsersToday,
-                churnedUsers,
-                dauToday,
-                referrerDistribution,
-                exitPageDistribution,
-                weeklyNewUsers,
-                weeklyDau,
-                membershipDto
-        );
+        return AdminDashboardDto.builder()
+                .totalUsers(totalUsers)
+                .newUsersToday(newUsersToday)
+                .churnedUsersTotal(churnedUsers)
+                .dauToday(dauToday)
+                .referrerDistribution(referrerDistribution)
+                .exitPageDistribution(exitPageDistribution)
+                .weeklyNewUsers(weeklyNewUsers)
+                .weeklyDau(weeklyDau)
+                .userRateMembershipDto(membershipDto)
+                .build();
     }
 
     private UserRateMembershipDto calculateMembershipStats() {

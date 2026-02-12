@@ -45,18 +45,18 @@ public class AdminPageController {
     public String dashboard(Model model) {
         AdminDashboardDto stats = adminDashboardService.getDashboardStats();
 
-        model.addAttribute("totalUsers", stats.totalUsers());
-        model.addAttribute("newUsersToday", stats.newUsersToday());
-        model.addAttribute("churnedUsersTotal", stats.churnedUsersTotal());
-        model.addAttribute("dauToday", stats.dauToday());
+        model.addAttribute("totalUsers", stats.getTotalUsers());
+        model.addAttribute("newUsersToday", stats.getNewUsersToday());
+        model.addAttribute("churnedUsersTotal", stats.getChurnedUsersTotal());
+        model.addAttribute("dauToday", stats.getDauToday());
 
-        model.addAttribute("weeklyNewUsers", stats.weeklyNewUsers());
-        model.addAttribute("weeklyDau", stats.weeklyDau());
+        model.addAttribute("weeklyNewUsers", stats.getWeeklyNewUsers());
+        model.addAttribute("weeklyDau", stats.getWeeklyDau());
         
         model.addAttribute("recentUsers", List.of()); // 빈 리스트 (TASK 3에서 구현)
-        model.addAttribute("membershipStats", stats.userRateMembershipDto());
-        model.addAttribute("referrerDistribution", stats.referrerDistribution());
-        model.addAttribute("exitPageDistribution", stats.exitPageDistribution());
+        model.addAttribute("membershipStats", stats.getUserRateMembershipDto());
+        model.addAttribute("referrerDistribution", stats.getReferrerDistribution());
+        model.addAttribute("exitPageDistribution", stats.getExitPageDistribution());
         return "admin/index";
     }
 
