@@ -5,6 +5,7 @@ import com.teamexp.learnflowapi.admin.dto.AdminDashboardDto.DailyStatDto;
 import com.teamexp.learnflowapi.admin.service.dto.UserRateMembershipDto;
 import com.teamexp.learnflowapi.auth.repository.LoginHistoryRepository;
 import com.teamexp.learnflowapi.log.repository.TrackingRepository;
+import com.teamexp.learnflowapi.membership.repository.MembershipRepository;
 import com.teamexp.learnflowapi.user.repository.UserRepository;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -26,16 +27,16 @@ public class AdminDashboardService {
     private final UserRepository userRepository;
     private final LoginHistoryRepository loginHistoryRepository;
     private final TrackingRepository trackingRepository;
-    private final BackLogService backLogService;
+    private final MembershipRepository membershipRepository;
 
     public AdminDashboardService(UserRepository userRepository,
                                  LoginHistoryRepository loginHistoryRepository,
                                  TrackingRepository trackingRepository,
-                                 BackLogService backLogService) {
+                                 MembershipRepository membershipRepository) {
         this.userRepository = userRepository;
         this.loginHistoryRepository = loginHistoryRepository;
         this.trackingRepository = trackingRepository;
-        this.backLogService = backLogService;
+        this.membershipRepository = membershipRepository;
     }
 
     public AdminDashboardDto getDashboardStats() {
@@ -72,8 +73,8 @@ public class AdminDashboardService {
         List<Object[]> exitStats = trackingRepository.findExitPageStats();
         Map<String, Long> exitPageDistribution = convertStatsToMap(exitStats);
 
-        // 구독 현황 (BackLogService에서 계산)
-        UserRateMembershipDto membershipDto = backLogService.getRateMembershipUser();
+        // 구독 현황
+        UserRateMembershipDto membershipDto = calculateMembershipStats();
 
         return new AdminDashboardDto(
                 totalUsers,
@@ -85,6 +86,23 @@ public class AdminDashboardService {
                 weeklyNewUsers,
                 weeklyDau,
                 membershipDto
+        );
+    }
+
+    private UserRateMembershipDto calculateMembershipStats() {
+        long totalUserCount = userRepository.countByDelFlagFalse();
+        long membershipCount = membershipRepository.countAllByExpiredAtAfter(Instant.now());
+        long normalCount = totalUserCount - membershipCount;
+
+        double membershipRate = totalUserCount == 0 ? 0.0 : (double) membershipCount / totalUserCount * 100;
+        double normalRate = totalUserCount == 0 ? 0.0 : (double) normalCount / totalUserCount * 100;
+
+        return new UserRateMembershipDto(
+                totalUserCount,
+                membershipCount,
+                normalCount,
+                Math.round(normalRate * 10) / 10.0,
+                Math.round(membershipRate * 10) / 10.0
         );
     }
 
