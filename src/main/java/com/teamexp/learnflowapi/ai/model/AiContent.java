@@ -77,8 +77,9 @@ public class AiContent {
     public static AiContent create(Long lessonId, Integer durationSeconds, String durationFormatted,
                                    String transcript, FullAnalysisContent fullAnalysis,
                                    String summary, String modelVersion, Integer processingTimeSeconds) {
-        // summary 문자열을 AiSummaryContent로 변환 (기존 호환성)
-        AiSummaryContent summaryContent = new AiSummaryContent(summary, null);
+        // summary 문자열과 fullAnalysis.keyPoints를 AiSummaryContent로 변환
+        var keyTakeaways = fullAnalysis != null ? fullAnalysis.getKeyPoints() : null;
+        AiSummaryContent summaryContent = new AiSummaryContent(summary, keyTakeaways);
 
         return new AiContent(lessonId, durationSeconds, durationFormatted,
             transcript, fullAnalysis, summaryContent, modelVersion, processingTimeSeconds);
