@@ -16,6 +16,9 @@ import com.teamexp.learnflowapi.lecture.repository.ChapterRepository;
 import com.teamexp.learnflowapi.lecture.repository.LectureRepository;
 import com.teamexp.learnflowapi.lecture.repository.LectureStatisticRepository;
 import com.teamexp.learnflowapi.lecture.repository.LessonRepository;
+import com.teamexp.learnflowapi.membership.model.Membership;
+import com.teamexp.learnflowapi.membership.repository.MembershipRepository;
+import com.teamexp.learnflowapi.payment.model.constant.PlanType;
 import com.teamexp.learnflowapi.user.model.User;
 import com.teamexp.learnflowapi.user.model.vo.UserRole;
 import com.teamexp.learnflowapi.user.repository.UserRepository;
@@ -33,6 +36,8 @@ import org.springframework.test.context.ActiveProfiles;
 import org.springframework.test.util.ReflectionTestUtils;
 import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.transaction.annotation.Transactional;
+
+import java.time.Instant;
 
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.delete;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
@@ -74,6 +79,9 @@ public class EnrollmentIntegrationTest {
     LessonRepository lessonRepository;
 
     @Autowired
+    MembershipRepository membershipRepository;
+
+    @Autowired
     EntityManager em;
 
 
@@ -90,6 +98,16 @@ public class EnrollmentIntegrationTest {
 
         student = userRepository.save(
                 User.createUser("student@test.com", "password", "student", UserRole.MEMBER)
+        );
+
+        membershipRepository.save(Membership.create(student.getUserId(), PlanType.ONE_MONTH, Instant.now()));
+        membershipRepository.save(Membership.create(instructor.getUserId(), PlanType.ONE_MONTH, Instant.now()));
+
+        accessToken = jwtTokenProvider.createAccessToken(
+                student.getUserId(),
+                student.getEmail(),
+                student.getRole().name(),
+                student.getNickname()
         );
 
         accessToken = jwtTokenProvider.createAccessToken(
@@ -114,9 +132,11 @@ public class EnrollmentIntegrationTest {
 
         LectureStatistic statistic = LectureStatistic.createInitial(availableLecture);
         lectureStatisticRepository.saveAndFlush(statistic);
+
+        em.flush();
+        em.clear();
     }
 
-    @Disabled("cd테스트 에러")
     @Test
     @DisplayName("수강신청 성공")
     void tc8_enrollment_success() throws Exception {
@@ -135,7 +155,6 @@ public class EnrollmentIntegrationTest {
                 .andExpect(status().isCreated());
     }
 
-    @Disabled("cd테스트 에러")
     @Test
     @DisplayName("중복 수강신청 실패")
     void tc9_enrollment_duplicate_fail() throws Exception {
@@ -162,7 +181,6 @@ public class EnrollmentIntegrationTest {
                 .andExpect(status().isConflict());
     }
 
-    @Disabled("cd테스트 에러")
     @Test
     @DisplayName("수강신청 취소 성공")
     void tc10_enrollment_cancel_success() throws Exception {
@@ -179,7 +197,7 @@ public class EnrollmentIntegrationTest {
                         .content(createBody)
         ).andExpect(status().isCreated());
 
-        var enrollment = enrollmentRepository
+        Enrollment enrollment = enrollmentRepository
                 .findByUserIdAndLectureId(student.getUserId(), availableLecture.getId())
                 .orElseThrow();
 
@@ -223,7 +241,6 @@ public class EnrollmentIntegrationTest {
                 .andExpect(status().isBadRequest());
     }
 
-    @Disabled("cd테스트 에러")
     @Test
     @DisplayName("레슨완료")
     void tc15_complete_lesson_success() throws Exception {
@@ -241,6 +258,7 @@ public class EnrollmentIntegrationTest {
         chapter.addLesson(lesson);
         lessonRepository.save(lesson);
 
+        em.flush();
         em.clear();
 
         mockMvc.perform(post("/api/v1/enrollment")
@@ -264,7 +282,6 @@ public class EnrollmentIntegrationTest {
                 .andExpect(status().isCreated());
     }
 
-    @Disabled("cd테스트 에러")
     @Test
     @DisplayName("레슨완료 중복체크")
     void tc16_complete_lesson_duplicate_fail() throws Exception {
@@ -282,6 +299,7 @@ public class EnrollmentIntegrationTest {
         chapter.addLesson(lesson);
         lessonRepository.save(lesson);
 
+        em.flush();
         em.clear();
 
         mockMvc.perform(post("/api/v1/enrollment")
@@ -312,5 +330,4 @@ public class EnrollmentIntegrationTest {
                     """.formatted(enrollment.getId(), lesson.getId())))
                 .andExpect(status().isConflict());
     }
-
 }
