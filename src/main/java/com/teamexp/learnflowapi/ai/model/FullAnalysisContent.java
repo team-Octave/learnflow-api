@@ -1,10 +1,13 @@
 package com.teamexp.learnflowapi.ai.model;
 
+import com.fasterxml.jackson.databind.PropertyNamingStrategies;
+import com.fasterxml.jackson.databind.annotation.JsonNaming;
 import lombok.*;
 import java.util.List;
 
 @Getter @Setter
 @NoArgsConstructor @AllArgsConstructor
+@JsonNaming(PropertyNamingStrategies.SnakeCaseStrategy.class)
 public class FullAnalysisContent {
     private List<String> topics;          // 3-5 main topics
     private String difficulty;            // beginner, intermediate, advanced
@@ -15,6 +18,7 @@ public class FullAnalysisContent {
 
     @Getter @Setter
     @NoArgsConstructor @AllArgsConstructor
+    @JsonNaming(PropertyNamingStrategies.SnakeCaseStrategy.class)
     public static class OutlineItem {
         private String timestamp;         // "MM:SS" or "HH:MM:SS"
         private Integer timestampSeconds; // Seconds from start
