@@ -18,6 +18,9 @@ import com.teamexp.learnflowapi.lecture.repository.ChapterRepository;
 import com.teamexp.learnflowapi.lecture.repository.LectureRepository;
 import com.teamexp.learnflowapi.lecture.repository.LectureStatisticRepository;
 import com.teamexp.learnflowapi.lecture.repository.LessonRepository;
+import com.teamexp.learnflowapi.membership.model.Membership;
+import com.teamexp.learnflowapi.membership.repository.MembershipRepository;
+import com.teamexp.learnflowapi.payment.model.constant.PlanType;
 import com.teamexp.learnflowapi.user.model.User;
 import com.teamexp.learnflowapi.user.model.vo.UserRole;
 import com.teamexp.learnflowapi.user.repository.UserRepository;
@@ -34,6 +37,8 @@ import org.springframework.test.context.ActiveProfiles;
 import org.springframework.test.util.ReflectionTestUtils;
 import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.transaction.annotation.Transactional;
+
+import java.time.Instant;
 
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
@@ -76,6 +81,9 @@ public class LessonIntegrationTest {
     ContentMediaRepository contentMediaRepository;
 
     @Autowired
+    MembershipRepository membershipRepository;
+
+    @Autowired
     EntityManager em;
 
     private User instructor;
@@ -97,6 +105,9 @@ public class LessonIntegrationTest {
         student = userRepository.save(
                 User.createUser("student@test.com", "password", "student", UserRole.MEMBER)
         );
+
+        membershipRepository.save(Membership.create(student.getUserId(), PlanType.ONE_MONTH, Instant.now()));
+        membershipRepository.save(Membership.create(instructor.getUserId(), PlanType.ONE_MONTH, Instant.now()));
 
         accessToken = jwtTokenProvider.createAccessToken(
                 student.getUserId(),
@@ -178,7 +189,6 @@ public class LessonIntegrationTest {
         contentMediaRepository.saveAndFlush(media);
     }
 
-    @Disabled("cd테스트 에러")
     @Test
     @DisplayName("레슨 조회 성공")
     void tc12_get_lesson_success() throws Exception {
@@ -189,7 +199,6 @@ public class LessonIntegrationTest {
                 .andExpect(status().isOk());
     }
 
-    @Disabled("cd테스트 에러")
     @Test
     @DisplayName("미수강 강의 접근 실패")
     void tc13_get_lesson_fail_when_not_enrolled() throws Exception {
@@ -197,7 +206,7 @@ public class LessonIntegrationTest {
                         get("/api/v2/lectures/{lectureId}/lessons/{lessonId}", lectureB.getId(), lessonB1.getId())
                                 .header("Authorization", "Bearer " + accessToken)
                 )
-                .andExpect(status().isNotFound());
+                .andExpect(status().isForbidden());
     }
 
     @Test
