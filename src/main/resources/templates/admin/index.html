@@ -3,7 +3,7 @@
 
 <div layout:fragment="content">
 
-    <div class="grid gap-4 xl:grid-cols-2 2xl:grid-cols-3">
+    <div class="grid gap-4 xl:grid-cols-2 2xl:grid-cols-4">
         <div class="p-4 bg-white border border-gray-200 rounded-lg shadow-sm dark:border-gray-700 sm:p-6 dark:bg-gray-800">
             <div class="flex items-center justify-between mb-4">
                 <div class="flex-shrink-0">
@@ -36,11 +36,28 @@
                 </div>
             </div>
         </div>
+
+        <!-- 이번 달 결제 금액 카드 추가 -->
+        <div class="p-4 bg-white border border-gray-200 rounded-lg shadow-sm dark:border-gray-700 sm:p-6 dark:bg-gray-800">
+            <div class="flex items-center justify-between mb-4">
+                <div class="flex-shrink-0">
+                    <span class="text-xl font-bold leading-none text-gray-900 sm:text-2xl dark:text-white"
+                          th:text="${monthlySalesAmount != null} ? ('₩ ' + ${#numbers.formatInteger(monthlySalesAmount, 0, 'COMMA')}) : '₩ 0'">₩ 1,234,567</span>
+                    <h3 class="text-base font-light text-gray-500 dark:text-gray-400">이번 달 결제 금액</h3>
+                </div>
+            </div>
+        </div>
     </div>
 
     <div class="mt-4 p-4 bg-white border border-gray-200 rounded-lg shadow-sm dark:border-gray-700 sm:p-6 dark:bg-gray-800">
         <h3 class="text-xl font-bold text-gray-900 dark:text-white mb-4">주간 가입자 추이</h3>
         <div id="new-users-chart"></div>
+    </div>
+
+    <!-- 월별 매출 추이 차트 추가 -->
+    <div class="mt-4 p-4 bg-white border border-gray-200 rounded-lg shadow-sm dark:border-gray-700 sm:p-6 dark:bg-gray-800">
+        <h3 class="text-xl font-bold text-gray-900 dark:text-white mb-4">월별 매출 추이</h3>
+        <div id="monthly-sales-chart"></div>
     </div>
 
     <div class="grid grid-cols-1 xl:grid-cols-2 gap-4 mt-4">
@@ -281,6 +298,80 @@
                     const subChart = new ApexCharts(document.getElementById("subscription-chart"), subOptions);
                     subChart.render();
                 }
+            }
+
+            // ==========================================
+            // 4. [추가됨] 월별 매출 추이 (Bar Chart)
+            // ==========================================
+            if (document.getElementById("monthly-sales-chart") && typeof ApexCharts !== 'undefined') {
+
+                // 임시 데이터 (백엔드 연동 전)
+                const salesData = [
+                    { month: '2025-09', amount: 1200000 },
+                    { month: '2025-10', amount: 1500000 },
+                    { month: '2025-11', amount: 1100000 },
+                    { month: '2025-12', amount: 1800000 },
+                    { month: '2026-01', amount: 2000000 },
+                    { month: '2026-02', amount: 1700000 }
+                ];
+                
+                /*<![CDATA[*/
+                // const salesData = /*[[${monthlySalesStats}]]*/ []; 
+                /*]]>*/
+
+                const months = salesData.map(d => d.month);
+                const amounts = salesData.map(d => d.amount);
+
+                const salesOptions = {
+                    chart: {
+                        type: 'bar',
+                        height: 350,
+                        fontFamily: "Inter, sans-serif",
+                        toolbar: { show: false }
+                    },
+                    plotOptions: {
+                        bar: {
+                            horizontal: false,
+                            columnWidth: '50%',
+                            borderRadius: 4
+                        },
+                    },
+                    dataLabels: { enabled: false },
+                    stroke: { show: true, width: 2, colors: ['transparent'] },
+                    series: [{
+                        name: '월 매출',
+                        data: amounts,
+                        color: '#1C64F2'
+                    }],
+                    xaxis: {
+                        categories: months,
+                        labels: {
+                            style: { colors: '#6B7280', fontSize: '12px' }
+                        },
+                        axisBorder: { show: false },
+                        axisTicks: { show: false },
+                    },
+                    yaxis: {
+                        labels: {
+                            style: { colors: '#6B7280', fontSize: '12px' },
+                            formatter: function (value) {
+                                return "₩ " + value.toLocaleString();
+                            }
+                        }
+                    },
+                    fill: { opacity: 1 },
+                    tooltip: {
+                        y: {
+                            formatter: function (val) {
+                                return "₩ " + val.toLocaleString();
+                            }
+                        }
+                    },
+                    grid: { show: true, strokeDashArray: 4, padding: { left: 2, right: 2, top: 0 } }
+                };
+
+                const salesChart = new ApexCharts(document.getElementById("monthly-sales-chart"), salesOptions);
+                salesChart.render();
             }
 
         });
