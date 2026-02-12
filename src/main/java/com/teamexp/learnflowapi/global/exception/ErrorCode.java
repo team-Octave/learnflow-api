@@ -38,7 +38,9 @@ public enum ErrorCode {
     LECTURE_DELETED(HttpStatus.GONE, "이미 삭제된 강의입니다."), // to class as LectureDeletedException
     LECTURE_NOT_DELETED(HttpStatus.BAD_REQUEST, "삭제되지 않은 강의입니다."), // to class as LectureNotDeletedException
     LECTURE_CANNOT_UPDATE(HttpStatus.BAD_REQUEST, "강의를 수정할 수 없습니다."), // to class as LectureCannotUpdateException
-    LESSON_ACCESS_DENIED(HttpStatus.FORBIDDEN, "권한이 없습니다."), // to class as LessonAccessDeniedException
+    LESSON_ACCESS_DENIED(HttpStatus.FORBIDDEN, "권한이 없습니다."),// to class as LessonAccessDeniedException
+    MEMBERSHIP_NOT_FOUND_IN_LECTURE(HttpStatus.NOT_FOUND,"멤버십에 가입해주세요."),
+    MEMBERSHIP_EXPIRED(HttpStatus.BAD_REQUEST,"멤버십이 만료되었습니다. 새로 가입해주세요."),
 
     // Content 도메인 관련
     UPLOAD_NOT_EXIST(HttpStatus.BAD_REQUEST, "업로드할 파일이 없습니다."),
@@ -81,8 +83,6 @@ public enum ErrorCode {
     PAYMENT_ALREADY_PROCESSED(HttpStatus.BAD_REQUEST,"이미 처리된 결제 입니다."),
     ALREADY_ON_MEMBERSHIP(HttpStatus.BAD_REQUEST,"이미 멤버십에 가입되어 있습니다. 기간 종료후 결제 해주세요."),
     INVALID_PLAN_TYPE(HttpStatus.BAD_REQUEST, "유효하지 않은 요금제입니다."),
-    ;
-
 
     // AI 도메인 관련
     AI_TASK_NOT_FOUND(HttpStatus.NOT_FOUND, "요청한 AI 작업을 찾을 수 없습니다."),
