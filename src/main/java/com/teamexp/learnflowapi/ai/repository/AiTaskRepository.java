@@ -65,4 +65,13 @@ public interface AiTaskRepository extends JpaRepository<AiTask, Long> {
            "ORDER BY t.createdAt ASC " +
            "LIMIT 1")
     Optional<AiTask> findOneTaskToProcess(@Param("status") TaskStatus status);
+
+    /**
+     * 처리 가능한 태스크 존재 여부 확인 (Long Polling 최적화용 - 락 없음)
+     * 트랜잭션/락 없이 빠르게 확인하여 커넥션 풀 고갈 방지
+     */
+    @Query("SELECT CASE WHEN COUNT(t) > 0 THEN true ELSE false END FROM AiTask t " +
+           "WHERE t.status = :status " +
+           "AND (t.nextAttemptAt IS NULL OR t.nextAttemptAt <= CURRENT_TIMESTAMP)")
+    boolean existsTaskToProcess(@Param("status") TaskStatus status);
 }

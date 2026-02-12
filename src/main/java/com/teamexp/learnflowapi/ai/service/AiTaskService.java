@@ -99,7 +99,26 @@ public class AiTaskService {
         result.onTimeout(() -> future.cancel(false));
     }
 
+    /**
+     * 처리 가능한 태스크 존재 여부 확인 (락 없이 빠르게 확인)
+     * 커넥션 풀 고갈 방지를 위해 트랜잭션 없이 실행
+     */
+    private boolean hasReadyTask() {
+        return aiTaskRepository.existsTaskToProcess(TaskStatus.READY);
+    }
+
+    /**
+     * 태스크 조회 및 할당 (2단계 쿼리 방식)
+     * 1단계: 락 없이 존재 여부 확인 (커넥션 최소화)
+     * 2단계: 태스크 있을 때만 트랜잭션으로 할당
+     */
     private AiTaskPollResponse tryFetchTask(String workerId) {
+        // 1단계: 락 없이 빠르게 존재 여부 확인 (커넥션 풀 고갈 방지)
+        if (!hasReadyTask()) {
+            return null;
+        }
+
+        // 2단계: 태스크가 있을 때만 트랜잭션으로 락 획득 후 할당
         return transactionTemplate.execute(status -> {
             return aiTaskRepository.findOneTaskToProcess(TaskStatus.READY)
                 .map(task -> {
