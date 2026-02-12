@@ -27,8 +27,10 @@ import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.BDDMockito.given;
+import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.when;
 
 @ExtendWith(MockitoExtension.class)
 public class UserServiceTest {
@@ -168,14 +170,18 @@ public class UserServiceTest {
         verify(membershipRepository).findByUserId(Mockito.any());
     }
 
-    @Disabled("cd테스트 에러")
     @Test
-    @DisplayName("회원탈퇴 - deleteById 호출")
-    void tc8_withdraw_user_calls_deleteById() {
+    @DisplayName("회원탈퇴 - soft withdraw 호출")
+    void tc8_withdraw_user_calls_withDrawUser() {
         String userId = "testUserId";
+
+        User user = mock(User.class);
+        when(userRepository.findById(userId)).thenReturn(java.util.Optional.of(user));
 
         userService.withdrawUser(userId);
 
-        verify(userRepository).deleteById(userId);
+        verify(userRepository).findById(userId);
+        verify(user).withDrawUser();
+        verify(userRepository, never()).deleteById(org.mockito.ArgumentMatchers.any());
     }
 }
