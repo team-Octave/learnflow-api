@@ -46,8 +46,9 @@ public interface AiTaskRepository extends JpaRepository<AiTask, Long> {
      */
     @Modifying
     @Query("UPDATE AiTask t SET t.lastHeartbeatAt = :timestamp, t.currentStep = :step, t.progress = :progress " +
-           "WHERE t.id = :taskId AND t.workerId = :workerId AND t.status = 'PROCESSING'")
+           "WHERE t.id = :taskId AND t.workerId = :workerId AND t.status = :status")
     int updateHeartbeat(@Param("taskId") Long taskId, @Param("workerId") String workerId,
+                        @Param("status") TaskStatus status,
                         @Param("timestamp") Instant timestamp, @Param("step") String step,
                         @Param("progress") Integer progress);
 

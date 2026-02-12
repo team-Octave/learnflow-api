@@ -17,8 +17,8 @@ public class AiSummary {
     @Column(nullable = false, unique = true)
     private Long lessonId;
 
-    @Lob
     @Convert(converter = AiContentConverter.class)
+    @Column(columnDefinition = "JSON")
     private AiSummaryContent content;
 
     public AiSummary(Long lessonId, AiSummaryContent content) {

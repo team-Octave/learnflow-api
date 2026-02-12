@@ -1,7 +1,6 @@
 package com.teamexp.learnflowapi.ai.model;
 
 import com.teamexp.learnflowapi.ai.converter.AiContentConverter;
-import com.teamexp.learnflowapi.ai.converter.FullAnalysisConverter;
 import jakarta.persistence.*;
 import lombok.AccessLevel;
 import lombok.Getter;
@@ -36,16 +35,13 @@ public class AiContent {
     @Column(name = "duration_formatted", length = 20)
     private String durationFormatted;
 
-    @Lob
     @Column(name = "transcript", columnDefinition = "LONGTEXT")
     private String transcript;
 
-    @Lob
-    @Convert(converter = FullAnalysisConverter.class)
+    @Convert(converter = AiContentConverter.FullAnalysisConverter.class)
     @Column(name = "full_analysis", columnDefinition = "JSON")
     private FullAnalysisContent fullAnalysis;
 
-    @Lob
     @Convert(converter = AiContentConverter.class)
     @Column(name = "summary_content", columnDefinition = "JSON")
     private AiSummaryContent summaryContent;

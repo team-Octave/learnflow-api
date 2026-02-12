@@ -19,6 +19,7 @@ import com.teamexp.learnflowapi.lecture.model.Lesson;
 import com.teamexp.learnflowapi.lecture.repository.LessonRepository;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -106,8 +107,15 @@ public class AiWorkService {
         if (request.success()) {
             try {
                 AiSummaryContent content = objectMapper.readValue(request.summaryJson(), AiSummaryContent.class);
-                if (!aiSummaryRepository.existsByLessonId(task.getLessonId())) {
-                    aiSummaryRepository.save(new AiSummary(task.getLessonId(), content));
+                AiSummary summary = new AiSummary(task.getLessonId(), content);
+                try {
+                    aiSummaryRepository.saveAndFlush(summary);
+                } catch (DataIntegrityViolationException e) {
+                    if (isDuplicateKey(e)) {
+                        log.info("AiSummary already exists for lessonId={}, treating as success", task.getLessonId());
+                    } else {
+                        throw e;
+                    }
                 }
                 task.changeStatus(TaskStatus.COMPLETED);
                 log.info("AI 작업 완료: taskId={}", task.getId());
@@ -151,5 +159,14 @@ public class AiWorkService {
             log.info("재시도 예약 완료: taskId={}, count={}, nextAttemptAt={}",
                 task.getId(), task.getRetryCount(), task.getNextAttemptAt());
         }
+    }
+
+    private static boolean isDuplicateKey(DataIntegrityViolationException e) {
+        String msg = e.getMessage();
+        if (msg != null && msg.contains("Duplicate entry")) {
+            return true;
+        }
+        Throwable cause = e.getCause();
+        return cause != null && cause.getMessage() != null && cause.getMessage().contains("Duplicate entry");
     }
 }

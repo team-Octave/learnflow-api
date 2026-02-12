@@ -16,6 +16,7 @@ import com.teamexp.learnflowapi.lecture.model.Lesson;
 import com.teamexp.learnflowapi.lecture.repository.LessonRepository;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.transaction.support.TransactionTemplate;
@@ -23,9 +24,10 @@ import org.springframework.web.context.request.async.DeferredResult;
 
 import java.time.Instant;
 import java.time.temporal.ChronoUnit;
-import java.util.concurrent.Executors;
 import java.util.concurrent.ScheduledExecutorService;
+import java.util.concurrent.ScheduledFuture;
 import java.util.concurrent.TimeUnit;
+import java.util.concurrent.atomic.AtomicReference;
 
 @Slf4j
 @Service
@@ -39,12 +41,14 @@ public class AiTaskService {
     private final GcpSignedUrlService gcpSignedUrlService;
     private final ObjectMapper objectMapper;
     private final TransactionTemplate transactionTemplate;
+    private final ScheduledExecutorService aiPollingScheduler;
 
     private static final int SIGNED_URL_EXPIRATION_SEC = 3600;
-    private static final ScheduledExecutorService scheduler = Executors.newScheduledThreadPool(2);
+    private static final int POLL_INTERVAL_SEC = 2;
 
     /**
      * Long polling으로 태스크 조회
+     * ScheduledFuture는 완료/타임아웃/에러 시 cancel하여 리소스 누수 방지
      */
     public void pollTaskAsync(String workerId, int timeout, DeferredResult<BaseResponse<AiTaskPollResponse>> result) {
         // 즉시 태스크 확인
@@ -57,10 +61,15 @@ public class AiTaskService {
         // 태스크가 없으면 주기적으로 재시도
         long startTime = System.currentTimeMillis();
         long timeoutMs = timeout * 1000L;
+        AtomicReference<ScheduledFuture<?>> futureRef = new AtomicReference<>();
 
-        scheduler.scheduleAtFixedRate(() -> {
+        ScheduledFuture<?> future = aiPollingScheduler.scheduleAtFixedRate(() -> {
             try {
                 if (result.isSetOrExpired()) {
+                    ScheduledFuture<?> f = futureRef.get();
+                    if (f != null) {
+                        f.cancel(false);
+                    }
                     return;
                 }
 
@@ -77,7 +86,11 @@ public class AiTaskService {
             } catch (Exception e) {
                 log.error("태스크 폴링 중 오류 발생: workerId={}", workerId, e);
             }
-        }, 0, 2, TimeUnit.SECONDS);
+        }, 0, POLL_INTERVAL_SEC, TimeUnit.SECONDS);
+
+        futureRef.set(future);
+        result.onCompletion(() -> future.cancel(false));
+        result.onTimeout(() -> future.cancel(false));
     }
 
     private AiTaskPollResponse tryFetchTask(String workerId) {
@@ -96,6 +109,7 @@ public class AiTaskService {
 
                         Instant expiresAt = Instant.now().plusSeconds(SIGNED_URL_EXPIRATION_SEC);
 
+                        // 응답 생성에 필요한 데이터를 모두 확보한 뒤 할당하여, 예외 시 롤백으로 좀비 태스크 방지
                         task.assignToWorker(workerId);
 
                         log.info("AI Worker에게 작업 할당: taskId={}, lessonId={}, workerId={}",
@@ -112,6 +126,7 @@ public class AiTaskService {
                         );
                     } catch (Exception e) {
                         log.error("작업 할당 실패: taskId={}", task.getId(), e);
+                        status.setRollbackOnly();
                         return null;
                     }
                 })
@@ -156,19 +171,25 @@ public class AiTaskService {
             throw new IllegalArgumentException("Invalid fullAnalysis format", e);
         }
 
-        // AiContent 저장
-        if (!aiContentRepository.existsByLessonId(task.getLessonId())) {
-            AiContent content = AiContent.create(
-                task.getLessonId(),
-                request.durationSeconds(),
-                request.durationFormatted(),
-                request.transcript(),
-                fullAnalysis,
-                request.summary(),
-                request.modelVersion(),
-                request.processingTimeSeconds()
-            );
-            aiContentRepository.save(content);
+        // AiContent 저장 (동시 요청 시 유니크 제약 위반은 이미 존재로 간주하여 idempotent 처리)
+        AiContent content = AiContent.create(
+            task.getLessonId(),
+            request.durationSeconds(),
+            request.durationFormatted(),
+            request.transcript(),
+            fullAnalysis,
+            request.summary(),
+            request.modelVersion(),
+            request.processingTimeSeconds()
+        );
+        try {
+            aiContentRepository.saveAndFlush(content);
+        } catch (DataIntegrityViolationException e) {
+            if (isDuplicateKey(e)) {
+                log.info("AiContent already exists for lessonId={}, treating as success", task.getLessonId());
+            } else {
+                throw e;
+            }
         }
 
         // 태스크 완료
@@ -270,5 +291,14 @@ public class AiTaskService {
             taskId, request.currentStep(), request.progress());
 
         return AiTaskHeartbeatResponse.continueProcessing();
+    }
+
+    private static boolean isDuplicateKey(DataIntegrityViolationException e) {
+        String msg = e.getMessage();
+        if (msg != null && msg.contains("Duplicate entry")) {
+            return true;
+        }
+        Throwable cause = e.getCause();
+        return cause != null && cause.getMessage() != null && cause.getMessage().contains("Duplicate entry");
     }
 }
