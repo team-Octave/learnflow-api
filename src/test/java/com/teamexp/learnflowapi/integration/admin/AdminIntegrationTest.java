@@ -1,5 +1,6 @@
 package com.teamexp.learnflowapi.integration.admin;
 
+import com.teamexp.learnflowapi.admin.config.AdminInitializer;
 import com.teamexp.learnflowapi.admin.model.Approval;
 import com.teamexp.learnflowapi.admin.repository.ApprovalRepository;
 import com.teamexp.learnflowapi.global.security.jwt.JwtTokenProvider;
@@ -27,6 +28,8 @@ import org.springframework.test.util.ReflectionTestUtils;
 import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.transaction.annotation.Transactional;
 
+
+import java.util.UUID;
 
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.patch;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
@@ -66,16 +69,18 @@ public class AdminIntegrationTest {
 
     @BeforeEach
     void setUp() {
-        admin = userRepository.save(
-                User.createUser("admin@test.com", "password", "admin", UserRole.ADMIN)
+        String s = UUID.randomUUID().toString().substring(0, 8);
+
+        admin = userRepository.saveAndFlush(
+                User.createUser("admin+" + s + "@test.com", "password", "admin_" + s, UserRole.ADMIN)
         );
 
-        instructor = userRepository.save(
-                User.createUser("instructor@test.com", "password", "instructor", UserRole.MEMBER)
+        instructor = userRepository.saveAndFlush(
+                User.createUser("instructor+" + s + "@test.com", "password", "instructor_" + s, UserRole.MEMBER)
         );
 
-        member = userRepository.save(
-                User.createUser("member@test.com", "password", "member", UserRole.MEMBER)
+        member = userRepository.saveAndFlush(
+                User.createUser("member+" + s + "@test.com", "password", "member_" + s, UserRole.MEMBER)
         );
 
         adminToken = jwtTokenProvider.createAccessToken(
@@ -87,7 +92,7 @@ public class AdminIntegrationTest {
         );
 
         lecture = Lecture.createLecture(
-                "approval-target-lecture",
+                "approval-target-lecture-" + s,
                 "desc",
                 LectureLevel.BEGINNER,
                 1,
