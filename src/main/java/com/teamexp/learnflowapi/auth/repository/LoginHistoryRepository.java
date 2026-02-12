@@ -1,5 +1,6 @@
 package com.teamexp.learnflowapi.auth.repository;
 
+import com.teamexp.learnflowapi.admin.repository.projection.DailyStatProjection;
 import com.teamexp.learnflowapi.auth.model.LoginHistory;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Query;
@@ -21,8 +22,8 @@ public interface LoginHistoryRepository extends JpaRepository<LoginHistory, Long
      * 일별 DAU 추이 조회 (차트용)
      * TASK 2 AdminDashboardService에서 사용
      */
-    @Query("SELECT FUNCTION('DATE', lh.loginAt) as loginDate, COUNT(DISTINCT lh.userId) as userCount " +
+    @Query("SELECT FUNCTION('DATE', lh.loginAt) as date, COUNT(DISTINCT lh.userId) as count " +
            "FROM LoginHistory lh WHERE lh.loginAt BETWEEN :start AND :end " +
-           "GROUP BY FUNCTION('DATE', lh.loginAt) ORDER BY loginDate")
-    List<Object[]> findDailyActiveUsers(@Param("start") Instant start, @Param("end") Instant end);
+           "GROUP BY FUNCTION('DATE', lh.loginAt) ORDER BY date")
+    List<DailyStatProjection> findDailyActiveUsers(@Param("start") Instant start, @Param("end") Instant end);
 }

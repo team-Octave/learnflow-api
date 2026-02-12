@@ -1,5 +1,6 @@
 package com.teamexp.learnflowapi.user.repository;
 
+import com.teamexp.learnflowapi.admin.repository.projection.DailyStatProjection;
 import com.teamexp.learnflowapi.user.model.User;
 import java.time.Instant;
 import java.util.List;
@@ -37,7 +38,7 @@ public interface UserRepository extends JpaRepository<User, String> {
            "WHERE u.createdAt BETWEEN :start AND :end AND u.delFlag = false " +
            "GROUP BY FUNCTION('DATE', u.createdAt) " +
            "ORDER BY date ASC")
-    List<Object[]> findDailySignupStats(@Param("start") Instant start, @Param("end") Instant end);
+    List<DailyStatProjection> findDailySignupStats(@Param("start") Instant start, @Param("end") Instant end);
 
     // BackLogService용 - delFlag 기준 카운트
     Long countAllByDelFlagIs(boolean delFlag);

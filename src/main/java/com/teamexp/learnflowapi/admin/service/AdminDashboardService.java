@@ -2,6 +2,8 @@ package com.teamexp.learnflowapi.admin.service;
 
 import com.teamexp.learnflowapi.admin.dto.AdminDashboardDto;
 import com.teamexp.learnflowapi.admin.dto.AdminDashboardDto.DailyStatDto;
+import com.teamexp.learnflowapi.admin.repository.projection.DailyStatProjection;
+import com.teamexp.learnflowapi.admin.repository.projection.KeyCountProjection;
 import com.teamexp.learnflowapi.admin.service.dto.UserRateMembershipDto;
 import com.teamexp.learnflowapi.auth.repository.LoginHistoryRepository;
 import com.teamexp.learnflowapi.log.repository.TrackingRepository;
@@ -58,19 +60,19 @@ public class AdminDashboardService {
         long dauToday = (dauCount != null) ? dauCount : 0L;
 
         //가입자
-        List<Object[]> signupStats = userRepository.findDailySignupStats(weekStart, todayEnd);
+        List<DailyStatProjection> signupStats = userRepository.findDailySignupStats(weekStart, todayEnd);
         List<DailyStatDto> weeklyNewUsers = fillMissingDates(signupStats, weekAgoDate, 7);
 
         //DAU
-        List<Object[]> dauStats = loginHistoryRepository.findDailyActiveUsers(weekStart, todayEnd);
+        List<DailyStatProjection> dauStats = loginHistoryRepository.findDailyActiveUsers(weekStart, todayEnd);
         List<DailyStatDto> weeklyDau = fillMissingDates(dauStats, weekAgoDate, 7);
 
         //Referrer
-        List<Object[]> referrerStats = trackingRepository.findReferrerStats();
+        List<KeyCountProjection> referrerStats = trackingRepository.findReferrerStats();
         Map<String, Long> referrerDistribution = convertStatsToMap(referrerStats);
 
         //이탈 페이지(Exit Page)
-        List<Object[]> exitStats = trackingRepository.findExitPageStats();
+        List<KeyCountProjection> exitStats = trackingRepository.findExitPageStats();
         Map<String, Long> exitPageDistribution = convertStatsToMap(exitStats);
 
         // 구독 현황
@@ -106,11 +108,11 @@ public class AdminDashboardService {
         );
     }
 
-    private Map<String, Long> convertStatsToMap(List<Object[]> stats) {
+    private Map<String, Long> convertStatsToMap(List<KeyCountProjection> stats) {
         Map<String, Long> result = stats.stream()
                 .collect(Collectors.toMap(
-                        row -> (String) row[0],                 // Key (URL 또는 Path)
-                        row -> ((Number) row[1]).longValue(),   // Value (Count)
+                        KeyCountProjection::getKey,
+                        KeyCountProjection::getCount,
                         (oldVal, newVal) -> oldVal,             // 키 중복 시 기존 값 유지
                         LinkedHashMap::new                      // 순서 보장 (쿼리 정렬 유지)
                 ));
@@ -124,14 +126,14 @@ public class AdminDashboardService {
     }
 
 
-    private List<DailyStatDto> fillMissingDates(List<Object[]> rawData, LocalDate startDate, int days) {
+    private List<DailyStatDto> fillMissingDates(List<DailyStatProjection> rawData, LocalDate startDate, int days) {
         if (rawData == null) {
             rawData = new ArrayList<>();
         }
         Map<String, Long> statMap = rawData.stream()
                 .collect(Collectors.toMap(
-                        row -> row[0].toString(),
-                        row -> ((Number) row[1]).longValue(),
+                        DailyStatProjection::getDate,
+                        DailyStatProjection::getCount,
                         (v1, v2) -> v1
                 ));
 
