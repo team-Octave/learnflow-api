@@ -40,10 +40,16 @@ public class AiSummaryService {
         // 2. 신 시스템 결과 테이블(AiContent) 확인
         var contentResult = contentRepository.findByLessonId(lessonId);
         if (contentResult.isPresent()) {
-            return AiSummaryApiResponse.completed(
-                lessonId,
-                contentResult.get().getSummaryContent()
-            );
+            var content = contentResult.get();
+            var summaryContent = content.getSummaryContent();
+
+            // keyTakeaways가 null이면 fullAnalysis.keyPoints로 fallback
+            if (summaryContent != null && summaryContent.getKeyTakeaways() == null
+                    && content.getFullAnalysis() != null) {
+                summaryContent.setKeyTakeaways(content.getFullAnalysis().getKeyPoints());
+            }
+
+            return AiSummaryApiResponse.completed(lessonId, summaryContent);
         }
 
         // 3. 레거시 결과 테이블(AiSummary) 확인 (하위 호환)
