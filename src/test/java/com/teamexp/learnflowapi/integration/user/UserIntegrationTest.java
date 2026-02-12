@@ -100,7 +100,6 @@ public class UserIntegrationTest {
         assertThat(deletedUser.getDelFlag()).isTrue();
     }
 
-    @Disabled("TODO : 탈퇴 후 api 재요청했을 때 404 처리 필요")
     @Test
     @DisplayName("중복 탈퇴 요청 실패 - 이미 탈퇴된 유저")
     void tc24_withdraw_user_fail_already_withdrawn() throws Exception {
@@ -109,10 +108,10 @@ public class UserIntegrationTest {
                         .header("Authorization", "Bearer " + accessToken))
                 .andExpect(status().isOk());
 
-        // When & Then: 2차 탈퇴 요청 -> UserNotFound (404)
+        // When & Then: 2차 탈퇴 요청
         mockMvc.perform(delete("/api/v1/users/me")
                         .header("Authorization", "Bearer " + accessToken))
-                .andExpect(status().isNotFound());
+                .andExpect(status().isConflict());
     }
 
     @Test
@@ -123,7 +122,7 @@ public class UserIntegrationTest {
                         .header("Authorization", "Bearer " + accessToken))
                 .andExpect(status().isOk());
 
-        // When & Then: 탈퇴 유저로 로그인 시도 -> UserNotFound (404)
+        // When & Then: 탈퇴 유저로 로그인 시도
         String loginBody = objectMapper.writeValueAsString(
                 new java.util.HashMap<String, Object>() {{
                     put("email", user.getEmail());
@@ -137,7 +136,6 @@ public class UserIntegrationTest {
                 .andExpect(status().isUnauthorized());
     }
 
-    @Disabled("TODO : 탈퇴 후 GET /api/v1/users/me 호출 시 status 404 처리 필요")
     @Test
     @DisplayName("탈퇴 유저 /me 조회 실패")
     void tc26_withdrawn_user_me_lookup_fail() throws Exception {
@@ -149,6 +147,6 @@ public class UserIntegrationTest {
         // When & Then: 탈퇴 유저로 /me 조회 시도
         mockMvc.perform(get("/api/v1/users/me")
                         .header("Authorization", "Bearer " + accessToken))
-                .andExpect(status().isNotFound());
+                .andExpect(status().isConflict());
     }
 }
